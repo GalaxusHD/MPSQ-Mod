@@ -3,7 +3,7 @@
   "id": "mpsqcamera",
   "version": "${version}",
   "name": "MPSQ Team",
-  "description": "MPSQ Team client: cameras, screens, ranks and event coordination.",
+  "description": "MPSQ Team client: cameras, screens, ranks and event coordination via the official MPSQ service.",
   "authors": [
     "GalaxusHD"
   ],

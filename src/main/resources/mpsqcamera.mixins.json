@@ -7,7 +7,12 @@
     "GameRendererMixin",
     "KeyboardMixin",
     "InGameHudMixin",
-    "PlayerEntityRendererMixin"
+    "LivingEntityRendererMixin",
+    "EntityRendererMixin",
+    "PlayerEntityRendererMixin",
+    "ChatScreenMixin",
+    "ChatInputSuggestorMixin",
+    "ItemModelManagerMixin"
   ],
   "injectors": {
     "defaultRequire": 1
