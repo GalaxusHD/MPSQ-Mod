@@ -1,1 +1,67 @@
-
+{
+  "providers": [
+    {
+      "type": "bitmap",
+      "file": "mpsqcamera:font/ranks/vip.png",
+      "ascent": 8,
+      "height": 9,
+      "chars": ["\ue001"]
+    },
+    {
+      "type": "bitmap",
+      "file": "mpsqcamera:font/ranks/spieler.png",
+      "ascent": 8,
+      "height": 9,
+      "chars": ["\ue002"]
+    },
+    {
+      "type": "bitmap",
+      "file": "mpsqcamera:font/ranks/001.png",
+      "ascent": 8,
+      "height": 9,
+      "chars": ["\ue003"]
+    },
+    {
+      "type": "bitmap",
+      "file": "mpsqcamera:font/ranks/soldat.png",
+      "ascent": 8,
+      "height": 9,
+      "chars": ["\ue004"]
+    },
+    {
+      "type": "bitmap",
+      "file": "mpsqcamera:font/ranks/arbeiter.png",
+      "ascent": 8,
+      "height": 9,
+      "chars": ["\ue005"]
+    },
+    {
+      "type": "bitmap",
+      "file": "mpsqcamera:font/ranks/offizier.png",
+      "ascent": 8,
+      "height": 9,
+      "chars": ["\ue006"]
+    },
+    {
+      "type": "bitmap",
+      "file": "mpsqcamera:font/ranks/frontman.png",
+      "ascent": 8,
+      "height": 9,
+      "chars": ["\ue007"]
+    },
+    {
+      "type": "bitmap",
+      "file": "mpsqcamera:font/ranks/sr_offizier.png",
+      "ascent": 8,
+      "height": 9,
+      "chars": ["\ue008"]
+    },
+    {
+      "type": "bitmap",
+      "file": "mpsqcamera:font/ranks/streamer.png",
+      "ascent": 8,
+      "height": 9,
+      "chars": ["\ue009"]
+    }
+  ]
+}
