@@ -20,6 +20,8 @@ import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+import java.util.Locale;
+
 /** Ersetzt das serverseitige Nametag lokal durch MPSQ-Rangbild und Spielername. */
 @Mixin(net.minecraft.client.render.entity.PlayerEntityRenderer.class)
 public abstract class PlayerEntityRendererMixin {
@@ -91,8 +93,23 @@ public abstract class PlayerEntityRendererMixin {
 
     private static boolean matchesProfileName(String profileName, String renderedName) {
         if (profileName == null || profileName.isBlank() || renderedName == null) return false;
-        return renderedName.equalsIgnoreCase(profileName)
-                || renderedName.regionMatches(true, Math.max(0, renderedName.length() - profileName.length()),
-                profileName, 0, profileName.length());
+        String expected = profileName.trim().toLowerCase(Locale.ROOT);
+        String rendered = renderedName.toLowerCase(Locale.ROOT);
+        int from = 0;
+        while (from <= rendered.length() - expected.length()) {
+            int match = rendered.indexOf(expected, from);
+            if (match < 0) return false;
+            int end = match + expected.length();
+            boolean cleanStart = match == 0 || !isMinecraftNameCharacter(rendered.charAt(match - 1));
+            boolean cleanEnd = end == rendered.length() || !isMinecraftNameCharacter(rendered.charAt(end));
+            if (cleanStart && cleanEnd) return true;
+            from = match + 1;
+        }
+        return false;
+    }
+
+    private static boolean isMinecraftNameCharacter(char value) {
+        return value == '_' || value >= '0' && value <= '9'
+                || value >= 'a' && value <= 'z';
     }
 }
