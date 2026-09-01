@@ -7,7 +7,6 @@
     "GameRendererMixin",
     "KeyboardMixin",
     "InGameHudMixin",
-    "LivingEntityRendererMixin",
     "EntityRendererMixin",
     "PlayerEntityRendererMixin",
     "ChatScreenMixin",
