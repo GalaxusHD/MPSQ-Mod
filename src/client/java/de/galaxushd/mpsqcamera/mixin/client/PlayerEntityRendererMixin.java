@@ -46,7 +46,15 @@ public abstract class PlayerEntityRendererMixin {
                 .filter(value -> matchesProfileName(value.displayName(), stateName)
                         || matchesProfileName(value.displayName(), originalName))
                 .findFirst().orElse(null);
-        if (profile == null) return original;
+
+        // Players without the mod have no Supabase team profile. As long as
+        // this is the actual player-name label (and not a scoreboard line),
+        // remove the server prefix and show the neutral MPSQ Spieler rank.
+        if (profile == null) {
+            if (stateName.isBlank() || !matchesProfileName(stateName, originalName)) return original;
+            NametagRenderContext.activate();
+            return nametag(TeamRank.PLAYER, stateName);
+        }
         NametagRenderContext.activate();
 
         TeamProfile viewer = TeamStateStore.self().orElse(null);
@@ -56,13 +64,8 @@ public abstract class PlayerEntityRendererMixin {
         // Nur das private Sonderzeichen verwendet die Bitmap-Schrift. Leerzeichen
         // und Spielername erzwingen wieder die normale Minecraft-Schrift, damit
         // dort keine fehlenden Zeichen/Kästchen erscheinen.
-        Text icon = Text.literal(rankGlyph(profile.displayedRank()))
-                .setStyle(Style.EMPTY.withFont(MPSQ_RANK_FONT).withColor(Formatting.WHITE));
-        if (!maySeeName) return icon;
-        Text separator = Text.literal(" ").setStyle(Style.EMPTY.withFont(MINECRAFT_DEFAULT_FONT));
-        Text name = Text.literal(profile.displayName()).setStyle(Style.EMPTY
-                .withFont(MINECRAFT_DEFAULT_FONT).withColor(Formatting.WHITE));
-        return Text.empty().append(icon).append(separator).append(name);
+        if (!maySeeName) return rankIcon(profile.displayedRank());
+        return nametag(profile.displayedRank(), profile.displayName());
     }
 
 
@@ -89,6 +92,20 @@ public abstract class PlayerEntityRendererMixin {
             case FRONTMAN -> "\ue007";
             case SENIOR_OFFICER -> "\ue008";
         };
+    }
+
+    private static Text nametag(TeamRank rank, String playerName) {
+        Text separator = Text.literal(" ").setStyle(Style.EMPTY.withFont(MINECRAFT_DEFAULT_FONT));
+        Text name = Text.literal(playerName).setStyle(Style.EMPTY
+                .withFont(MINECRAFT_DEFAULT_FONT).withColor(Formatting.WHITE));
+        return Text.empty().append(rankIcon(rank)).append(separator).append(name);
+    }
+
+    private static Text rankIcon(TeamRank rank) {
+        // Only the private-use glyph uses the bitmap font. Normal spaces and
+        // player names explicitly switch back to Minecraft's default font.
+        return Text.literal(rankGlyph(rank))
+                .setStyle(Style.EMPTY.withFont(MPSQ_RANK_FONT).withColor(Formatting.WHITE));
     }
 
     private static boolean matchesProfileName(String profileName, String renderedName) {
