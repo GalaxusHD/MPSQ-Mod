@@ -25,14 +25,21 @@ public class MpsqCameraClient implements ClientModInitializer {
         CameraUsageHud.initialize();
         CinemaBrowserManager.initialize();
         MobileCameraManager.initialize();
-        MpsqApiClient.initialize().thenCompose(ignored -> MpsqApiClient.refreshCameras())
-        .thenCompose(ignored -> ScreenSyncManager.refresh())
-        .thenCompose(ignored -> MpsqApiClient.refreshTeamProfile())
-        .thenCompose(ignored -> MpsqApiClient.refreshTeamMembers())
-        .exceptionally(error -> {
-            LOGGER.warn("MPSQ-API ist momentan nicht erreichbar", error);
-            return null;
-        });
+        // Load the rank cache independently. A temporary camera or screen API
+        // error must never prevent MPSQ nametags from replacing server ranks.
+        var initialization = MpsqApiClient.initialize();
+        initialization.thenCompose(ignored -> MpsqApiClient.refreshTeamProfile())
+                .thenCompose(ignored -> MpsqApiClient.refreshTeamMembers())
+                .exceptionally(error -> {
+                    LOGGER.warn("MPSQ-Teamränge konnten nicht geladen werden", error);
+                    return null;
+                });
+        initialization.thenCompose(ignored -> MpsqApiClient.refreshCameras())
+                .thenCompose(ignored -> ScreenSyncManager.refresh())
+                .exceptionally(error -> {
+                    LOGGER.warn("MPSQ-Kameras oder Bildschirme konnten nicht geladen werden", error);
+                    return null;
+                });
         // The server's name prefix can be rendered before a menu is ever
         // opened. Refresh the public team cache on every world join so the
         // label mixin always has the MPSQ rank available to replace it.
