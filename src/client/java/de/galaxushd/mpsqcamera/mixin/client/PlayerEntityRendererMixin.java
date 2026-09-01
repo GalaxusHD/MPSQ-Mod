@@ -1,24 +1,30 @@
 package de.galaxushd.mpsqcamera.mixin.client;
 
-import de.galaxushd.mpsqcamera.TeamProfile;
+import de.galaxushd.mpsqcamera.NametagRenderContext;
+
 import de.galaxushd.mpsqcamera.MpsqCameraClient;
+import de.galaxushd.mpsqcamera.TeamProfile;
+import de.galaxushd.mpsqcamera.TeamRank;
 import de.galaxushd.mpsqcamera.TeamStateStore;
 import de.galaxushd.mpsqcamera.TeamVisibilitySettings;
 import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.render.entity.state.PlayerEntityRenderState;
 import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.text.Text;
 import net.minecraft.text.Style;
+import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-/** Replaces a server-provided prefix locally for MPSQ Team users. */
+/** Ersetzt das serverseitige Nametag lokal durch MPSQ-Rangbild und Spielername. */
 @Mixin(net.minecraft.client.render.entity.PlayerEntityRenderer.class)
 public abstract class PlayerEntityRendererMixin {
     private static final Identifier MPSQ_RANK_FONT = Identifier.of(MpsqCameraClient.MOD_ID, "ranks");
+    private static final Identifier MINECRAFT_DEFAULT_FONT = Identifier.of("minecraft", "default");
 
     @ModifyVariable(method = "renderLabelIfPresent", at = @At("HEAD"), argsOnly = true)
     private Text mpsq$replaceServerRank(
@@ -29,12 +35,9 @@ public abstract class PlayerEntityRendererMixin {
             VertexConsumerProvider consumers,
             int light
     ) {
+        NametagRenderContext.clear();
         if (!TeamVisibilitySettings.visible()) return original;
-        // Some servers pass the complete server label here (for example
-        // "ULTRA MP_SquidGame") instead of only the game-profile name.  Do
-        // not require an exact equality check: locate the known Minecraft
-        // name at the end of either text, then build a fresh label so the
-        // original server rank can never leak through.
+
         String stateName = state.name == null ? "" : state.name;
         String originalName = original.getString();
         TeamProfile profile = TeamStateStore.members().stream()
@@ -42,21 +45,41 @@ public abstract class PlayerEntityRendererMixin {
                         || matchesProfileName(value.displayName(), originalName))
                 .findFirst().orElse(null);
         if (profile == null) return original;
-        return Text.literal(rankGlyph(profile.displayedRank()))
-                .setStyle(Style.EMPTY.withFont(MPSQ_RANK_FONT).withColor(Formatting.WHITE))
-                .append(Text.literal(" "))
-                .append(Text.literal(profile.displayName()).formatted(Formatting.WHITE));
+        NametagRenderContext.activate();
+
+        TeamProfile viewer = TeamStateStore.self().orElse(null);
+        boolean maySeeName = profile.nameVisible()
+                || (viewer != null && viewer.permissionRank().canSeeHiddenNames());
+
+        // Nur das private Sonderzeichen verwendet die Bitmap-Schrift. Leerzeichen
+        // und Spielername erzwingen wieder die normale Minecraft-Schrift, damit
+        // dort keine fehlenden Zeichen/Kästchen erscheinen.
+        Text icon = Text.literal(rankGlyph(profile.displayedRank()))
+                .setStyle(Style.EMPTY.withFont(MPSQ_RANK_FONT).withColor(Formatting.WHITE));
+        if (!maySeeName) return icon;
+        Text separator = Text.literal(" ").setStyle(Style.EMPTY.withFont(MINECRAFT_DEFAULT_FONT));
+        Text name = Text.literal(profile.displayName()).setStyle(Style.EMPTY
+                .withFont(MINECRAFT_DEFAULT_FONT).withColor(Formatting.WHITE));
+        return Text.empty().append(icon).append(separator).append(name);
     }
 
-    /**
-     * The glyphs are bitmap entries in assets/mpsqcamera/font/ranks.json.  Using
-     * Minecraft's normal text renderer lets the icon appear in every 3D name
-     * label without relying on the server's resource-pack rank characters.
-     */
-    private static String rankGlyph(de.galaxushd.mpsqcamera.TeamRank rank) {
+
+    @Inject(method = "renderLabelIfPresent", at = @At("RETURN"))
+    private void mpsq$finishNametag(
+            PlayerEntityRenderState state,
+            Text text,
+            MatrixStack matrices,
+            VertexConsumerProvider consumers,
+            int light,
+            CallbackInfo ci
+    ) {
+        NametagRenderContext.clear();
+    }
+    private static String rankGlyph(TeamRank rank) {
         return switch (rank) {
             case VIP -> "\ue001";
             case PLAYER -> "\ue002";
+            case STREAMER -> "\ue009";
             case UNDERCOVER_001 -> "\ue003";
             case SOLDIER -> "\ue004";
             case WORKER -> "\ue005";
