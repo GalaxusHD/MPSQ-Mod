@@ -7,16 +7,17 @@ import net.minecraft.util.Identifier;
 
 /** Shared MPSQ Team roles. The order is the permission order, not a public leaderboard. */
 public enum TeamRank {
-    VIP("vip", "VIP", 0, 864),
-    PLAYER("spieler", "Spieler", 1, 1440),
-    UNDERCOVER_001("001", "001", 2, 672),
-    SOLDIER("soldat", "Soldat", 3, 1248),
-    WORKER("arbeiter", "Arbeiter", 4, 1632),
-    OFFICER("offizier", "Offizier", 5, 1632),
-    FRONTMAN("frontman", "Frontman", 6, 1632),
-    SENIOR_OFFICER("sr_offizier", "Sr Offizier", 7, 2208);
+    VIP("vip", "VIP", 0, 992),
+    PLAYER("spieler", "Spieler", 1, 1568),
+    STREAMER("streamer", "Streamer", 2, 1760),
+    UNDERCOVER_001("001", "001", 3, 864),
+    SOLDIER("soldat", "Soldat", 4, 1376),
+    WORKER("arbeiter", "Arbeiter", 5, 1760),
+    OFFICER("offizier", "Offizier", 6, 1760),
+    FRONTMAN("frontman", "Frontman", 7, 1760),
+    SENIOR_OFFICER("sr_offizier", "Sr Offizier", 8, 2272);
 
-    private static final int TEXTURE_HEIGHT = 224;
+    private static final int TEXTURE_HEIGHT = 320;
     private final String id;
     private final String label;
     private final int level;
@@ -36,11 +37,14 @@ public enum TeamRank {
     public Formatting chatColor() {
         return switch (this) {
             case UNDERCOVER_001, VIP -> Formatting.GOLD;
+            case STREAMER -> Formatting.LIGHT_PURPLE;
             case SOLDIER, WORKER, OFFICER -> Formatting.RED;
             case FRONTMAN, SENIOR_OFFICER -> Formatting.DARK_GRAY;
             case PLAYER -> Formatting.AQUA;
         };
     }
+    public boolean canViewCameras() { return this == STREAMER || level >= SOLDIER.level; }
+    public boolean canSeeHiddenNames() { return level >= SOLDIER.level; }
     public Identifier texture() { return Identifier.of(MpsqCameraClient.MOD_ID, "textures/gui/ranks/" + id + ".png"); }
     public int widthForHeight(int height) { return Math.max(1, textureWidth * height / TEXTURE_HEIGHT); }
 

@@ -62,6 +62,7 @@ public final class ScreenRenderer {
             double z2 = Math.max(first.getZ(), second.getZ()) + 1.0;
 
             boolean cameraScreen = screen.inputType() == LocalScreenStore.ScreenInputType.CAMERA;
+            boolean mayViewCamera = TeamStateStore.self().map(TeamProfile::canViewCameras).orElse(false);
             java.util.UUID activeCamera = cameraScreen ? ScreenCameraStore.active(screen.id()) : null;
             // Older records and freshly-created screens may not have reached the
             // per-screen cache yet. The primary camera is still a valid fallback.
@@ -71,12 +72,13 @@ public final class ScreenRenderer {
             boolean blockedCamera = cameraScreen && LocalCameraStore.find(activeCamera)
                     .map(cameraData -> CameraSafety.isStaticCameraBlocked(MinecraftClient.getInstance(), cameraData))
                     .orElse(false);
-            Identifier texture = cameraScreen && blockedCamera
+            Identifier texture = cameraScreen && (!mayViewCamera || blockedCamera)
                     ? null
                     : (cameraScreen ? RemoteCameraFrameManager.texture(activeCamera) : CinemaBrowserManager.texture(screen.id()));
             CinemaBrowserManager.ScreenStatus screenStatus = cameraScreen
-                    ? (blockedCamera ? CinemaBrowserManager.ScreenStatus.BLOCKED
-                    : (texture == null ? CinemaBrowserManager.ScreenStatus.OFFLINE : CinemaBrowserManager.ScreenStatus.NONE))
+                    ? (!mayViewCamera ? CinemaBrowserManager.ScreenStatus.OFFLINE
+                    : (blockedCamera ? CinemaBrowserManager.ScreenStatus.BLOCKED
+                    : (texture == null ? CinemaBrowserManager.ScreenStatus.OFFLINE : CinemaBrowserManager.ScreenStatus.NONE)))
                     : CinemaBrowserManager.status(screen);
 
             drawScreenFace(

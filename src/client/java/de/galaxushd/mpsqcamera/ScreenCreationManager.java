@@ -26,6 +26,7 @@ import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 import org.lwjgl.glfw.GLFW;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -118,12 +119,18 @@ public final class ScreenCreationManager {
 		}
 
 		ClientPlayerEntity player = client.player;
+		showSelectionDimensions(player);
 
 		if (activeViewSession != null) {
-			LocalScreenStore.findByAnchor(activeViewSession.sourceAnchor()).ifPresent(screen -> {
-				if (previousCameraPressed && !wasPreviousCameraPressed) switchCamera(screen.id(), -1);
-				if (nextCameraPressed && !wasNextCameraPressed) switchCamera(screen.id(), 1);
-			});
+			if (activeViewSession.isMobile()) {
+				if (previousCameraPressed && !wasPreviousCameraPressed) switchMobileCamera(-1);
+				if (nextCameraPressed && !wasNextCameraPressed) switchMobileCamera(1);
+			} else {
+				LocalScreenStore.findByAnchor(activeViewSession.sourceAnchor()).ifPresent(screen -> {
+					if (previousCameraPressed && !wasPreviousCameraPressed) switchCamera(screen.id(), -1);
+					if (nextCameraPressed && !wasNextCameraPressed) switchCamera(screen.id(), 1);
+				});
+			}
 			handleActiveViewSession(client, player, usePressed, escPressed);
 		} else {
 			LocalScreenStore.LocalScreenData lookedAt = getScreenAtCrosshair(client).orElse(null);
@@ -181,6 +188,28 @@ public final class ScreenCreationManager {
 			}
 		});
 		MpsqCameraClient.LOGGER.info("[MPSQ] Aktive Kamera gewechselt: {}", camera);
+	}
+
+	private static void switchMobileCamera(int direction) {
+		if (activeViewSession == null || !activeViewSession.isMobile()) return;
+		List<UUID> cameras = activeViewSession.mobileCameraIds();
+		if (cameras.isEmpty()) return;
+		int current = cameras.indexOf(activeViewSession.cameraId());
+		int next = Math.floorMod((current < 0 ? 0 : current) + direction, cameras.size());
+		UUID cameraId = cameras.get(next);
+		MinecraftClient client = MinecraftClient.getInstance();
+		LocalCameraStore.find(cameraId).ifPresent(camera -> {
+			Vec3d position = cameraPosition(client, camera);
+			if (position == null || CameraSafety.isStaticCameraBlocked(client, camera)) return;
+			placeCameraProxy(activeViewSession.cameraEntity(), position,
+					cameraYaw(client, camera), cameraPitch(client, camera));
+			activeViewSession.setViewRotation(cameraYaw(client, camera), cameraPitch(client, camera));
+			activeViewSession.setCameraId(cameraId);
+			RemoteCameraFrameManager.startPublishing(cameraId);
+			if (client.player != null) {
+				client.player.sendMessage(Text.literal(camera.name() + " " + (next + 1) + "/" + cameras.size()), true);
+			}
+		});
 	}
 
 	private static UUID activeCameraId(LocalScreenStore.LocalScreenData screen) {
@@ -272,6 +301,7 @@ public final class ScreenCreationManager {
 	}
 
 	private static void tryEnterViewMode(MinecraftClient client, ClientPlayerEntity player) {
+		if (!TeamStateStore.self().map(TeamProfile::canViewCameras).orElse(false)) return;
 		long now = System.currentTimeMillis();
 		if (now - lastViewEnterAttemptMs < VIEW_ENTER_COOLDOWN_MS) {
 			return;
@@ -300,6 +330,40 @@ public final class ScreenCreationManager {
 			return;
 		}
 
+		beginViewMode(client, player, cameraScreen, screen.pos1().toImmutable(), List.of());
+	}
+
+	/** Opens the normal camera view from the player-bound mobile clock. */
+	public static boolean enterMobileView(List<UUID> linkedCameraIds) {
+		MinecraftClient client = MinecraftClient.getInstance();
+		ClientPlayerEntity player = client.player;
+		if (player == null || client.world == null || activeViewSession != null) return false;
+		if (!TeamVisibilitySettings.visible()) return false;
+		if (!TeamStateStore.self().map(TeamProfile::canViewCameras).orElse(false)) return false;
+
+		List<UUID> available = linkedCameraIds.stream()
+				.distinct()
+				.filter(id -> LocalCameraStore.find(id).isPresent())
+				.toList();
+		if (available.isEmpty()) return false;
+
+		for (UUID cameraId : available) {
+			LocalCameraStore.CameraData camera = LocalCameraStore.find(cameraId).orElse(null);
+			if (camera == null || cameraPosition(client, camera) == null) continue;
+			if (CameraSafety.isStaticCameraBlocked(client, camera)) continue;
+			if (!isCameraAreaLoadedByAnyPlayer(client, cameraPosition(client, camera))) continue;
+			beginViewMode(client, player, camera, null, available);
+			return true;
+		}
+		return false;
+	}
+
+	private static void beginViewMode(MinecraftClient client, ClientPlayerEntity player,
+			LocalCameraStore.CameraData cameraScreen, BlockPos sourceAnchor, List<UUID> mobileCameraIds) {
+		UUID cameraId = cameraScreen.id();
+		Vec3d cameraPos = cameraPosition(client, cameraScreen);
+		if (cameraPos == null) return;
+
 		// Die gespeicherte Position ist der Blickpunkt der Kamera. Die genaue
 		// Augenhoehe des unsichtbaren Proxis wird deshalb nach dem Erzeugen
 		// dynamisch ausgeglichen, statt durch einen festen Wert geschaetzt.
@@ -317,7 +381,7 @@ public final class ScreenCreationManager {
 		Perspective previousPerspective = client.options.getPerspective();
 
 		activeViewSession = new ViewSession(
-				screen.pos1().toImmutable(),
+				sourceAnchor,
 				cameraId,
 				player.getPos(),
 				client.world.getRegistryKey(),
@@ -325,8 +389,14 @@ public final class ScreenCreationManager {
 				previousPerspective,
 				cameraEntity,
 				cameraYaw(client, cameraScreen),
-				cameraPitch(client, cameraScreen)
+				cameraPitch(client, cameraScreen),
+				mobileCameraIds
 		);
+
+		// A mobile view is opened by the same use-key press that would normally
+		// close an active view. Arm the edge detector immediately so this opening
+		// click cannot be interpreted as a second, new click in onEndTick.
+		wasUsePressedLastTick = true;
 
 		client.setCameraEntity(cameraEntity);
 		client.options.setPerspective(Perspective.FIRST_PERSON);
@@ -370,6 +440,11 @@ public final class ScreenCreationManager {
 		// Do not abort a remote view merely because Windows temporarily steals
 		// focus or Minecraft briefly creates an overlay while focus returns.
 		// A deliberate ESC press is handled separately in handleActiveViewSession.
+
+		if (session.isMobile()) {
+			LocalCameraStore.CameraData camera = LocalCameraStore.find(session.cameraId()).orElse(null);
+			return camera != null && cameraPosition(client, camera) != null;
+		}
 
 		LocalScreenStore.LocalScreenData sourceScreen = LocalScreenStore.findByAnchor(session.sourceAnchor()).orElse(null);
 		if (sourceScreen == null) return false;
@@ -527,6 +602,11 @@ public final class ScreenCreationManager {
 	}
 
 	private static boolean isCameraAreaLoadedByAnyPlayer(MinecraftClient client, Vec3d cameraPos) {
+		// The integrated singleplayer server belongs to this client. There is no
+		// second mod user required to make one of its cameras available.
+		if (client.isInSingleplayer()) {
+			return true;
+		}
 		double maxDistSq = CAMERA_LOAD_RANGE * CAMERA_LOAD_RANGE;
 		for (PlayerEntity worldPlayer : client.world.getPlayers()) {
 			if (worldPlayer.squaredDistanceTo(cameraPos) <= maxDistSq) {
@@ -534,6 +614,22 @@ public final class ScreenCreationManager {
 			}
 		}
 		return false;
+	}
+
+	private static void showSelectionDimensions(ClientPlayerEntity player) {
+		if (selectionPos1 == null || !isHoldingToolItem(player)) {
+			return;
+		}
+		BlockPos preview = getSelectionPos2Preview();
+		if (preview == null) {
+			return;
+		}
+		int width = Math.max(
+				Math.abs(preview.getX() - selectionPos1.getX()),
+				Math.abs(preview.getZ() - selectionPos1.getZ())
+		) + 1;
+		int height = Math.abs(preview.getY() - selectionPos1.getY()) + 1;
+		player.sendMessage(Text.translatable("gui.mpsqcamera.selection.dimensions", width, height), true);
 	}
 
 	private static Vec3d toCameraProxyPos(ArmorStandEntity proxy, Vec3d cameraEyePos) {
@@ -633,11 +729,12 @@ public final class ScreenCreationManager {
 		private final ArmorStandEntity cameraEntity;
 		private float viewYaw;
 		private float viewPitch;
+		private final List<UUID> mobileCameraIds;
 
 		private ViewSession(BlockPos sourceAnchor, UUID cameraId, Vec3d originPos,
 				RegistryKey<World> originDimension, Entity previousCameraEntity,
 				Perspective previousPerspective, ArmorStandEntity cameraEntity,
-				float viewYaw, float viewPitch) {
+				float viewYaw, float viewPitch, List<UUID> mobileCameraIds) {
 			this.sourceAnchor = sourceAnchor;
 			this.cameraId = cameraId;
 			this.originPos = originPos;
@@ -647,6 +744,7 @@ public final class ScreenCreationManager {
 			this.cameraEntity = cameraEntity;
 			this.viewYaw = viewYaw;
 			this.viewPitch = viewPitch;
+			this.mobileCameraIds = List.copyOf(mobileCameraIds);
 		}
 
 		private BlockPos sourceAnchor() { return sourceAnchor; }
@@ -655,6 +753,9 @@ public final class ScreenCreationManager {
 		private Entity previousCameraEntity() { return previousCameraEntity; }
 		private Perspective previousPerspective() { return previousPerspective; }
 		private ArmorStandEntity cameraEntity() { return cameraEntity; }
+		private UUID cameraId() { return cameraId; }
+		private boolean isMobile() { return sourceAnchor == null; }
+		private List<UUID> mobileCameraIds() { return mobileCameraIds; }
 		private void setCameraId(UUID cameraId) { this.cameraId = cameraId; }
 
 		private void applyMouseLook(double cursorDeltaX, double cursorDeltaY) {

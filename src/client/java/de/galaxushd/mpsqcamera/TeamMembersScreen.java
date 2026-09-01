@@ -126,7 +126,8 @@ public final class TeamMembersScreen extends Screen {
 
     private boolean publicView() {
         TeamProfile self = TeamStateStore.self().orElse(null);
-        return self == null || self.baseRank() == TeamRank.PLAYER || self.baseRank() == TeamRank.VIP || self.baseRank() == TeamRank.UNDERCOVER_001;
+        return self == null || self.baseRank() == TeamRank.PLAYER || self.baseRank() == TeamRank.VIP
+                || self.baseRank() == TeamRank.STREAMER || self.baseRank() == TeamRank.UNDERCOVER_001;
     }
 
     private boolean selfView() {
@@ -156,7 +157,7 @@ public final class TeamMembersScreen extends Screen {
         // changing the protected Sr-Offizier base role.
         if (seniorSelfSelected()) {
             return List.of(TeamRank.FRONTMAN, TeamRank.OFFICER, TeamRank.SOLDIER,
-                    TeamRank.WORKER, TeamRank.UNDERCOVER_001, TeamRank.VIP, TeamRank.PLAYER);
+                    TeamRank.WORKER, TeamRank.UNDERCOVER_001, TeamRank.STREAMER, TeamRank.PLAYER, TeamRank.VIP);
         }
         return List.of(TeamRank.UNDERCOVER_001);
     }
@@ -175,16 +176,16 @@ public final class TeamMembersScreen extends Screen {
         TeamProfile self = TeamStateStore.self().orElse(null);
         if (self == null || selected == null || selected.baseRank() == TeamRank.SENIOR_OFFICER) return List.of();
         return switch (self.baseRank()) {
-            case OFFICER, FRONTMAN -> List.of(TeamRank.SOLDIER, TeamRank.WORKER, TeamRank.VIP, TeamRank.PLAYER);
+            case OFFICER, FRONTMAN -> List.of(TeamRank.SOLDIER, TeamRank.WORKER, TeamRank.STREAMER, TeamRank.PLAYER, TeamRank.VIP);
             case SENIOR_OFFICER -> List.of(TeamRank.FRONTMAN, TeamRank.OFFICER, TeamRank.SOLDIER,
-                    TeamRank.WORKER, TeamRank.VIP, TeamRank.PLAYER);
+                    TeamRank.WORKER, TeamRank.STREAMER, TeamRank.PLAYER, TeamRank.VIP);
             default -> List.of();
         };
     }
 
     private List<TeamRank> publicRanks() {
         return List.of(TeamRank.FRONTMAN, TeamRank.SENIOR_OFFICER, TeamRank.OFFICER, TeamRank.SOLDIER,
-                TeamRank.WORKER, TeamRank.UNDERCOVER_001, TeamRank.VIP, TeamRank.PLAYER);
+                TeamRank.WORKER, TeamRank.UNDERCOVER_001, TeamRank.STREAMER, TeamRank.PLAYER, TeamRank.VIP);
     }
 
     @Override

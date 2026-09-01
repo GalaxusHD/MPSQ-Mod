@@ -24,6 +24,7 @@ public class MpsqCameraClient implements ClientModInitializer {
 		TeamChatRelayManager.initialize();
         CameraUsageHud.initialize();
         CinemaBrowserManager.initialize();
+        MobileCameraManager.initialize();
         MpsqApiClient.initialize().thenCompose(ignored -> MpsqApiClient.refreshCameras())
         .thenCompose(ignored -> ScreenSyncManager.refresh())
         .thenCompose(ignored -> MpsqApiClient.refreshTeamProfile())

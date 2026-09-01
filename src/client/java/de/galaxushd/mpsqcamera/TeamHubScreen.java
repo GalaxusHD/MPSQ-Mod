@@ -31,7 +31,7 @@ public final class TeamHubScreen extends Screen {
                 .dimensions(x, y += BUTTON_HEIGHT + GAP, BUTTON_WIDTH, BUTTON_HEIGHT).build()).active = available || canEditTodos;
         addDrawableChild(ButtonWidget.builder(Text.translatable("gui.mpsqcamera.team.timer"), b -> client.setScreen(new TeamBoardScreen(this, TeamBoardScreen.Mode.TIMER)))
                 .dimensions(x, y += BUTTON_HEIGHT + GAP, BUTTON_WIDTH, BUTTON_HEIGHT).build()).active = available || canManageEvent;
-        addDrawableChild(ButtonWidget.builder(Text.translatable("gui.mpsqcamera.team.templates"), b -> client.setScreen(new TeamBoardScreen(this, TeamBoardScreen.Mode.TEMPLATES)))
+        addDrawableChild(ButtonWidget.builder(Text.translatable("gui.mpsqcamera.team.templates"), b -> client.setScreen(new TeamTemplatesScreen(this)))
                 .dimensions(x, y += BUTTON_HEIGHT + GAP, BUTTON_WIDTH, BUTTON_HEIGHT).build()).active = available || canManageEvent;
         addDrawableChild(ButtonWidget.builder(Text.translatable("gui.mpsqcamera.back"), b -> client.setScreen(parent))
                 .dimensions(width / 2 - 75, height - 36, 150, 20).build());

@@ -16,22 +16,27 @@ public final class TeamChatText {
     public static MutableText fromAmpersandCodes(String raw, Formatting initialColor) {
         MutableText result = Text.empty();
         String text = raw == null ? "" : raw;
-        Formatting color = initialColor;
+        int color = initialColor.getColorValue() == null ? 0xFFFFFF : initialColor.getColorValue();
         EnumSet<Formatting> styles = EnumSet.noneOf(Formatting.class);
         StringBuilder part = new StringBuilder();
 
         for (int index = 0; index < text.length(); index++) {
             char current = text.charAt(index);
             if (current == '&' && index + 1 < text.length()) {
-                Formatting code = formatting(text.charAt(index + 1));
-                if (code != null) {
+                char rawCode = Character.toLowerCase(text.charAt(index + 1));
+                Integer customColor = customColor(rawCode);
+                Formatting code = formatting(rawCode);
+                if (code != null || customColor != null) {
                     append(result, part, color, styles);
                     part.setLength(0);
-                    if (code == Formatting.RESET) {
-                        color = initialColor;
+                    if (customColor != null) {
+                        color = customColor;
+                        styles.clear();
+                    } else if (code == Formatting.RESET) {
+                        color = initialColor.getColorValue() == null ? 0xFFFFFF : initialColor.getColorValue();
                         styles.clear();
                     } else if (code.isColor()) {
-                        color = code;
+                        color = code.getColorValue();
                         styles.clear();
                     } else {
                         styles.add(code);
@@ -46,12 +51,24 @@ public final class TeamChatText {
         return result;
     }
 
-    private static void append(MutableText target, StringBuilder part, Formatting color, EnumSet<Formatting> styles) {
+    private static void append(MutableText target, StringBuilder part, int color, EnumSet<Formatting> styles) {
         if (part.isEmpty()) return;
-        List<Formatting> formatting = new ArrayList<>(styles.size() + 1);
-        formatting.add(color);
-        formatting.addAll(styles);
-        target.append(Text.literal(part.toString()).formatted(formatting.toArray(Formatting[]::new)));
+        target.append(Text.literal(part.toString())
+                .formatted(styles.toArray(Formatting[]::new))
+                .styled(style -> style.withColor(color)));
+    }
+
+    /** Extra MixelPixel chat colors that deliberately do not collide with vanilla codes. */
+    private static Integer customColor(char code) {
+        return switch (code) {
+            case 'g' -> 0x1597D4; // kräftiges Himmelblau
+            case 'h' -> 0x55D51C; // Limettengrün
+            case 'i' -> 0x6515E8; // Violett
+            case 'j' -> 0xE6D19A; // helles Beige/Gold
+            case 'p' -> 0x793434; // dunkles Weinrot
+            case 'q' -> 0xFF6A00; // Orange
+            default -> null;
+        };
     }
 
     private static Formatting formatting(char code) {

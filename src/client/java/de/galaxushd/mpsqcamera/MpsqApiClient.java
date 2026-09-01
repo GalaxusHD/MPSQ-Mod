@@ -190,6 +190,14 @@ public final class MpsqApiClient {
         });
     }
 
+    /** Stores whether this member's normal name is shown below the rank image. */
+    public static CompletableFuture<Void> setOwnNameVisible(boolean visible) {
+        JsonObject body = new JsonObject();
+        body.addProperty("visible", visible);
+        return post("/team/me/name-visibility", body)
+                .thenCompose(ignored -> refreshTeamProfile()).thenApply(ignored -> null);
+    }
+
     /** The API only returns members the signed-in user is allowed to see. */
     public static CompletableFuture<List<TeamProfile>> refreshTeamMembers() {
         return get("/team/members").thenApply(json -> {
@@ -359,15 +367,34 @@ public final class MpsqApiClient {
             if (!json.isJsonArray()) return templates;
             for (JsonElement element : json.getAsJsonArray()) {
                 JsonObject row = element.getAsJsonObject();
-                templates.add(new TeamTemplate(UUID.fromString(row.get("id").getAsString()), row.get("text").getAsString()));
+                TeamTemplate.Speaker speaker = TeamTemplate.Speaker.fromId(
+                        row.has("speaker") && !row.get("speaker").isJsonNull() ? row.get("speaker").getAsString() : "offizier");
+                templates.add(new TeamTemplate(UUID.fromString(row.get("id").getAsString()), row.get("text").getAsString(), speaker));
             }
             return templates;
         });
     }
 
     public static CompletableFuture<Void> addTeamTemplate(String text) {
-        JsonObject body = new JsonObject(); body.addProperty("text", text);
+        return addTeamTemplate(text, TeamTemplate.Speaker.OFFICER);
+    }
+
+    public static CompletableFuture<Void> addTeamTemplate(String text, TeamTemplate.Speaker speaker) {
+        JsonObject body = new JsonObject();
+        body.addProperty("text", text);
+        body.addProperty("speaker", speaker.id());
         return post("/team/templates", body).thenApply(ignored -> (Void) null);
+    }
+
+    public static CompletableFuture<Void> updateTeamTemplate(UUID id, String text, TeamTemplate.Speaker speaker) {
+        JsonObject body = new JsonObject();
+        body.addProperty("text", text);
+        body.addProperty("speaker", speaker.id());
+        return patch("/team/templates/" + id, body).thenApply(ignored -> (Void) null);
+    }
+
+    public static CompletableFuture<Void> deleteTeamTemplate(UUID id) {
+        return delete("/team/templates/" + id).thenApply(ignored -> (Void) null);
     }
 
     private static TeamProfile parseTeamProfile(JsonElement json) {
@@ -377,7 +404,9 @@ public final class MpsqApiClient {
         TeamRank base = TeamRank.fromId(row.has("base_rank") ? row.get("base_rank").getAsString() : "spieler");
         TeamRank active = row.has("active_rank") && !row.get("active_rank").isJsonNull()
                 ? TeamRank.fromId(row.get("active_rank").getAsString()) : null;
-        return new TeamProfile(id, name, base, active);
+        boolean nameVisible = !row.has("name_visible") || row.get("name_visible").isJsonNull()
+                || row.get("name_visible").getAsBoolean();
+        return new TeamProfile(id, name, base, active, nameVisible);
     }
 
     private static CompletableFuture<JsonElement> request(String method, String path, JsonObject body, boolean authenticated) {

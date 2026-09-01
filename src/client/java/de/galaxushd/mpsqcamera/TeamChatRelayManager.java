@@ -54,9 +54,9 @@ public final class TeamChatRelayManager {
     }
 
     private static Text format(TeamChatMessage message) {
-        MutableText text = Text.literal("<").formatted(Formatting.DARK_GRAY)
+        MutableText text = Text.literal("<").formatted(Formatting.GRAY)
                 .append(Text.literal("MPSQ").formatted(Formatting.DARK_RED, Formatting.BOLD))
-                .append(Text.literal("> ").formatted(Formatting.DARK_GRAY));
+                .append(Text.literal("> ").formatted(Formatting.GRAY));
         String content = message.message();
         if (content.equalsIgnoreCase(message.senderName())) content = "";
         String duplicatePrefix = message.senderName() + ": ";

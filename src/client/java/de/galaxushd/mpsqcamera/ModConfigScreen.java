@@ -44,17 +44,24 @@ public class ModConfigScreen extends Screen {
                 .dimensions(menuX, nextControlY(menuTop, 1), buttonWidth, BUTTON_HEIGHT).build());
         addDrawableChild(ButtonWidget.builder(Text.translatable("gui.mpsqcamera.main.screens"), button -> openScreens())
                 .dimensions(menuX, nextControlY(menuTop, 2), buttonWidth, BUTTON_HEIGHT).build());
-        addDrawableChild(ButtonWidget.builder(Text.translatable("gui.mpsqcamera.main.cameras"), button -> openCameras())
+        ButtonWidget cameraButton = addDrawableChild(ButtonWidget.builder(Text.translatable("gui.mpsqcamera.main.cameras"), button -> openCameras())
                 .dimensions(menuX, nextControlY(menuTop, 3), buttonWidth, BUTTON_HEIGHT).build());
+        cameraButton.active = TeamStateStore.self().map(TeamProfile::canViewCameras).orElse(false);
         addDrawableChild(ButtonWidget.builder(Text.translatable("gui.mpsqcamera.main.settings"), button -> openSettings())
                 .dimensions(menuX, nextControlY(menuTop, 4), buttonWidth, BUTTON_HEIGHT).build());
         addDrawableChild(ButtonWidget.builder(Text.translatable("gui.mpsqcamera.hauptmenu.lizenz"), button -> openLicense())
                 .dimensions(LICENSE_MARGIN, height - LICENSE_MARGIN - BUTTON_HEIGHT, LICENSE_WIDTH, BUTTON_HEIGHT).build());
         addDrawableChild(ButtonWidget.builder(visibilityButtonText(), button -> {
                     TeamVisibilitySettings.toggle();
-                    button.setMessage(visibilityButtonText());
+                    client.setScreen(new ModConfigScreen());
                 })
                 .dimensions(width - LICENSE_MARGIN - LICENSE_WIDTH, height - LICENSE_MARGIN - BUTTON_HEIGHT, LICENSE_WIDTH, BUTTON_HEIGHT).build());
+        if (TeamVisibilitySettings.visible()) {
+            addDrawableChild(ButtonWidget.builder(nameVisibilityButtonText(), button -> toggleOwnNameVisibility(button))
+                    .dimensions(width - LICENSE_MARGIN - LICENSE_WIDTH,
+                            height - LICENSE_MARGIN - BUTTON_HEIGHT * 2 - BUTTON_SPACING,
+                            LICENSE_WIDTH, BUTTON_HEIGHT).build());
+        }
         int teamButtonY = height - LICENSE_MARGIN - BUTTON_HEIGHT * 2 - BUTTON_SPACING;
         // Keep the Ränge entry available while a staff member temporarily
         // uses the 001 event rank, so it can be removed again.
@@ -106,11 +113,23 @@ public class ModConfigScreen extends Screen {
     private void openCameras() { client.setScreen(new CameraListScreen(this)); }
     private void openSettings() { client.setScreen(new ModSettingsScreen(this)); }
     private void openTodo() { client.setScreen(new TeamTodoScreen(this)); }
-    private void openTemplates() { client.setScreen(new TeamBoardScreen(this, TeamBoardScreen.Mode.TEMPLATES)); }
+    private void openTemplates() { client.setScreen(new TeamTemplatesScreen(this)); }
     private void openMembers() { client.setScreen(new TeamMembersScreen(this)); }
     private void openLicense() { client.setScreen(new LizenzScreen(this)); }
     private Text visibilityButtonText() { return Text.translatable(TeamVisibilitySettings.visible()
             ? "gui.mpsqcamera.team.visibility.on" : "gui.mpsqcamera.team.visibility.off"); }
+    private Text nameVisibilityButtonText() {
+        return Text.translatable(TeamStateStore.self().map(TeamProfile::nameVisible).orElse(true)
+                ? "gui.mpsqcamera.team.name_visibility.on" : "gui.mpsqcamera.team.name_visibility.off");
+    }
+    private void toggleOwnNameVisibility(ButtonWidget button) {
+        boolean next = !TeamStateStore.self().map(TeamProfile::nameVisible).orElse(true);
+        button.active = false;
+        MpsqApiClient.setOwnNameVisible(next).whenComplete((ignored, error) -> client.execute(() -> {
+            button.active = true;
+            button.setMessage(nameVisibilityButtonText());
+        }));
+    }
 
     @Override public void renderBackground(DrawContext context, int mouseX, int mouseY, float delta) { context.fillGradient(0, 0, width, height, 0xCC1A1A1A, 0xCC050505); }
     @Override public void render(DrawContext context, int mouseX, int mouseY, float delta) {
