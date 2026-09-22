@@ -195,7 +195,13 @@ public final class MpsqApiClient {
         JsonObject body = new JsonObject();
         body.addProperty("visible", visible);
         return post("/team/me/name-visibility", body)
-                .thenCompose(ignored -> refreshTeamProfile()).thenApply(ignored -> null);
+                .thenCompose(ignored -> refreshTeamProfile())
+                .thenCompose(profile -> {
+                    if (profile.nameVisible() != visible) {
+                        return CompletableFuture.failedFuture(new IllegalStateException("Namenssichtbarkeit wurde nicht gespeichert"));
+                    }
+                    return refreshTeamMembers().thenApply(ignored -> (Void) null);
+                });
     }
 
     /** The API only returns members the signed-in user is allowed to see. */
@@ -205,7 +211,40 @@ public final class MpsqApiClient {
             if (!json.isJsonArray()) return members;
             for (JsonElement element : json.getAsJsonArray()) members.add(parseTeamProfile(element));
             TeamStateStore.setMembers(members);
-            return members;
+            return TeamStateStore.members();
+        });
+    }
+
+    public static CompletableFuture<List<TeamRankInfo>> loadRankInfos() {
+        return get("/team/ranks").thenApply(json -> {
+            List<TeamRankInfo> result = new ArrayList<>();
+            if (!json.isJsonArray()) return result;
+            for (JsonElement element : json.getAsJsonArray()) {
+                JsonObject row = element.getAsJsonObject();
+                List<String> permissions = new ArrayList<>();
+                if (row.has("permissions") && row.get("permissions").isJsonArray())
+                    row.getAsJsonArray("permissions").forEach(value -> permissions.add(value.getAsString()));
+                result.add(new TeamRankInfo(row.get("id").getAsString(), row.get("name").getAsString(),
+                        row.get("description").getAsString(), permissions));
+            }
+            return result;
+        });
+    }
+
+    public static CompletableFuture<List<TeamRankLog>> loadRankLogs() {
+        return get("/team/rank-logs").thenApply(json -> {
+            List<TeamRankLog> result = new ArrayList<>();
+            if (!json.isJsonArray()) return result;
+            for (JsonElement element : json.getAsJsonArray()) {
+                JsonObject row = element.getAsJsonObject();
+                String created = row.has("created_at") ? row.get("created_at").getAsString() : "1970-01-01T00:00:00Z";
+                result.add(TeamRankLog.from(created,
+                        row.has("target_name") ? row.get("target_name").getAsString() : "Unbekannt",
+                        row.has("old_active_rank") && !row.get("old_active_rank").isJsonNull() ? row.get("old_active_rank").getAsString() : row.get("old_base_rank").getAsString(),
+                        row.has("new_active_rank") && !row.get("new_active_rank").isJsonNull() ? row.get("new_active_rank").getAsString() : row.get("new_base_rank").getAsString(),
+                        row.has("actor_name") ? row.get("actor_name").getAsString() : "System"));
+            }
+            return result;
         });
     }
 

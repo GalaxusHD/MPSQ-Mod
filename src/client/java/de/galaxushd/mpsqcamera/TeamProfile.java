@@ -6,12 +6,15 @@ import java.util.UUID;
 public record TeamProfile(UUID id, String displayName, TeamRank baseRank, TeamRank activeRank, boolean nameVisible) {
     public TeamRank displayedRank() { return activeRank == null ? baseRank : activeRank; }
     public TeamRank permissionRank() {
+        if (baseRank == TeamRank.SENIOR_OFFICER) return TeamRank.SENIOR_OFFICER;
         // VIP and 001 intentionally suppress the saved worker/soldier powers for the event.
         return displayedRank() == TeamRank.VIP ? TeamRank.VIP : displayedRank();
     }
-    public boolean canOpenTeamArea() { return displayedRank().level() >= TeamRank.UNDERCOVER_001.level(); }
+    public boolean canOpenTeamArea() { return permissionRank().level() >= TeamRank.UNDERCOVER_001.level(); }
+    public boolean canUseTexts() { return baseRank.level() >= TeamRank.OFFICER.level(); }
     public boolean canViewCameras() { return permissionRank().canViewCameras(); }
     public boolean canManageMember(TeamProfile target) {
+        if (target.baseRank() == TeamRank.SENIOR_OFFICER) return false;
         TeamRank own = permissionRank();
         if (own == TeamRank.SENIOR_OFFICER) return target.displayedRank() != TeamRank.SENIOR_OFFICER;
         if (own.level() < TeamRank.OFFICER.level()) return false;

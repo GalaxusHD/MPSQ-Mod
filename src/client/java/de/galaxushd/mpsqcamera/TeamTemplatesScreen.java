@@ -32,8 +32,7 @@ public final class TeamTemplatesScreen extends Screen {
     }
 
     private boolean allowed() {
-        return TeamStateStore.self().map(TeamProfile::permissionRank)
-                .map(rank -> rank.level() >= TeamRank.OFFICER.level()).orElse(false);
+        return TeamStateStore.self().map(TeamProfile::canUseTexts).orElse(false);
     }
 
     void reload() {

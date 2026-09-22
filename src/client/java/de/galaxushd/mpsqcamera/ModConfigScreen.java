@@ -128,6 +128,10 @@ public class ModConfigScreen extends Screen {
         MpsqApiClient.setOwnNameVisible(next).whenComplete((ignored, error) -> client.execute(() -> {
             button.active = true;
             button.setMessage(nameVisibilityButtonText());
+            if (error != null) {
+                MpsqCameraClient.LOGGER.warn("Namenssichtbarkeit konnte nicht gespeichert werden", error);
+                if (client.player != null) client.player.sendMessage(Text.translatable("gui.mpsqcamera.team.unavailable"), false);
+            }
         }));
     }
 

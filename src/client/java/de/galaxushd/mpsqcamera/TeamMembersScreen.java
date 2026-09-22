@@ -30,6 +30,7 @@ public final class TeamMembersScreen extends Screen {
     private final Screen parent;
     private TeamProfile selected;
     private String messageKey = "gui.mpsqcamera.team.members.loading";
+    private boolean actionFailed;
 
     public TeamMembersScreen(Screen parent) {
         super(Text.translatable("gui.mpsqcamera.team.members"));
@@ -46,7 +47,7 @@ public final class TeamMembersScreen extends Screen {
     private void reload() {
         MpsqApiClient.refreshTeamProfile().thenCompose(profile -> MpsqApiClient.refreshTeamMembers())
                 .whenComplete((members, error) -> client.execute(() -> {
-                    messageKey = error == null ? "gui.mpsqcamera.team.members.help" : "gui.mpsqcamera.team.unavailable";
+                    messageKey = error == null && !actionFailed ? "gui.mpsqcamera.team.members.help" : "gui.mpsqcamera.team.unavailable";
                     TeamProfile self = TeamStateStore.self().orElse(null);
                     if (selfView() && self != null) {
                         selected = self;
@@ -219,7 +220,7 @@ public final class TeamMembersScreen extends Screen {
             }
             for (TeamRank rank : permanentRanks()) {
                 if (withinRank(mouseX, mouseY, x, y, rank)) {
-                    MpsqApiClient.changeTeamRank(selected.id(), rank).whenComplete((ignored, error) -> client.execute(this::reload));
+                    MpsqApiClient.changeTeamRank(selected.id(), rank).whenComplete((ignored, error) -> client.execute(() -> finishRankChange(error)));
                     return true;
                 }
                 y += TAG_HEIGHT + TAG_SPACING;
@@ -235,14 +236,23 @@ public final class TeamMembersScreen extends Screen {
 
     private void toggleTemporaryRank(TeamRank rank) {
         if (selected.activeRank() == rank) {
-            MpsqApiClient.clearUndercoverRank(selected.id()).whenComplete((ignored, error) -> client.execute(this::reload));
+            MpsqApiClient.clearUndercoverRank(selected.id()).whenComplete((ignored, error) -> client.execute(() -> finishRankChange(error)));
         } else {
             MpsqApiClient.setTemporaryTeamRank(selected.id(), rank)
-                    .whenComplete((ignored, error) -> client.execute(this::reload));
+                    .whenComplete((ignored, error) -> client.execute(() -> finishRankChange(error)));
         }
     }
 
     @Override public boolean shouldPause() { return false; }
+
+    private void finishRankChange(Throwable error) {
+        actionFailed = error != null;
+        if (error != null) {
+            MpsqCameraClient.LOGGER.warn("MPSQ-Rangaenderung wurde abgelehnt", error);
+            if (client.player != null) client.player.sendMessage(Text.translatable("gui.mpsqcamera.team.unavailable"), false);
+        }
+        reload();
+    }
 
     private int contentWidth() {
         return Math.min(MAX_CONTENT_WIDTH, Math.max(1, width - PAGE_MARGIN * 2));

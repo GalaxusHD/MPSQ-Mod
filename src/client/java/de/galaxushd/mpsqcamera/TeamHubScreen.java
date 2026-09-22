@@ -12,6 +12,7 @@ public final class TeamHubScreen extends Screen {
     private static final int GAP = 6;
     private final Screen parent;
     private String statusKey = "gui.mpsqcamera.team.loading";
+    private boolean refreshRequested;
 
     public TeamHubScreen(Screen parent) {
         super(Text.translatable("gui.mpsqcamera.team.title"));
@@ -23,7 +24,7 @@ public final class TeamHubScreen extends Screen {
         int y = height / 2 - 68;
         TeamRank rank = TeamStateStore.self().map(TeamProfile::permissionRank).orElse(TeamRank.VIP);
         boolean available = rank.level() >= TeamRank.UNDERCOVER_001.level();
-        boolean canEditTodos = rank.level() >= TeamRank.WORKER.level();
+        boolean canEditTodos = TeamStateStore.self().map(TeamProfile::canUseTexts).orElse(false);
         boolean canManageEvent = rank.level() >= TeamRank.OFFICER.level();
         addDrawableChild(ButtonWidget.builder(Text.translatable("gui.mpsqcamera.team.members"), b -> client.setScreen(new TeamMembersScreen(this)))
                 .dimensions(x, y, BUTTON_WIDTH, BUTTON_HEIGHT).build()).active = available;
@@ -32,14 +33,16 @@ public final class TeamHubScreen extends Screen {
         addDrawableChild(ButtonWidget.builder(Text.translatable("gui.mpsqcamera.team.timer"), b -> client.setScreen(new TeamBoardScreen(this, TeamBoardScreen.Mode.TIMER)))
                 .dimensions(x, y += BUTTON_HEIGHT + GAP, BUTTON_WIDTH, BUTTON_HEIGHT).build()).active = available || canManageEvent;
         addDrawableChild(ButtonWidget.builder(Text.translatable("gui.mpsqcamera.team.templates"), b -> client.setScreen(new TeamTemplatesScreen(this)))
-                .dimensions(x, y += BUTTON_HEIGHT + GAP, BUTTON_WIDTH, BUTTON_HEIGHT).build()).active = available || canManageEvent;
+                .dimensions(x, y += BUTTON_HEIGHT + GAP, BUTTON_WIDTH, BUTTON_HEIGHT).build()).active = canEditTodos;
         addDrawableChild(ButtonWidget.builder(Text.translatable("gui.mpsqcamera.back"), b -> client.setScreen(parent))
                 .dimensions(width / 2 - 75, height - 36, 150, 20).build());
 
+        if (refreshRequested) return;
+        refreshRequested = true;
         MpsqApiClient.refreshTeamProfile().thenCompose(profile -> MpsqApiClient.refreshTeamMembers())
                 .whenComplete((members, error) -> client.execute(() -> {
                     statusKey = error == null ? "gui.mpsqcamera.team.ready" : "gui.mpsqcamera.team.unavailable";
-                    clearAndInit();
+                    if (client.currentScreen == this) clearAndInit();
                 }));
     }
 

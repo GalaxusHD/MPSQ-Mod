@@ -20,11 +20,12 @@ public class MpsqCameraClient implements ClientModInitializer {
         SelectionRenderer.initialize();
         ScreenRenderer.initialize();
         RemoteCameraFrameManager.initialize();
-		TeamCommandManager.initialize();
+        TeamCommandManager.initialize();
 		TeamChatRelayManager.initialize();
         CameraUsageHud.initialize();
         CinemaBrowserManager.initialize();
         MobileCameraManager.initialize();
+        TeamProfileSync.initialize();
         // Load the rank cache independently. A temporary camera or screen API
         // error must never prevent MPSQ nametags from replacing server ranks.
         var initialization = MpsqApiClient.initialize();

@@ -9,14 +9,26 @@ import java.util.Optional;
 
 /** Client cache for the MPSQ Team API. */
 public final class TeamStateStore {
-    private static TeamProfile self;
-    private static List<TeamProfile> members = List.of();
+    private static volatile TeamProfile self;
+    private static volatile List<TeamProfile> members = List.of();
 
     private TeamStateStore() { }
     public static Optional<TeamProfile> self() { return Optional.ofNullable(self); }
     public static List<TeamProfile> members() { return members; }
-    public static void setSelf(TeamProfile value) { self = value; }
-    public static void setMembers(List<TeamProfile> value) {
+    public static synchronized void setSelf(TeamProfile value) {
+        self = value;
+        if (value != null) {
+            List<TeamProfile> updated = new ArrayList<>(members);
+            updated.removeIf(member -> member.id().equals(value.id()));
+            updated.add(value);
+            setMembers(updated);
+        }
+    }
+    public static Optional<TeamProfile> byMinecraftName(String name) {
+        if (name == null) return Optional.empty();
+        return members.stream().filter(profile -> profile.displayName().trim().equalsIgnoreCase(name.trim())).findFirst();
+    }
+    public static synchronized void setMembers(List<TeamProfile> value) {
         // Reinstalling the mod can create a second Supabase client/token for
         // the same Minecraft account. Minecraft names are unique in a live
         // session, so retain only the strongest stored profile for rendering
