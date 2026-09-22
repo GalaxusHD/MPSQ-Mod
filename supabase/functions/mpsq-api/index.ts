@@ -139,7 +139,8 @@ async function teamIdentity(clientId: string) {
   return { id: clientId, display_name: clients[0]?.display_name ?? "Minecraft Spieler", base_rank: profile.base_rank ?? "spieler", active_rank: profile.active_rank ?? null, name_visible: profile.name_visible !== false };
 }
 const shownRank = (profile: any) => profile.active_rank ?? profile.base_rank ?? "spieler";
-const permissionRank = (profile: any) => shownRank(profile);
+// The permanent root role keeps administrative powers while displaying an event rank.
+const permissionRank = (profile: any) => profile.base_rank === "sr_offizier" ? "sr_offizier" : shownRank(profile);
 // Streamer and every higher rank may use cameras and linked screens.
 const teamAllowed = (profile: any) => level(permissionRank(profile)) >= level("streamer");
 // To-do editing starts at Offizier.  Sr Offizier remains an Officer-category
@@ -215,6 +216,9 @@ serve(async req => {
       const request = rows[0]; if (!request) return out({ error: "Rang-Antrag nicht gefunden oder bereits entschieden" }, 404);
       const root = await rootInfo();
       const before = await teamProfile(request.target_id);
+      if (approved && (before.base_rank === "sr_offizier" || request.target_id === root.root_client_id)) {
+        return out({ error: "Der Sr-Offizier kann nicht durch einen Rang-Antrag verändert werden" }, 403);
+      }
       if (approved) {
         const update = { base_rank: request.requested_rank, active_rank: null, updated_at: new Date().toISOString() };
         const changed = await rest(`/mpsq_team_profiles?client_id=eq.${request.target_id}`, { method: "PATCH", headers: { Prefer: "return=representation" }, body: JSON.stringify(update) });
@@ -285,7 +289,16 @@ serve(async req => {
       // The rank page is also a read-only overview for Spieler and VIPs.
       // It never exposes controls; only the authenticated write routes below
       // can alter a profile.
-      return out(profiles.map((p: any) => ({ id: p.client_id, display_name: names.get(p.client_id) ?? "Minecraft Spieler", base_rank: p.base_rank, active_rank: p.active_rank, name_visible: p.name_visible !== false })));
+      const unique = new Map<string, any>();
+      for (const p of profiles) {
+        const member = { id: p.client_id, display_name: names.get(p.client_id) ?? "Minecraft Spieler", base_rank: p.base_rank, active_rank: p.active_rank, name_visible: p.name_visible !== false };
+        const identity = member.display_name.trim().toLocaleLowerCase();
+        const current = unique.get(identity);
+        const strength = member.base_rank === "sr_offizier" ? Number.MAX_SAFE_INTEGER : level(member.active_rank ?? member.base_rank);
+        const currentStrength = !current ? -1 : current.base_rank === "sr_offizier" ? Number.MAX_SAFE_INTEGER : level(current.active_rank ?? current.base_rank);
+        if (!current || strength > currentStrength) unique.set(identity, member);
+      }
+      return out([...unique.values()]);
     }
     if (path.match(/^\/team\/members\/[^/]+\/rank$/) && req.method === "POST") {
       const memberId = path.split("/")[3]; const body = await json(req); const requested = String(body.rank ?? "");
@@ -365,6 +378,10 @@ serve(async req => {
       const targetId = String(body.targetId ?? ""); const requested = String(body.rank ?? "");
       if (!targetId || !approvalRanks.includes(requested)) return out({ error: "Ungültiger Rang-Antrag" }, 400);
       const target = await teamProfile(targetId); const ownRank = permissionRank(self);
+      const root = await rootInfo();
+      if (target.base_rank === "sr_offizier" || targetId === root.root_client_id) {
+        return out({ error: "Der Sr-Offizier kann nicht durch einen Rang-Antrag verändert werden" }, 403);
+      }
       const canRequest = ownRank === "sr_offizier"
         || ((ownRank === "offizier" || ownRank === "frontman") && approvalRanks.slice(0, 5).includes(requested) && level(shownRank(target)) <= level("arbeiter"));
       if (!canRequest) return out({ error: "Keine Berechtigung für diesen Rang-Antrag" }, 403);
