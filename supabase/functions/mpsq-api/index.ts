@@ -139,7 +139,6 @@ async function teamIdentity(clientId: string) {
   return { id: clientId, display_name: clients[0]?.display_name ?? "Minecraft Spieler", base_rank: profile.base_rank ?? "spieler", active_rank: profile.active_rank ?? null, name_visible: profile.name_visible !== false };
 }
 const shownRank = (profile: any) => profile.active_rank ?? profile.base_rank ?? "spieler";
-// The permanent root role keeps administrative powers while displaying an event rank.
 const permissionRank = (profile: any) => profile.base_rank === "sr_offizier" ? "sr_offizier" : shownRank(profile);
 // Streamer and every higher rank may use cameras and linked screens.
 const teamAllowed = (profile: any) => level(permissionRank(profile)) >= level("streamer");
@@ -152,11 +151,15 @@ const canUseTexts = (profile: any) => level(profile.base_rank ?? "spieler") >= l
 const canEditEvent = (profile: any) => level(permissionRank(profile)) >= level("offizier");
 const approvalRanks = ["vip", "spieler", "streamer", "soldat", "arbeiter", "offizier", "frontman"];
 async function addRankLog(actorId: string | null, targetId: string, before: any, after: any, action: string, requestId: string | null = null) {
+  if (actorId === targetId || before.base_rank === after.base_rank) return;
   // Do not create noise in the protocol for a click that keeps exactly the
   // same rank (for example: an officer selecting "Offizier" again).
   if ((before.base_rank ?? "spieler") === (after.base_rank ?? "spieler")
       && (before.active_rank ?? null) === (after.active_rank ?? null)) return;
+  const actor=actorId?await teamIdentity(actorId):null;
+  const target=await teamIdentity(targetId);
   await rest("/mpsq_team_rank_log", { method: "POST", body: JSON.stringify({
+    actor_rank:actor?.base_rank??null,actor_name:actor?.display_name??"Administration",target_name:target.display_name,
     request_id: requestId, actor_id: actorId, target_id: targetId,
     old_base_rank: before.base_rank ?? "spieler", old_active_rank: before.active_rank ?? null,
     new_base_rank: after.base_rank ?? "spieler", new_active_rank: after.active_rank ?? null, action
@@ -173,13 +176,27 @@ async function trimToNewestTen(path: string) {
 async function cleanupRankRecords() {
   const expiry = encodeURIComponent(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString());
   await rest(`/mpsq_team_rank_requests?status=eq.PENDING&created_at=lt.${expiry}`, { method: "DELETE" });
-  await trimToNewestTen("/mpsq_team_rank_log?");
+
   await trimToNewestTen("/mpsq_team_rank_requests?status=in.(APPROVED,REJECTED)");
 }
 async function rootInfo() {
   const result = await rest("/mpsq_team_root?id=eq.1&select=root_display_name,root_client_id");
   const [root] = await result.json();
   return root ?? { root_display_name: "MP_SquidGame", root_client_id: null };
+}
+function validAction(type:string,data:any):boolean {
+ if(!data||typeof data!=="object"||Array.isArray(data)||JSON.stringify(data).length>8192)return false;
+ const sound=(v:any)=>typeof v==="string"&&/^(?:[a-z0-9_.-]+:)?[a-z0-9_./-]+$/.test(v)&&v.length<=128;
+ switch(type){
+  case "PLAY_AUDIO":return sound(data.sound);
+  case "START_PLAYLIST":return Array.isArray(data.tracks)&&data.tracks.length>0&&data.tracks.length<=100&&data.tracks.every(sound);
+  case "START_COUNTDOWN":return Number.isInteger(data.duration)&&data.duration>=1&&data.duration<=7200&&typeof data.title==="string"&&data.title.length<=256;
+  case "SHOW_BOSSBAR":return typeof data.title==="string"&&data.title.length<=256;
+  case "SEND_ANNOUNCEMENT":return typeof data.text==="string"&&data.text.length<=512&&(!data.sound||sound(data.sound));
+  case "OPEN_LINK":try{const u=new URL(data.url);return u.protocol==="https:"&&!u.username&&!u.password&&u.href.length<=2048;}catch{return false;}
+  case "OPEN_REDEEM":case "STOP_AUDIO":case "HIDE_BOSSBAR":return true;
+  default:return false;
+ }
 }
 serve(async req => {
   if (req.method === "OPTIONS") return new Response(null, { headers: cors });
@@ -194,6 +211,66 @@ serve(async req => {
     // Private website administration.  These routes never accept a Minecraft
     // token; they require the password stored only as an Edge Function secret.
     if (path.startsWith("/admin/") && !isAdmin(req)) return out({ error: "Unauthorized" }, 401);
+    if(path === "/public/redeem" && req.method === "POST") {
+      const body=await json(req),name=String(body.player??""),code=String(body.code??"").trim().toUpperCase();
+      if(!/^[A-Za-z0-9_]{3,16}$/.test(name)||!code||code.length>64)return out({error:"Spielername oder Code ungültig"},400);
+      const escaped=name.replaceAll("_","\\_");
+      const users=await(await rest(`/mpsq_clients?display_name=ilike.${encodeURIComponent(escaped)}&select=id&limit=2`)).json();
+      if(!Array.isArray(users)||users.length!==1)return out({error:"Bitte die Mod einmal starten. Bei mehreren Profilen den Code direkt in der Mod einlösen."},409);
+      const r=await rest("/rpc/mpsq_redeem",{method:"POST",body:JSON.stringify({p_client:users[0].id,p_code:code})});
+      const result=await r.json();return out(result,r.ok?(result.error?409:200):r.status);
+    }
+    if (path === "/assets" && req.method === "GET") {
+      const r=await rest("/mpsq_assets?kind=eq.jar&order=created_at.desc&limit=10");
+      const rows=await r.json();
+      if(!r.ok)return out({error:"Downloads nicht verfügbar"},r.status);
+      return out(rows.map((a:any)=>({...a,url:`${Deno.env.get("SUPABASE_URL")}/storage/v1/object/public/mpsq-assets/${a.path}`})));
+    }
+    if (path === "/admin/assets" && req.method === "POST") {
+      const body=await json(req), kind=body.kind;
+      const id=String(body.id??"").trim();
+      if(!/^[a-z0-9_-]{1,64}$/.test(id)||!["model","jar"].includes(kind))return out({error:"ID: nur a-z, 0-9, _ und -"},400);
+      let bytes:Uint8Array, filename:string, contentType:string;
+      if(kind==="jar"){
+        const encoded=String(body.data??"");
+        if(encoded.length>24_000_000)return out({error:"JAR maximal 16 MiB"},413);
+        bytes=Uint8Array.from(atob(encoded),c=>c.charCodeAt(0));
+        if(bytes.length>16_777_216||bytes[0]!==80||bytes[1]!==75)return out({error:"Ungültige JAR-Datei"},400);
+        filename=id+".jar";contentType="application/java-archive";
+      }else{
+        const bundle=body.bundle;
+        if(!bundle||!Array.isArray(bundle.elements)||bundle.elements.length>512||!bundle.elements.length)return out({error:"Modell benötigt 1–512 Würfelelemente"},400);
+        if(!bundle.textures||Object.keys(bundle.textures).length>32)return out({error:"Maximal 32 PNG-Texturen"},400);
+        for(const texture of Object.values(bundle.textures)){
+          if(typeof texture!=="string"||!texture.startsWith("data:image/png;base64,")||texture.length>3_000_000)return out({error:"PNG-Textur ungültig oder zu groß"},400);
+        }
+        for(const e of bundle.elements){
+          for(const field of ["from","to","origin","rotation"]){if(!Array.isArray(e[field])||e[field].length!==3||e[field].some((n:any)=>!Number.isFinite(n)||Math.abs(n)>1024))return out({error:"Ungültige Modellkoordinaten"},400);}
+          if(!e.faces||Object.values(e.faces).some((f:any)=>!bundle.textures[f.texture]||!Array.isArray(f.uv)||f.uv.length!==4||f.uv.some((v:any)=>!Number.isFinite(v))))return out({error:"Ungültige Modellflächen"},400);
+        }
+        bytes=new TextEncoder().encode(JSON.stringify(bundle));filename=id+".json";contentType="application/json";
+        if(bytes.length>12_000_000)return out({error:"Modellpaket maximal 12 MB"},413);
+      }
+      const pathKey=`${kind}/${id}/${crypto.randomUUID()}/${filename}`;
+      const upload=await fetch(`${Deno.env.get("SUPABASE_URL")}/storage/v1/object/mpsq-assets/${pathKey}`,{method:"POST",headers:{apikey:key(),Authorization:`Bearer ${key()}`,"Content-Type":contentType},body:bytes});
+      if(!upload.ok)return out({error:"Upload fehlgeschlagen. ASSETS.sql ausführen und Storage prüfen."},502);
+      const saved=await rest("/mpsq_assets?on_conflict=id",{method:"POST",headers:{Prefer:"resolution=merge-duplicates"},body:JSON.stringify({id,kind,path:pathKey,filename,created_at:new Date().toISOString()})});
+      if(!saved.ok)return out({error:"Datei gespeichert, Metadaten konnten nicht gespeichert werden"},500);
+      if(kind==="model"){
+        const savedModel=await rest("/mpsq_accessories?on_conflict=accessory_key",{method:"POST",headers:{Prefer:"resolution=merge-duplicates"},body:JSON.stringify({accessory_key:id,model_id:id,display_name:String(body.name??id).slice(0,80)})});
+        if(!savedModel.ok)return out({error:"Modell gespeichert, Accessoire konnte nicht angelegt werden"},500);
+      }
+      return out({ok:true,id,url:`${Deno.env.get("SUPABASE_URL")}/storage/v1/object/public/mpsq-assets/${pathKey}`},201);
+    }
+
+    if (path === "/admin/redeem-codes" && req.method === "POST") {
+      const body = await json(req); const code = String(body.code ?? "").trim().toUpperCase(); const modelId = String(body.modelId ?? "").trim();
+      if (!code || !modelId) return out({ error: "Code und Modell-ID fehlen" }, 400);
+      const accessories = await (await rest(`/mpsq_accessories?model_id=eq.${encodeURIComponent(modelId)}&select=id&limit=1`)).json();
+      if (!accessories[0]) return out({ error: "Accessoire-Modell nicht gefunden" }, 404);
+      const result = await rest("/mpsq_redeem_codes", { method: "POST", headers: { Prefer: "return=representation" }, body: JSON.stringify({ code, accessory_id: accessories[0].id, max_uses: body.maxUses ?? null, expires_at: body.expiresAt ?? null }) });
+      return out(await result.json(), result.ok ? 201 : result.status);
+    }
     if (path === "/admin/rank-requests" && req.method === "GET") {
       await cleanupRankRecords();
       const rows = await (await rest("/mpsq_team_rank_requests?select=*&order=created_at.desc&limit=200")).json();
@@ -270,6 +347,150 @@ serve(async req => {
 
     // MPSQ Team: public rank display plus private staff tools. All permission
     // decisions are made here, never trusted from the client UI.
+    if(path==="/me/accessories/equip" && req.method==="POST"){
+      const body=await json(req);
+      if(body.id!==null&&!/^[0-9a-f-]{36}$/i.test(String(body.id)))return out({error:"Ungültiges Accessoire"},400);
+      const r=await rest("/rpc/mpsq_equip_accessory",{method:"POST",body:JSON.stringify({p_client:clientId,p_accessory:body.id})});
+      return out(r.ok?{ok:true}:{error:"Accessoire nicht freigeschaltet"},r.ok?200:403);
+    }
+    if(path==="/accessory-wearers" && req.method==="GET"){
+      const r=await rest("/mpsq_user_accessories?equipped=eq.true&select=client_id,mpsq_accessories(model_id)");
+      if(!r.ok)return out({error:"Accessoires nicht verfügbar"},r.status);
+      const worn=await r.json();
+      const ids=[...new Set(worn.map((w:any)=>w.client_id))];
+      const users=ids.length?await(await rest(`/mpsq_clients?id=in.(${ids.join(",")})&select=id,display_name`)).json():[];
+      const assets=await(await rest("/mpsq_assets?kind=eq.model&select=id,path")).json();
+      return out(worn.map((w:any)=>{
+        const asset=assets.find((a:any)=>a.id===w.mpsq_accessories?.model_id);
+        return {name:users.find((u:any)=>u.id===w.client_id)?.display_name,url:asset?`${Deno.env.get("SUPABASE_URL")}/storage/v1/object/public/mpsq-assets/${asset.path}`:null};
+      }).filter((w:any)=>w.name&&w.url));
+    }
+    if(path === "/actions" && req.method === "POST") {
+      const self=await teamProfile(clientId); if(!canEditEvent(self))return out({error:"Keine Berechtigung"},403);
+      const body=await json(req), type=String(body.actionType??""), data=body.actionData??{};
+      if(!validAction(type,data))return out({error:"Ungültige Aktionsdaten"},400);
+      const supported=["PLAY_AUDIO","START_PLAYLIST","STOP_AUDIO","SHOW_BOSSBAR","START_COUNTDOWN","HIDE_BOSSBAR","SEND_ANNOUNCEMENT"];
+      if(!supported.includes(type)||!body.serverId||!body.worldId||JSON.stringify(data).length>8192)return out({error:"Ungültige Aktion"},400);
+      if(type==="START_COUNTDOWN"&&(!Number.isInteger(data.duration)||data.duration<1||data.duration>7200))return out({error:"Ungültige Dauer"},400);
+      if(["START_COUNTDOWN","SHOW_BOSSBAR"].includes(type)&&typeof data.title!=="string")return out({error:"Titel fehlt"},400);
+      if(type==="SEND_ANNOUNCEMENT"&&typeof data.text!=="string")return out({error:"Text fehlt"},400);
+      if(type==="PLAY_AUDIO"&&typeof data.sound!=="string")return out({error:"Sound fehlt"},400);
+      if(type==="START_PLAYLIST"&&(!Array.isArray(data.tracks)||data.tracks.length>100||data.tracks.some((x:any)=>typeof x!=="string")))return out({error:"Playlist ungültig"},400);
+      const r=await rest("/rpc/mpsq_publish_action",{method:"POST",body:JSON.stringify({p_actor:clientId,p_server:String(body.serverId).toLowerCase(),p_world:String(body.worldId),p_type:type,p_data:data})});
+      return out(await r.json(),r.status);
+    }
+    if(path==="/objects"&&req.method==="GET"){
+      const server=url.searchParams.get("server")??"",world=url.searchParams.get("world")??"";
+      if(!server||!world)return out({error:"Welt fehlt"},400);
+      const r=await rest(`/mpsq_world_objects?server_id=eq.${encodeURIComponent(server)}&world_id=eq.${encodeURIComponent(world)}&select=*,mpsq_assets(path)&limit=500`);
+      const rows=await r.json();if(!r.ok)return out({error:"Objekte nicht verfügbar"},r.status);
+      return out(rows.map((o:any)=>({...o,url:`${Deno.env.get("SUPABASE_URL")}/storage/v1/object/public/mpsq-assets/${o.mpsq_assets.path}`})));
+    }
+    if(path==="/objects"&&req.method==="POST"){
+      const self=await teamProfile(clientId);if(!canEditEvent(self))return out({error:"Keine Berechtigung"},403);
+      const b=await json(req);
+      if(!b.server||!b.world||![b.x,b.y,b.z].every(n=>Number.isInteger(n)&&Math.abs(n)<=30000000))return out({error:"Position ungültig"},400);
+      if(b.remove===true){const r=await rest(`/mpsq_world_objects?server_id=eq.${encodeURIComponent(String(b.server).toLowerCase())}&world_id=eq.${encodeURIComponent(b.world)}&x=eq.${b.x}&y=eq.${b.y}&z=eq.${b.z}`,{method:"DELETE"});return out({ok:r.ok},r.ok?200:r.status);}
+      if(!/^[a-z0-9_-]{1,64}$/.test(b.modelId)||![0,90,180,270].includes(b.rotation))return out({error:"Modell oder Drehung ungültig"},400);
+      const assets=await(await rest(`/mpsq_assets?id=eq.${b.modelId}&kind=eq.model&select=id`)).json();if(!assets[0])return out({error:"Modell nicht gefunden"},404);
+      const r=await rest("/mpsq_world_objects?on_conflict=server_id,world_id,x,y,z",{method:"POST",headers:{Prefer:"resolution=merge-duplicates"},body:JSON.stringify({server_id:String(b.server).toLowerCase(),world_id:b.world,x:b.x,y:b.y,z:b.z,model_id:b.modelId,rotation:b.rotation,created_by:clientId})});return out({ok:r.ok},r.ok?200:r.status);
+    }
+    if(path === "/calendar" && req.method === "GET") {
+      const self=await teamProfile(clientId);if(!teamAllowed(self))return out({error:"Keine Berechtigung"},403);
+      const r=await rest("/mpsq_calendar?order=starts_at.asc&limit=200");return out(await r.json(),r.status);
+    }
+    if(path === "/calendar" && req.method === "POST") {
+      const self=await teamProfile(clientId);if(!canEditEvent(self))return out({error:"Keine Berechtigung"},403);
+      const body=await json(req),title=String(body.title??"").trim(),date=Date.parse(body.startsAt);
+      if(!title||title.length>120||!Number.isFinite(date))return out({error:"Titel oder Datum ungültig"},400);
+      const r=await rest("/mpsq_calendar",{method:"POST",body:JSON.stringify({title,starts_at:new Date(date).toISOString(),description:String(body.description??"").slice(0,1000),created_by:clientId})});
+      return out({ok:r.ok},r.status);
+    }
+    if(/^\/calendar\/[0-9a-f-]{36}$/.test(path)&&req.method==="DELETE"){
+      const self=await teamProfile(clientId);if(!canEditEvent(self))return out({error:"Keine Berechtigung"},403);
+      const r=await rest(`/mpsq_calendar?id=eq.${path.split("/")[2]}`,{method:"DELETE"});return out({ok:r.ok},r.status);
+    }
+    if (path === "/me/accessories" && req.method === "GET") {
+      const result = await rest(`/mpsq_user_accessories?client_id=eq.${clientId}&select=accessory_id,equipped,granted_at,mpsq_accessories(accessory_key,display_name,model_id,description)&order=granted_at.desc`);
+      return out(await result.json(), result.status);
+    }
+    if (path === "/playlists" && req.method === "GET") {
+      const result = await rest("/mpsq_playlists?enabled=eq.true&select=id,name,tracks&order=name.asc");
+      return out(await result.json(), result.status);
+    }
+    if (path === "/bossbars" && req.method === "GET") {
+      const result = await rest("/mpsq_bossbars?visible=eq.true&select=id,title,color,value,visible");
+      return out(await result.json(), result.status);
+    }
+
+    if (path === "/redeem" && req.method === "POST") {
+      const body = await json(req); const code = String(body.code ?? "").trim().toUpperCase();
+      if (!code || code.length > 64) return out({ error: "Code fehlt" }, 400);
+      const response = await rest("/rpc/mpsq_redeem", {method:"POST",body:JSON.stringify({p_client:clientId,p_code:code})});
+      const result=await response.json();
+      return out(result,response.ok ? (result.error ? 409 : 200) : response.status);
+    }
+    if (path === "/action-events" && req.method === "GET") {
+      const server = url.searchParams.get("server") ?? "";
+      const world = url.searchParams.get("world") ?? "";
+      const after = url.searchParams.get("after");
+      if (!server || !world || (after !== null && !/^[0-9]{1,18}$/.test(after))) return out({error:"Ungültiger Ereignisfilter"},400);
+      const scope = "server_id=eq."+encodeURIComponent(server)+"&world_id=eq."+encodeURIComponent(world);
+      const query = after === null ? "&order=id.desc&limit=1" : "&id=gt."+after+"&order=id.asc&limit=100";
+      const result = await rest("/mpsq_action_events?"+scope+query);
+      const rows = await result.json();
+      if (!result.ok) return out(rows,result.status);
+      return out({events:after === null ? [] : rows,cursor:rows.length ? String(rows[rows.length-1].id) : (after ?? "0")});
+    }
+    // Shared world triggers. The server registry is authoritative; clients do
+    // not decide locally whether a block has a Mod action attached to it.
+    if (path === "/triggers" && req.method === "GET") {
+      const result = await rest("/mpsq_action_triggers?enabled=eq.true&server_id=eq."+encodeURIComponent(url.searchParams.get("server") ?? "")+"&select=*&order=updated_at.asc");
+      return out(await result.json(), result.status);
+    }
+    if (path === "/triggers" && req.method === "POST") {
+      const self = await teamProfile(clientId); if (!canEditEvent(self)) return out({ error: "Forbidden" }, 403);
+      const body = await json(req); const worldId = String(body.worldId ?? "").trim();
+      const actionType = String(body.actionType ?? "").trim().toUpperCase(); const blockId = String(body.blockId ?? "").trim();
+      const pos = body.position ?? {};
+      if(!validAction(actionType,body.actionData??{}))return out({error:"Ungültige Aktionsdaten"},400);
+      const supported = ["PLAY_AUDIO","START_PLAYLIST","STOP_AUDIO","SHOW_BOSSBAR","START_COUNTDOWN","HIDE_BOSSBAR","SEND_ANNOUNCEMENT","OPEN_REDEEM","OPEN_LINK"];
+      if (!supported.includes(actionType) || !String(body.serverId ?? "").trim()) return out({error:"Aktion oder Server ungültig"},400);
+      if (!validRank(String(body.minimumRank ?? "offizier"))) return out({error:"Ungültiger Mindestrang"},400);
+      if (JSON.stringify(body.actionData ?? {}).length > 8192) return out({error:"Aktionsdaten zu groß"},400);
+      if (actionType === "START_COUNTDOWN" && (!Number.isInteger(body.actionData?.duration) || body.actionData.duration<1 || body.actionData.duration>7200)) return out({error:"Dauer: 1–7200 Sekunden"},400);
+      if (!worldId || !blockId || !actionType || !Number.isInteger(pos.x) || !Number.isInteger(pos.y) || !Number.isInteger(pos.z)) return out({ error: "Welt, Block und Position sind erforderlich" }, 400);
+      if(actionType==="OPEN_LINK" && !/^https:\/\//i.test(String(body.actionData?.url??"")))return out({error:"HTTPS-Link erforderlich"},400);
+      const row = { server_id: String(body.serverId ?? "").trim().toLowerCase(), world_id: worldId, pos_x: pos.x, pos_y: pos.y, pos_z: pos.z, block_id: blockId, object_type: String(body.objectType ?? "TRIGGER"), action_type: actionType, action_data: body.actionData ?? {}, minimum_rank: String(body.minimumRank ?? "offizier"), created_by: clientId, updated_at: new Date().toISOString() };
+      const result = await rest("/mpsq_action_triggers?on_conflict=server_id,world_id,pos_x,pos_y,pos_z", { method: "POST", headers: { Prefer: "resolution=merge-duplicates,return=representation" }, body: JSON.stringify(row) });
+      return out(await result.json(), result.ok ? 201 : result.status);
+    }
+    if (path.match(/^\/triggers\/[^/]+\/fire$/) && req.method === "POST") {
+      const triggerId = path.split("/")[2]; const triggerRows = await (await rest(`/mpsq_action_triggers?id=eq.${triggerId}&enabled=eq.true&select=*`)).json();
+      const trigger = triggerRows[0]; if (!trigger) return out({ error: "Trigger nicht gefunden" }, 404);
+      const self = await teamProfile(clientId); if (!validRank(trigger.minimum_rank) || level(permissionRank(self)) < level(trigger.minimum_rank)) return out({ error: "Keine Berechtigung" }, 403);
+      const body = await json(req);
+      const result = await rest("/rpc/mpsq_fire_action", { method: "POST", body: JSON.stringify({
+        p_trigger: trigger.id, p_actor: clientId, p_server: String(body.serverId ?? "").toLowerCase(), p_world: String(body.worldId ?? "")
+      }) });
+      return out(await result.json(), result.status);
+    }
+
+    // MPSQ Team: public rank display plus private staff tools. All permission
+    // decisions are made here, never trusted from the client UI.
+    if (path === "/team/rank-log" && req.method === "GET") {
+      const self = await teamProfile(clientId);
+      if (level(self.base_rank) < level("offizier")) return out({ error: "Keine Berechtigung" }, 403);
+      const offset = Number(url.searchParams.get("offset") ?? "0");
+      if (!Number.isSafeInteger(offset) || offset < 0) return out({error:"Ungültige Seite"},400);
+      const response = await rest(`/mpsq_team_rank_log?select=*&order=created_at.desc,id.desc&limit=100&offset=${offset}`);
+      if (!response.ok) return out({error:"Logs konnten nicht geladen werden"},response.status);
+      const records = (await response.json()).filter((r:any) => r.actor_id !== r.target_id && r.old_base_rank !== r.new_base_rank);
+      const ids = [...new Set(records.flatMap((r:any)=>[r.actor_id,r.target_id]).filter(Boolean))];
+      const people = ids.length ? await (await rest(`/mpsq_clients?id=in.(${ids.join(",")})&select=id,display_name`)).json() : [];
+      const names = new Map(people.map((p:any)=>[p.id,p.display_name]));
+      return out(records.map((r:any)=>({...r,target_name:r.target_name??names.get(r.target_id)??"Unbekannt",actor_name:r.actor_name??names.get(r.actor_id)??"Administration"})));
+    }
     if (path === "/team/me" && req.method === "GET") return out(await teamIdentity(clientId));
     if (path === "/team/me/name-visibility" && req.method === "POST") {
       const body = await json(req);
@@ -419,13 +640,13 @@ serve(async req => {
       const result = await rest("/mpsq_team_todos?select=id,text,list_key,created_at&order=created_at.asc"); return out(await result.json(), result.status);
     }
     if (path === "/team/todos" && req.method === "POST") {
-      const self = await teamProfile(clientId); const body = await json(req); const text = String(body.text ?? "").trim().slice(0, 256); const listKey = String(body.listKey ?? "arbeiter");
+      const self = await teamProfile(clientId); const body = await json(req); const text = String(body.text ?? "").slice(0, 512); const listKey = String(body.listKey ?? "arbeiter");
       if (!canEditTodo(self)) return out({ error: "Forbidden" }, 403); if (!text) return out({ error: "Aufgabe fehlt" }, 400);
       if (!["arbeiter", "soldat", "offizier", "frontman"].includes(listKey)) return out({ error: "Ungültige To-do-Liste" }, 400);
       const result = await rest("/mpsq_team_todos", { method: "POST", body: JSON.stringify({ text, list_key: listKey, created_by: clientId }) }); return out({ ok: result.ok }, result.ok ? 201 : result.status);
     }
     if (path.match(/^\/team\/todos\/[^/]+$/) && req.method === "PATCH") {
-      const self = await teamProfile(clientId); const body = await json(req); const text = String(body.text ?? "").trim().slice(0, 256); const listKey = String(body.listKey ?? "");
+      const self = await teamProfile(clientId); const body = await json(req); const text = String(body.text ?? "").slice(0, 512); const listKey = String(body.listKey ?? "");
       if (!canEditTodo(self)) return out({ error: "Forbidden" }, 403); if (!text || !["arbeiter", "soldat", "offizier", "frontman"].includes(listKey)) return out({ error: "Ungültige To-do-Aufgabe" }, 400);
       const result = await rest(`/mpsq_team_todos?id=eq.${path.split("/")[3]}`, { method: "PATCH", body: JSON.stringify({ text, list_key: listKey }) }); return out({ ok: result.ok }, result.ok ? 200 : result.status);
     }
@@ -445,20 +666,20 @@ serve(async req => {
     }
     if (path === "/team/templates" && req.method === "GET") {
       const self = await teamProfile(clientId); if (!canUseTexts(self)) return out({ error: "Forbidden" }, 403);
-      const result = await rest("/mpsq_team_templates?select=id,text,speaker_role,created_at&order=created_at.asc");
+      const result = await rest("/mpsq_team_templates?select=id,text,speaker_role,sound_id,created_at&order=created_at.asc");
       const rows = await result.json();
       return out(Array.isArray(rows) ? rows.map((row: any) => ({ ...row, speaker: row.speaker_role ?? "offizier" })) : rows, result.status);
     }
     if (path === "/team/templates" && req.method === "POST") {
-      const self = await teamProfile(clientId); const body = await json(req); const text = String(body.text ?? "").trim().slice(0, 256);
+      const self = await teamProfile(clientId); const body = await json(req); const text = String(body.text ?? "").slice(0, 512);
       const speakerRole = String(body.speaker ?? body.speakerRole ?? "offizier");
       if (!canUseTexts(self)) return out({ error: "Forbidden" }, 403); if (!text || !["offizier", "frontman"].includes(speakerRole)) return out({ error: "Ungültiger Text" }, 400);
-      const result = await rest("/mpsq_team_templates", { method: "POST", body: JSON.stringify({ text, speaker_role: speakerRole, created_by: clientId }) }); return out({ ok: result.ok }, result.ok ? 201 : result.status);
+      const result = await rest("/mpsq_team_templates", { method: "POST", body: JSON.stringify({ text, sound_id: String(body.soundId??"").slice(0,128)||null, speaker_role: speakerRole, created_by: clientId }) }); return out({ ok: result.ok }, result.ok ? 201 : result.status);
     }
     if (path.match(/^\/team\/templates\/[^/]+$/) && req.method === "PATCH") {
-      const self = await teamProfile(clientId); const body = await json(req); const text = String(body.text ?? "").trim().slice(0, 256); const speakerRole = String(body.speaker ?? body.speakerRole ?? "");
+      const self = await teamProfile(clientId); const body = await json(req); const text = String(body.text ?? "").slice(0, 512); const speakerRole = String(body.speaker ?? body.speakerRole ?? "");
       if (!canUseTexts(self)) return out({ error: "Forbidden" }, 403); if (!text || !["offizier", "frontman"].includes(speakerRole)) return out({ error: "Ungültiger Text" }, 400);
-      const result = await rest(`/mpsq_team_templates?id=eq.${path.split("/")[3]}`, { method: "PATCH", body: JSON.stringify({ text, speaker_role: speakerRole }) }); return out({ ok: result.ok }, result.ok ? 200 : result.status);
+      const result = await rest(`/mpsq_team_templates?id=eq.${path.split("/")[3]}`, { method: "PATCH", body: JSON.stringify({ text, sound_id: String(body.soundId??"").slice(0,128)||null, speaker_role: speakerRole }) }); return out({ ok: result.ok }, result.ok ? 200 : result.status);
     }
     if (path.match(/^\/team\/templates\/[^/]+$/) && req.method === "DELETE") {
       const self = await teamProfile(clientId); if (!canUseTexts(self)) return out({ error: "Forbidden" }, 403);
@@ -745,3 +966,8 @@ serve(async req => {
     return out({ error: "Not found" }, 404);
   } catch (error) { return out({ error: String(error) }, 500); }
 });
+
+
+
+
+
