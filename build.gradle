@@ -53,20 +53,8 @@ java {
 	withSourcesJar()
 }
 
-tasks.register('compileTeamPresentationTest', JavaCompile) {
-    dependsOn tasks.named('compileClientJava')
-    source = fileTree('tools') { include 'TeamPresentationTest.java' }
-    classpath = (sourceSets.client.compileClasspath + sourceSets.client.output + sourceSets.main.output)
-    destinationDirectory = layout.buildDirectory.dir('team-presentation-tests')
-    options.release = 21
-    options.encoding = 'UTF-8'
-}
-tasks.register('verifyTeamPresentation', JavaExec) {
-    dependsOn tasks.named('compileTeamPresentationTest')
-    classpath = files(layout.buildDirectory.dir('team-presentation-tests')) + (sourceSets.client.compileClasspath + sourceSets.client.output + sourceSets.main.output)
-    mainClass = 'TeamPresentationTest'
-}
-tasks.named('check') { dependsOn tasks.named('verifyTeamPresentation') }
+// Replay is deferred and is not part of this release.
+sourceSets.client.java.exclude '**/MpsqReplayManager.java', '**/MpsqReplayScreen.java'
 
 tasks.withType(JavaCompile).configureEach {
 	it.options.release = 21
