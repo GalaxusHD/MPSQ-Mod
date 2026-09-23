@@ -11,7 +11,7 @@ public final class TeamTemplateEditScreen extends Screen {
     private static final int WIDTH = 360;
     private final TeamTemplatesScreen parent;
     private final TeamTemplate existing;
-    private TextFieldWidget input;
+    private TextFieldWidget input, audio;
     private TeamTemplate.Speaker speaker;
     private ButtonWidget speakerButton;
     private String status = "";
@@ -30,12 +30,15 @@ public final class TeamTemplateEditScreen extends Screen {
         input.setPlaceholder(Text.translatable("gui.mpsqcamera.team.input"));
         if (existing != null) input.setText(existing.text());
         addDrawableChild(input);
+        audio=addDrawableChild(new TextFieldWidget(textRenderer,left,126,WIDTH,20,Text.literal("Sound-ID (optional)")));
+        audio.setPlaceholder(Text.literal("Sound-ID (optional, z. B. mpsq:ansage.start)"));audio.setMaxLength(128);
+        if(existing!=null)audio.setText(existing.sound());
         speakerButton = addDrawableChild(ButtonWidget.builder(speakerText(), button -> toggleSpeaker())
                 .dimensions(left, 100, WIDTH, 20).build());
         addDrawableChild(ButtonWidget.builder(Text.translatable("gui.mpsqcamera.team.templates.save"), button -> save())
-                .dimensions(left, 128, existing == null ? WIDTH : 174, 20).build());
+                .dimensions(left, 152, existing == null ? WIDTH : 174, 20).build());
         if (existing != null) addDrawableChild(ButtonWidget.builder(Text.translatable("gui.mpsqcamera.team.templates.delete"), button -> delete())
-                .dimensions(left + 186, 128, 174, 20).build());
+                .dimensions(left + 186, 152, 174, 20).build());
         addDrawableChild(ButtonWidget.builder(Text.translatable("gui.mpsqcamera.back"), button -> client.setScreen(parent))
                 .dimensions(width / 2 - 75, height - 36, 150, 20).build());
         setInitialFocus(input);
@@ -48,10 +51,11 @@ public final class TeamTemplateEditScreen extends Screen {
     }
 
     private void save() {
-        String text = input.getText().trim();
-        if (text.isEmpty()) return;
-        var future = existing == null ? MpsqApiClient.addTeamTemplate(text, speaker)
-                : MpsqApiClient.updateTeamTemplate(existing.id(), text, speaker);
+        String text = input.getText();
+        if (text.isBlank()) return;
+        if(!audio.getText().isBlank()&&net.minecraft.util.Identifier.tryParse(audio.getText())==null){status="Ungültige Sound-ID";return;}
+        com.google.gson.JsonObject body=new com.google.gson.JsonObject();body.addProperty("text",text);body.addProperty("speaker",speaker.id());body.addProperty("soundId",audio.getText());
+        var future=existing==null?MpsqApiClient.post("/team/templates",body):MpsqApiClient.patch("/team/templates/"+existing.id(),body);
         future.whenComplete((ignored, error) -> client.execute(() -> {
             if (error == null) { parent.reload(); client.setScreen(parent); } else status = "!";
         }));
@@ -74,8 +78,16 @@ public final class TeamTemplateEditScreen extends Screen {
         context.drawCenteredTextWithShadow(textRenderer, title, width / 2, 24, MpsqTheme.TEXT_TITEL);
         context.fill(left, 45, left + WIDTH, 47, MpsqTheme.TEXT_GEDAEMPT);
         context.drawTextWithShadow(textRenderer, Text.translatable("gui.mpsqcamera.team.templates.hint"), left, 54, MpsqTheme.TEXT_GEDAEMPT);
-        if (!status.isEmpty()) context.drawCenteredTextWithShadow(textRenderer, status, width / 2, 156, 0xFF5555);
+        int previewY=192;
+        context.enableScissor(Math.max(0,left),186,Math.min(width,left+WIDTH),height-44);
+        for(var line:textRenderer.wrapLines(TeamChatText.fromAmpersandCodes(input.getText(),net.minecraft.util.Formatting.WHITE), WIDTH-12)) {
+            context.drawTextWithShadow(textRenderer,line,left+6,previewY,0xFFFFFFFF);
+            previewY+=12;
+        }
+        context.disableScissor();
+        if (!status.isEmpty()) context.drawCenteredTextWithShadow(textRenderer, status, width / 2, 177, 0xFF5555);
     }
 
     @Override public boolean shouldPause() { return false; }
 }
+

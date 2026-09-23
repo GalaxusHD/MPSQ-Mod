@@ -115,6 +115,7 @@ public class ModSettingsScreen extends Screen {
                 cx - btnW / 2, y - 11, MpsqTheme.TEXT_NORMAL);
     }
 
+    @Override public void removed(){if(itemField!=null&&net.minecraft.util.Identifier.tryParse(itemField.getText())!=null)ModConfig.toolItemId=itemField.getText();ModConfig.save();}
     @Override
     public boolean shouldPause() { return false; }
 
@@ -136,7 +137,8 @@ public class ModSettingsScreen extends Screen {
         @Override
         protected void applyValue() {
             ModConfig.volume = (float) this.value;
-            // TODO: Lautstärke auf das Audio-System des Mods anwenden
+            MpsqAudioManager.setVolume(ModConfig.volume);
         }
     }
 }
+

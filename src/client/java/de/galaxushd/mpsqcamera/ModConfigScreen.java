@@ -62,6 +62,10 @@ public class ModConfigScreen extends Screen {
                             height - LICENSE_MARGIN - BUTTON_HEIGHT * 2 - BUTTON_SPACING,
                             LICENSE_WIDTH, BUTTON_HEIGHT).build());
         }
+        addDrawableChild(ButtonWidget.builder(Text.literal("Accessoires"), b -> client.setScreen(new MpsqAccessoriesScreen(this))).dimensions(width-110,8,100,20).build());
+        addDrawableChild(ButtonWidget.builder(Text.literal("Kalender"), b -> client.setScreen(new MpsqCalendarScreen(this))).dimensions(width-110,34,100,20).build());
+        if(TeamStateStore.self().map(p->p.permissionRank().level()>=TeamRank.OFFICER.level()).orElse(false))
+            addDrawableChild(ButtonWidget.builder(Text.literal("Eventaktionen"), b -> client.setScreen(new MpsqActionSetupScreen())).dimensions(width-110,60,100,20).build());
         int teamButtonY = height - LICENSE_MARGIN - BUTTON_HEIGHT * 2 - BUTTON_SPACING;
         // Keep the Ränge entry available while a staff member temporarily
         // uses the 001 event rank, so it can be removed again.
@@ -83,6 +87,11 @@ public class ModConfigScreen extends Screen {
                     .dimensions(LICENSE_MARGIN, teamButtonY, LICENSE_WIDTH, BUTTON_HEIGHT).build());
         } else if (baseTeamRank.level() < TeamRank.SOLDIER.level()) {
             addDrawableChild(ButtonWidget.builder(Text.translatable("gui.mpsqcamera.team.todo"), button -> openTodo())
+                    .dimensions(LICENSE_MARGIN, teamButtonY, LICENSE_WIDTH, BUTTON_HEIGHT).build());
+        }
+        if (isOfficerOrHigher) {
+            teamButtonY -= BUTTON_HEIGHT + BUTTON_SPACING;
+            addDrawableChild(ButtonWidget.builder(Text.literal("Logs"), button -> client.setScreen(new TeamLogsScreen(this)))
                     .dimensions(LICENSE_MARGIN, teamButtonY, LICENSE_WIDTH, BUTTON_HEIGHT).build());
         }
         updateActivationCodeState();
@@ -114,7 +123,7 @@ public class ModConfigScreen extends Screen {
     private void openSettings() { client.setScreen(new ModSettingsScreen(this)); }
     private void openTodo() { client.setScreen(new TeamTodoScreen(this)); }
     private void openTemplates() { client.setScreen(new TeamTemplatesScreen(this)); }
-    private void openMembers() { client.setScreen(new TeamMembersScreen(this)); }
+    private void openMembers() { client.setScreen(new TeamRankPreviewScreen(this)); }
     private void openLicense() { client.setScreen(new LizenzScreen(this)); }
     private Text visibilityButtonText() { return Text.translatable(TeamVisibilitySettings.visible()
             ? "gui.mpsqcamera.team.visibility.on" : "gui.mpsqcamera.team.visibility.off"); }
@@ -128,10 +137,6 @@ public class ModConfigScreen extends Screen {
         MpsqApiClient.setOwnNameVisible(next).whenComplete((ignored, error) -> client.execute(() -> {
             button.active = true;
             button.setMessage(nameVisibilityButtonText());
-            if (error != null) {
-                MpsqCameraClient.LOGGER.warn("Namenssichtbarkeit konnte nicht gespeichert werden", error);
-                if (client.player != null) client.player.sendMessage(Text.translatable("gui.mpsqcamera.team.unavailable"), false);
-            }
         }));
     }
 
@@ -145,3 +150,6 @@ public class ModConfigScreen extends Screen {
     }
     @Override public boolean shouldPause() { return false; }
 }
+
+
+

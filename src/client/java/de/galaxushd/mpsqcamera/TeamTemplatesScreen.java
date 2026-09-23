@@ -32,7 +32,8 @@ public final class TeamTemplatesScreen extends Screen {
     }
 
     private boolean allowed() {
-        return TeamStateStore.self().map(TeamProfile::canUseTexts).orElse(false);
+        return TeamStateStore.self().map(TeamProfile::permissionRank)
+                .map(rank -> rank.level() >= TeamRank.OFFICER.level()).orElse(false);
     }
 
     void reload() {
@@ -46,17 +47,18 @@ public final class TeamTemplatesScreen extends Screen {
         int y = 84 - scroll;
         int left = width / 2 - WIDTH / 2;
         for (TeamTemplate template : templates) {
-            int rowWidth = Math.min(WIDTH - 36, Math.max(110, textRenderer.getWidth(template.text()) + 20));
+            int rowHeight = rowHeight(template);
+            int rowWidth = Math.min(WIDTH - 36, Math.max(110, textRenderer.getWidth(TeamChatText.fromAmpersandCodes(template.text(), net.minecraft.util.Formatting.WHITE)) + 20));
             int x = template.speaker() == TeamTemplate.Speaker.FRONTMAN ? left : left + WIDTH - rowWidth;
-            if (y >= 78 && y + ROW_HEIGHT <= height - 46 && mouseX >= x && mouseX < x + rowWidth
-                    && mouseY >= y && mouseY < y + ROW_HEIGHT - 3) {
+            if (y + rowHeight > 78 && y < height - 46 && mouseX >= x && mouseX < x + rowWidth
+                    && mouseY >= y && mouseY < y + rowHeight - 3 && mouseY >= 78 && mouseY < height - 46) {
                 if (button == 0) {
                     client.keyboard.setClipboard(template.text());
                     status = Text.translatable("gui.mpsqcamera.team.templates.copied").getString();
                 } else if (button == 1) client.setScreen(new TeamTemplateEditScreen(this, template));
                 return true;
             }
-            y += ROW_HEIGHT;
+            y += rowHeight;
         }
         return super.mouseClicked(mouseX, mouseY, button);
     }
@@ -67,9 +69,13 @@ public final class TeamTemplatesScreen extends Screen {
         return true;
     }
 
+    private int rowHeight(TeamTemplate template) {
+        int rowWidth=Math.min(WIDTH-36,Math.max(110,textRenderer.getWidth(TeamChatText.fromAmpersandCodes(template.text(),net.minecraft.util.Formatting.WHITE))+20));
+        return Math.max(ROW_HEIGHT,textRenderer.wrapLines(TeamChatText.fromAmpersandCodes(template.text(),net.minecraft.util.Formatting.WHITE),rowWidth-12).size()*12+12);
+    }
     private void clampScroll() {
         int viewport = Math.max(1, height - 130);
-        scroll = Math.max(0, Math.min(scroll, Math.max(0, templates.size() * ROW_HEIGHT - viewport)));
+        scroll = Math.max(0, Math.min(scroll, Math.max(0, templates.stream().mapToInt(this::rowHeight).sum() - viewport)));
     }
 
     @Override public void renderBackground(DrawContext context, int mouseX, int mouseY, float delta) {
@@ -82,19 +88,26 @@ public final class TeamTemplatesScreen extends Screen {
         context.drawCenteredTextWithShadow(textRenderer, title, width / 2, 24, MpsqTheme.TEXT_TITEL);
         context.fill(left, 45, left + WIDTH, 47, MpsqTheme.TEXT_GEDAEMPT);
         int y = 84 - scroll;
+        context.enableScissor(left,78,left+WIDTH,height-46);
         for (TeamTemplate template : templates) {
-            int rowWidth = Math.min(WIDTH - 36, Math.max(110, textRenderer.getWidth(template.text()) + 20));
+            int rowHeight = rowHeight(template);
+            int rowWidth = Math.min(WIDTH - 36, Math.max(110, textRenderer.getWidth(TeamChatText.fromAmpersandCodes(template.text(), net.minecraft.util.Formatting.WHITE)) + 20));
             int x = template.speaker() == TeamTemplate.Speaker.FRONTMAN ? left : left + WIDTH - rowWidth;
-            if (y >= 78 && y + ROW_HEIGHT <= height - 46) {
-                context.fill(x, y, x + rowWidth, y + ROW_HEIGHT - 3,
+            if (y + rowHeight > 78 && y < height - 46) {
+                context.fill(x, y, x + rowWidth, y + rowHeight - 3,
                         template.speaker() == TeamTemplate.Speaker.FRONTMAN ? 0x66242424 : 0x663B2020);
-                context.drawTextWithShadow(textRenderer, textRenderer.trimToWidth(template.text(), rowWidth - 12),
-                        x + 6, y + 7, MpsqTheme.TEXT_NORMAL);
+                int lineY=y+6;
+                for(var line:textRenderer.wrapLines(TeamChatText.fromAmpersandCodes(template.text(),net.minecraft.util.Formatting.WHITE),rowWidth-12)) {
+                    context.drawTextWithShadow(textRenderer,line,x+6,lineY,MpsqTheme.TEXT_NORMAL);lineY+=12;
+                }
             }
-            y += ROW_HEIGHT;
+            y += rowHeight;
         }
+        context.disableScissor();
         if (!status.isEmpty()) context.drawCenteredTextWithShadow(textRenderer, status, width / 2, height - 51, 0x55FF55);
     }
 
     @Override public boolean shouldPause() { return false; }
 }
+
+

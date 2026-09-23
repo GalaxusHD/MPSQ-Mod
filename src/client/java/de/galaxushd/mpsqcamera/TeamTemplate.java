@@ -3,7 +3,8 @@ package de.galaxushd.mpsqcamera;
 import java.util.UUID;
 
 /** A reusable script line and the side that speaks it. */
-public record TeamTemplate(UUID id, String text, Speaker speaker) {
+public record TeamTemplate(UUID id, String text, Speaker speaker, String sound) {
+    public TeamTemplate(UUID id,String text,Speaker speaker){this(id,text,speaker,"");}
     public enum Speaker {
         OFFICER("offizier"), FRONTMAN("frontman");
 

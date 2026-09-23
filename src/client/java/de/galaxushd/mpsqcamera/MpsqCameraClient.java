@@ -13,6 +13,8 @@ public class MpsqCameraClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         LOGGER.info("[MPSQ Team] Client mod initialized.");
+        ModConfig.load();
+        MpsqAudioManager.setVolume(ModConfig.volume);
         ScreenCreationManager.initialize();
         CameraCreationManager.initialize();
         BodycamRequestManager.initialize();
@@ -20,12 +22,17 @@ public class MpsqCameraClient implements ClientModInitializer {
         SelectionRenderer.initialize();
         ScreenRenderer.initialize();
         RemoteCameraFrameManager.initialize();
-        TeamCommandManager.initialize();
+		TeamCommandManager.initialize();
 		TeamChatRelayManager.initialize();
         CameraUsageHud.initialize();
         CinemaBrowserManager.initialize();
         MobileCameraManager.initialize();
-        TeamProfileSync.initialize();
+        MpsqTriggerManager.initialize();
+        MpsqBossbarHud.initialize();
+        MpsqAudioManager.initialize();
+        MpsqActionSync.initialize();
+        MpsqTemplateAudio.initialize();
+        MpsqAccessoryRenderer.initialize();
         // Load the rank cache independently. A temporary camera or screen API
         // error must never prevent MPSQ nametags from replacing server ranks.
         var initialization = MpsqApiClient.initialize();
@@ -46,6 +53,7 @@ public class MpsqCameraClient implements ClientModInitializer {
         // label mixin always has the MPSQ rank available to replace it.
         ClientPlayConnectionEvents.JOIN.register((handler, sender, client) ->
                 MpsqApiClient.initialize()
+                        .thenApply(ignored -> { MpsqTriggerManager.refresh(); return ignored; })
                         .thenCompose(ignored -> MpsqApiClient.refreshTeamProfile())
                         .thenCompose(ignored -> MpsqApiClient.refreshTeamMembers())
                         .exceptionally(error -> {
@@ -54,3 +62,7 @@ public class MpsqCameraClient implements ClientModInitializer {
                         }));
     }
 }
+
+
+
+

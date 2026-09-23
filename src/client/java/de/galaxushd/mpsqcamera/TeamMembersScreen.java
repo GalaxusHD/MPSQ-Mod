@@ -30,7 +30,6 @@ public final class TeamMembersScreen extends Screen {
     private final Screen parent;
     private TeamProfile selected;
     private String messageKey = "gui.mpsqcamera.team.members.loading";
-    private boolean actionFailed;
 
     public TeamMembersScreen(Screen parent) {
         super(Text.translatable("gui.mpsqcamera.team.members"));
@@ -41,13 +40,15 @@ public final class TeamMembersScreen extends Screen {
     protected void init() {
         addDrawableChild(ButtonWidget.builder(Text.translatable("gui.mpsqcamera.back"), b -> client.setScreen(parent))
                 .dimensions(width / 2 - 75, height - 36, 150, 20).build());
+        addDrawableChild(ButtonWidget.builder(Text.literal("Ranginformationen"), b -> client.setScreen(new TeamRankPreviewScreen(this)))
+                .dimensions(width - 132, height - 36, 120, 20).build());
         reload();
     }
 
     private void reload() {
         MpsqApiClient.refreshTeamProfile().thenCompose(profile -> MpsqApiClient.refreshTeamMembers())
                 .whenComplete((members, error) -> client.execute(() -> {
-                    messageKey = error == null && !actionFailed ? "gui.mpsqcamera.team.members.help" : "gui.mpsqcamera.team.unavailable";
+                    messageKey = error == null ? "gui.mpsqcamera.team.members.help" : "gui.mpsqcamera.team.unavailable";
                     TeamProfile self = TeamStateStore.self().orElse(null);
                     if (selfView() && self != null) {
                         selected = self;
@@ -220,7 +221,7 @@ public final class TeamMembersScreen extends Screen {
             }
             for (TeamRank rank : permanentRanks()) {
                 if (withinRank(mouseX, mouseY, x, y, rank)) {
-                    MpsqApiClient.changeTeamRank(selected.id(), rank).whenComplete((ignored, error) -> client.execute(() -> finishRankChange(error)));
+                    MpsqApiClient.changeTeamRank(selected.id(), rank).whenComplete((ignored, error) -> client.execute(this::reload));
                     return true;
                 }
                 y += TAG_HEIGHT + TAG_SPACING;
@@ -236,23 +237,14 @@ public final class TeamMembersScreen extends Screen {
 
     private void toggleTemporaryRank(TeamRank rank) {
         if (selected.activeRank() == rank) {
-            MpsqApiClient.clearUndercoverRank(selected.id()).whenComplete((ignored, error) -> client.execute(() -> finishRankChange(error)));
+            MpsqApiClient.clearUndercoverRank(selected.id()).whenComplete((ignored, error) -> client.execute(this::reload));
         } else {
             MpsqApiClient.setTemporaryTeamRank(selected.id(), rank)
-                    .whenComplete((ignored, error) -> client.execute(() -> finishRankChange(error)));
+                    .whenComplete((ignored, error) -> client.execute(this::reload));
         }
     }
 
     @Override public boolean shouldPause() { return false; }
-
-    private void finishRankChange(Throwable error) {
-        actionFailed = error != null;
-        if (error != null) {
-            MpsqCameraClient.LOGGER.warn("MPSQ-Rangaenderung wurde abgelehnt", error);
-            if (client.player != null) client.player.sendMessage(Text.translatable("gui.mpsqcamera.team.unavailable"), false);
-        }
-        reload();
-    }
 
     private int contentWidth() {
         return Math.min(MAX_CONTENT_WIDTH, Math.max(1, width - PAGE_MARGIN * 2));
@@ -274,3 +266,4 @@ public final class TeamMembersScreen extends Screen {
                 .toList();
     }
 }
+
