@@ -55,6 +55,8 @@ public final class TeamLogsScreen extends Screen {
                 int rankX=22+textRenderer.getWidth("Zuständiger Moderator: "+text(row,"actor_name"));
                 TeamRank.fromId(text(row,"actor_rank")).draw(c,rankX,rowY+27,9);
             }
+            if (row != rows.get(rows.size()-1))
+                c.fill(12,rowY+40,width-12,rowY+41,MpsqTheme.TEXT_GEDAEMPT);
             rowY+=46;
         }
         c.disableScissor();

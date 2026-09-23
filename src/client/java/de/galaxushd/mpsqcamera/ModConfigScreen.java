@@ -62,10 +62,9 @@ public class ModConfigScreen extends Screen {
                             height - LICENSE_MARGIN - BUTTON_HEIGHT * 2 - BUTTON_SPACING,
                             LICENSE_WIDTH, BUTTON_HEIGHT).build());
         }
-        addDrawableChild(ButtonWidget.builder(Text.literal("Accessoires"), b -> client.setScreen(new MpsqAccessoriesScreen(this))).dimensions(width-110,8,100,20).build());
-        addDrawableChild(ButtonWidget.builder(Text.literal("Kalender"), b -> client.setScreen(new MpsqCalendarScreen(this))).dimensions(width-110,34,100,20).build());
+        addDrawableChild(ButtonWidget.builder(Text.literal("Accessoires"), b -> client.setScreen(new MpsqAccessoriesScreen(this))).dimensions(width-LICENSE_MARGIN-LICENSE_WIDTH,8,LICENSE_WIDTH,BUTTON_HEIGHT).build());
         if(TeamStateStore.self().map(p->p.permissionRank().level()>=TeamRank.OFFICER.level()).orElse(false))
-            addDrawableChild(ButtonWidget.builder(Text.literal("Eventaktionen"), b -> client.setScreen(new MpsqActionSetupScreen())).dimensions(width-110,60,100,20).build());
+            addDrawableChild(ButtonWidget.builder(Text.literal("Eventaktionen"), b -> client.setScreen(new MpsqActionSetupScreen())).dimensions(width-LICENSE_MARGIN-LICENSE_WIDTH,60,LICENSE_WIDTH,BUTTON_HEIGHT).build());
         int teamButtonY = height - LICENSE_MARGIN - BUTTON_HEIGHT * 2 - BUTTON_SPACING;
         // Keep the Ränge entry available while a staff member temporarily
         // uses the 001 event rank, so it can be removed again.
