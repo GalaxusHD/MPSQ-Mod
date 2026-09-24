@@ -9,7 +9,6 @@
     "InGameHudMixin",
     "EntityRendererMixin",
     "PlayerEntityRendererMixin",
-    "PlayerEntityModelMixin",
     "ChatScreenMixin",
     "ChatInputSuggestorMixin",
     "ItemModelManagerMixin"
