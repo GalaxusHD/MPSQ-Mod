@@ -59,7 +59,21 @@ public final class MpsqTriggerManager {
                     }
                     if (!result.getAsJsonObject().has("cooldown") && "OPEN_REDEEM".equalsIgnoreCase(trigger.actionType()))
                         client.execute(() -> client.setScreen(new MpsqRedeemScreen()));
-                }).exceptionally(error -> { MpsqCameraClient.LOGGER.debug("Trigger abgelehnt", error); return null; }));
+                }).exceptionally(error -> {
+                    MpsqCameraClient.LOGGER.warn("MPSQ-Knopf konnte nicht ausgelöst werden", error);
+                    client.execute(() -> {
+                        if(client.player!=null) client.player.sendMessage(net.minecraft.text.Text.literal(
+                                "§cMPSQ-System: Aktion fehlgeschlagen – " + rootMessage(error)), false);
+                    });
+                    return null;
+                }));
+    }
+
+    private static String rootMessage(Throwable error) {
+        Throwable cause=error;
+        while(cause.getCause()!=null) cause=cause.getCause();
+        String message=cause.getMessage();
+        return message==null||message.isBlank()?"API nicht erreichbar":message;
     }
 }
 

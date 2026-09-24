@@ -10,19 +10,23 @@ public final class MpsqActionSetupScreen extends Screen {
     private final BlockPos pos;
     private final String block, server, world;
     private TextFieldWidget value, duration;
-    private final String[] actions={"PLAY_AUDIO","START_PLAYLIST","STOP_AUDIO","START_COUNTDOWN","SHOW_BOSSBAR","HIDE_BOSSBAR","SEND_ANNOUNCEMENT","OPEN_REDEEM","OPEN_LINK"};
+    private ButtonWidget actionButton;
+    private static final String[] QUICK_ACTIONS={"PLAY_AUDIO","START_PLAYLIST","STOP_AUDIO","START_COUNTDOWN","SHOW_BOSSBAR","HIDE_BOSSBAR","SEND_ANNOUNCEMENT"};
+    private static final String[] BLOCK_ACTIONS={"PLAY_AUDIO","START_PLAYLIST","STOP_AUDIO","START_COUNTDOWN","SHOW_BOSSBAR","HIDE_BOSSBAR","SEND_ANNOUNCEMENT","OPEN_REDEEM","OPEN_LINK"};
+    private final String[] actions;
     private int action;
     private String status="";
     public MpsqActionSetupScreen(BlockPos pos,String block) {
         super(Text.literal("MPSQ-Knopf einrichten"));
         this.pos=pos.toImmutable(); this.block=block;
+        this.actions=block.isEmpty()?QUICK_ACTIONS:BLOCK_ACTIONS;
         server=MpsqActionSync.server(); world=MpsqActionSync.world();
     }
     public MpsqActionSetupScreen() { this(BlockPos.ORIGIN, ""); }
     @Override protected void init() {
         int x=width/2-130,y=60;
-        addDrawableChild(ButtonWidget.builder(Text.literal(actions[action]),b->{
-            action=(action+1)%(block.isEmpty()?actions.length-2:actions.length); b.setMessage(Text.literal(actions[action]));
+        actionButton=addDrawableChild(ButtonWidget.builder(Text.literal(actionLabel(actions[action])),b->{
+            action=(action+1)%actions.length; b.setMessage(Text.literal(actionLabel(actions[action])));
         }).dimensions(x,y,260,20).build());
         value=addDrawableChild(new TextFieldWidget(textRenderer,x,y+46,260,20,Text.literal("Text oder Sound-ID")));
         value.setMaxLength(512);
@@ -54,6 +58,10 @@ public final class MpsqActionSetupScreen extends Screen {
         body.addProperty("blockId",block);body.addProperty("actionType",actions[action]);body.add("actionData",data);
         body.addProperty("minimumRank",("OPEN_REDEEM".equals(actions[action])||"OPEN_LINK".equals(actions[action]))?"vip":"offizier");
         status="Wird gespeichert…";
+        if(MpsqActionSync.server().isBlank() || MpsqActionSync.world().isBlank()) {
+            status="Bitte zuerst einer Welt auf dem MPSQ-Server beitreten.";
+            return;
+        }
         MpsqApiClient.post(block.isEmpty()?"/actions":"/triggers",body).whenComplete((r,e)->client.execute(()->{
             status=e==null?(block.isEmpty()?"Aktion gesendet.":"Gespeichert. Rechtsklick löst die Aktion aus."):"Speichern fehlgeschlagen: "+e.getMessage();
             if(e==null)MpsqTriggerManager.refresh();
@@ -61,10 +69,24 @@ public final class MpsqActionSetupScreen extends Screen {
     }
     @Override public void render(DrawContext c,int x,int y,float d){
         super.render(c,x,y,d);
-        c.drawCenteredTextWithShadow(textRenderer,title,width/2,24,0xFFFFFFFF);
+        c.drawCenteredTextWithShadow(textRenderer,title,width/2,24,MpsqTheme.TEXT_TITEL);
         c.drawTextWithShadow(textRenderer,"Text oder Sound-ID (z. B. minecraft:music.menu)",width/2-130,92,0xFFFFFFFF);
         c.drawTextWithShadow(textRenderer,"Countdown-Dauer in Sekunden",width/2-130,134,0xFFFFFFFF);
         c.drawCenteredTextWithShadow(textRenderer,Text.literal(status),width/2,height-24,0xFFFFFFFF);
+    }
+    private static String actionLabel(String action) {
+        return switch(action) {
+            case "PLAY_AUDIO" -> "Musik / Ton";
+            case "START_PLAYLIST" -> "Playlist starten";
+            case "STOP_AUDIO" -> "Musik stoppen";
+            case "START_COUNTDOWN" -> "Countdown starten";
+            case "SHOW_BOSSBAR" -> "Bossbar anzeigen";
+            case "HIDE_BOSSBAR" -> "Bossbar ausblenden";
+            case "SEND_ANNOUNCEMENT" -> "Ansage senden";
+            case "OPEN_REDEEM" -> "Redeem öffnen";
+            case "OPEN_LINK" -> "Link öffnen";
+            default -> action;
+        };
     }
     @Override public boolean shouldPause(){return false;}
 }

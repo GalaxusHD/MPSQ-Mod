@@ -31,7 +31,7 @@ public final class MpsqAccessoriesScreen extends Screen {
         MpsqApiClient.post("/me/accessories/equip",body).whenComplete((data,error)->client.execute(()->{pending=false;if(error!=null){status="Auswahl konnte nicht gespeichert werden.";return;}MpsqAccessoryRenderer.refresh();reload();}));
     }
     @Override public void renderBackground(DrawContext c,int x,int y,float d){super.renderBackground(c,x,y,d);MpsqTheme.drawBackground(c,width,height);}
-    @Override public void render(DrawContext c,int x,int y,float d){super.render(c,x,y,d);c.drawCenteredTextWithShadow(textRenderer,title,width/2,24,0xFFFFFFFF);c.fill(12,45,width-12,47,MpsqTheme.TEXT_GEDAEMPT);c.drawCenteredTextWithShadow(textRenderer,status,width/2,height-46,0xFFFFFFFF);}
+    @Override public void render(DrawContext c,int x,int y,float d){super.render(c,x,y,d);c.drawCenteredTextWithShadow(textRenderer,title,width/2,24,MpsqTheme.TEXT_TITEL);c.fill(12,45,width-12,47,MpsqTheme.TEXT_GEDAEMPT);c.drawCenteredTextWithShadow(textRenderer,status,width/2,height-46,0xFFFFFFFF);}
     @Override public void close(){client.setScreen(parent);}
     @Override public boolean shouldPause(){return false;}
 }
