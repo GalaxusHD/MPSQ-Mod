@@ -7,9 +7,9 @@
     "GameRendererMixin",
     "KeyboardMixin",
     "InGameHudMixin",
-    "EntityRendererMixin",
-    "PlayerEntityRendererMixin",
-    "PlayerListHudMixin",
+		"EntityRendererMixin",
+		"PlayerEntityRendererMixin",
+		"PlayerEntityModelMixin",
     "ChatScreenMixin",
     "ChatInputSuggestorMixin",
     "ItemModelManagerMixin"
