@@ -33,7 +33,7 @@ public final class MpsqAccessoriesScreen extends Screen {
         JsonArray list=rows();for(int i=0;i<list.size();i++){int yy=TOP+i*ROW-scroll;if(yy+ROW<TOP||yy>bottom)continue;JsonObject r=list.get(i).getAsJsonObject();JsonObject def=r.has("mpsq_accessories")&&r.get("mpsq_accessories").isJsonObject()?r.getAsJsonObject("mpsq_accessories"):r;String name=str(r,"display_name",str(def,"display_name",str(r,"id",str(def,"accessory_key","Unbenannt"))));boolean equipped=r.has("equipped")&&r.get("equipped").getAsBoolean();
             c.fill(center-146,yy+1,center+146,yy+ROW-2,(i%2==0)?0x55000000:0x33000000);
             String label=(equipped?"✓ ":"")+name;if(tab==1&&staff()&&r.has("id"))label+="  ["+r.get("id").getAsString()+"]";
-            c.drawTextWithShadow(textRenderer,textRenderer.trimToWidth(Text.literal(label),width/2+128),center-137,yy+7,equipped?0xFFFF7777:0xFFFFFFFF);
+            c.drawTextWithShadow(textRenderer,textRenderer.trimToWidth(label,width/2+128),center-137,yy+7,equipped?0xFFFF7777:0xFFFFFFFF);
         }c.disableScissor();drawScrollbar(c,center+151,TOP,bottom,list.size()*ROW);
         c.drawCenteredTextWithShadow(textRenderer,status,center,height-47,0xFFFFFFFF);
         if(list.size()*ROW>height-TOP-BOTTOM)c.drawCenteredTextWithShadow(textRenderer,"Mausrad zum Scrollen",center,height-34,0xFFBBBBBB);
