@@ -46,7 +46,8 @@ loom {
 	}
 
 	mixin {
-		add sourceSets.client, "mpsqcamera.refmap.json"
+		add sourceSets.main, "mpsqcamera.mixins.json"
+		defaultRefmapName = "mpsqcamera.refmap.json"
 	}
 }
 
