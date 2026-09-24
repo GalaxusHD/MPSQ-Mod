@@ -21,14 +21,21 @@ public abstract class PlayerEntityModelMixin {
     @Shadow @Final public ModelPart rightLeg;
     @Shadow @Final public ModelPart leftLeg;
 
-    @Inject(method="setAngles",at=@At("TAIL"))
-    private void mpsq$applyKickKeyframes(PlayerEntityRenderState state,CallbackInfo ci){
-        if(state.name==null)return;
-        apply(head,MpsqKickAnimationManager.rotation(state.name,"head"));
-        apply(rightArm,MpsqKickAnimationManager.rotation(state.name,"rightArm"));
-        apply(leftArm,MpsqKickAnimationManager.rotation(state.name,"leftArm"));
-        apply(rightLeg,MpsqKickAnimationManager.rotation(state.name,"rightLeg"));
-        apply(leftLeg,MpsqKickAnimationManager.rotation(state.name,"leftLeg"));
+    @Inject(method = "setAngles", at = @At("TAIL"))
+    private void mpsq$applyKickKeyframes(PlayerEntityRenderState state, CallbackInfo ci) {
+        if (state == null || state.name == null) return;
+
+        apply(head, MpsqKickAnimationManager.rotation(state.name, "head"));
+        apply(rightArm, MpsqKickAnimationManager.rotation(state.name, "rightArm"));
+        apply(leftArm, MpsqKickAnimationManager.rotation(state.name, "leftArm"));
+        apply(rightLeg, MpsqKickAnimationManager.rotation(state.name, "rightLeg"));
+        apply(leftLeg, MpsqKickAnimationManager.rotation(state.name, "leftLeg"));
     }
-    private static void apply(ModelPart part,float[] rotation){if(rotation==null)return;part.pitch=rotation[0];part.yaw=rotation[1];part.roll=rotation[2];}
+
+    private static void apply(ModelPart part, float[] rotation) {
+        if (part == null || rotation == null) return;
+        part.pitch = rotation[0];
+        part.yaw = rotation[1];
+        part.roll = rotation[2];
+    }
 }
