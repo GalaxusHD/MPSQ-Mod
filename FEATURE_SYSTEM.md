@@ -8,6 +8,8 @@ Minecraft 1.21.8, Java 21, Fabric API und MCEF bleiben erforderlich.
 - Eventaktionen: Musik-ID, durch Kommas getrennte Playlist, Ansage, Bossbar, Countdown oder Stop. Empfänger müssen Mod, passende Audioressourcen und dieselbe Server-/Dimensionskennung verwenden.
 - Knöpfe: Block ansehen, `/mpsq-knopf`. Rechtsklick meldet die Aktion an Supabase. Das bestätigt keine Minecraft-Serveraktion.
 - Objekte: Bodenblock ansehen, `/mpsq-objekt`. Modell-ID aus dem Admin-Upload verwenden; Objekt wird einen Block darüber angezeigt. Ersetzen, Drehen und Entfernen sind dort möglich. Die Modelle haben keine serverseitige Kollision.
+- Zentrale Dateien: Im Admin-Panel liegen Möbel, Accessoires, Sounds/Musik und NPC-Skins als getrennte Bereiche. Jede Datei erhält eine stabile ID. Ein Modell wird entweder als Möbel oder als Accessoire eingetragen. Bei Möbeln bedeutet „interaktiv“ die vorgesehene spätere Verbindung mit einer Systemaktion; der eigentliche Knopf wird weiterhin im Spiel eingerichtet.
+- Stand jetzt werden hochgeladene Sounddateien und NPC-Skins zentral gespeichert. Die aktuelle Wiedergabe nutzt weiterhin Sound-IDs aus einem installierten Ressourcenpaket; NPC-Skins werden erst mit dem späteren NPC-System im Spiel angezeigt. Möbel mit „interaktiv“ werden markiert, aber noch nicht automatisch mit einem Knopf verknüpft.
 - Accessoires: Code einlösen, in „Accessoires“ anlegen/ablegen. Andere benötigen ebenfalls die MPSQ Mod.
 - Kalender: Termine ansehen; Offizier und höher können Termine anlegen/entfernen. Anzeige in der lokalen Zeitzone.
 
