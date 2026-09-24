@@ -1,0 +1,14 @@
+realistic-death-knees-mythic:
+  Display: ' '
+  Health: 50
+  Options:
+    Invincible: true
+    NoAI: true
+    NoGravity: true
+  Skills:
+  - model{m=realistic-death-knees;d=false} @self ~onSpawn
+  - modelplayerskin @PIR{r=12;sort=NEAREST;limit=1} ~onSpawn
+  - remove{delay=80} @self ~onSpawn
+  Type: ITEM_DISPLAY
+
+#2d103dec0d04a672fc0f6daa4a71f84c
