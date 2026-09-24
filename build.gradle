@@ -33,6 +33,8 @@ dependencies {
 
 	// MCEF provides the in-game Chromium browser used by cinema screens.
 	modImplementation files("libs/mcef-fabric-2.1.6-1.21.6.jar")
+
+	annotationProcessor "org.spongepowered:mixin:0.8.7:processor"
 }
 
 loom {
