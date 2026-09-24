@@ -30,7 +30,8 @@ public final class MpsqAccessoryRenderer {
     private static int generation;
     private static String scope="";
     private MpsqAccessoryRenderer(){}
-    public static void refresh(){next=0;}
+    public static void refresh(){generation++;polling=false;loading.clear();next=0;}
+    public static JsonArray npcsSnapshot(){return npcs.deepCopy();}
     public static void initialize(){
         ClientTickEvents.END_CLIENT_TICK.register(client->{
             String current=MpsqActionSync.server()+"|"+MpsqActionSync.world();
@@ -66,7 +67,7 @@ public final class MpsqAccessoryRenderer {
             var camera=context.camera().getPos();
             for(var value:objects){var o=value.getAsJsonObject();Model model=models.get(o.get("url").getAsString());if(model==null)continue;
                 double x=o.get("x").getAsDouble(),y=o.get("y").getAsDouble(),z=o.get("z").getAsDouble();if(camera.squaredDistanceTo(x,y,z)>4096)continue;
-                matrices.push();matrices.translate(x+0.5-camera.x,y-camera.y,z+0.5-camera.z);matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(o.get("rotation").getAsFloat()));matrices.translate(-0.5,0,-0.5);matrices.scale(1f/16,1f/16,1f/16);drawModel(model,matrices,consumers);matrices.pop();
+                matrices.push();matrices.translate(x+0.5-camera.x,y-camera.y,z+0.5-camera.z);matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(o.get("rotation").getAsFloat()));matrices.translate(-0.5,0,-0.5);matrices.scale(1f/16,1f/16,1f/16);drawModel(model,matrices,consumers,0xFFFFFFFF);matrices.pop();
             }
             for(var player:client.world.getPlayers()){
                 if(player.isInvisible()||player.isSpectator()||(player==client.player&&client.options.getPerspective().isFirstPerson()))continue;
@@ -77,16 +78,18 @@ public final class MpsqAccessoryRenderer {
                 matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(-player.getHeadYaw()));
                 matrices.multiply(RotationAxis.POSITIVE_X.rotationDegrees(player.getPitch()));
                 matrices.translate(-0.5,-0.25,-0.5);matrices.scale(1f/16,1f/16,1f/16);
-                drawModel(model,matrices,consumers);
+                drawModel(model,matrices,consumers,0xFFFFFFFF);
                 matrices.pop();
             }
             for(var value:npcs){var o=value.getAsJsonObject();if(!o.has("url")||o.get("url").isJsonNull())continue;Model model=models.get(o.get("url").getAsString());if(model==null)continue;
                 double x=o.get("x").getAsDouble(),y=o.get("y").getAsDouble(),z=o.get("z").getAsDouble();if(camera.squaredDistanceTo(x,y,z)>4096)continue;
-                matrices.push();matrices.translate(x+0.5-camera.x,y-camera.y,z+0.5-camera.z);matrices.scale(1f/16,1f/16,1f/16);drawModel(model,matrices,consumers);matrices.pop();
+                float size=o.has("scale")?o.get("scale").getAsFloat():1f;String animation=o.has("animation")?o.get("animation").getAsString():"none";float phase=(System.currentTimeMillis()%4000L)/1000f;float bob=animation.equals("bob")?(float)Math.sin(phase*Math.PI*2)*0.08f:0;float pulse=animation.equals("pulse")?1f+(float)Math.sin(phase*Math.PI*2)*0.08f:1f;float turn=animation.equals("turn")?phase*90f:0;int tint=glowColor(o.has("glow_color")?o.get("glow_color").getAsString():"none");
+                matrices.push();matrices.translate(x+0.5-camera.x,y+bob-camera.y,z+0.5-camera.z);matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(turn));matrices.scale(size/16f*pulse,size/16f*pulse,size/16f*pulse);drawModel(model,matrices,consumers,tint);matrices.pop();
             }
         });
     }
-    private static void drawModel(Model model,MatrixStack matrices,VertexConsumerProvider consumers){
+    private static int glowColor(String color){return switch(color){case "white"->0xFFFFFFFF;case "orange"->0xFFFFAA33;case "magenta"->0xFFFF55FF;case "light_blue"->0xFF55AAFF;case "yellow"->0xFFFFFF55;case "lime"->0xFF55FF55;case "pink"->0xFFFF88BB;case "gray"->0xFF666666;case "light_gray"->0xFFBBBBBB;case "cyan"->0xFF55FFFF;case "purple"->0xFFAA55FF;case "blue"->0xFF5555FF;case "brown"->0xFF8B5A2B;case "green"->0xFF55AA33;case "red"->0xFFFF5555;case "black"->0xFF333333;default->0xFFFFFFFF;};}
+    private static void drawModel(Model model,MatrixStack matrices,VertexConsumerProvider consumers,int tint){
                 for(JsonElement value:model.elements){
                     JsonObject e=value.getAsJsonObject();float[] from=vec(e,"from"),to=vec(e,"to"),origin=vec(e,"origin"),rotation=vec(e,"rotation");
                     matrices.push();matrices.translate(origin[0],origin[1],origin[2]);
@@ -99,7 +102,7 @@ public final class MpsqAccessoryRenderer {
                         JsonArray uv=f.getAsJsonArray("uv");float u0=uv.get(0).getAsFloat(),v0=uv.get(1).getAsFloat(),u1=uv.get(2).getAsFloat(),v1=uv.get(3).getAsFloat();
                         float[][] tex={{u0,v1},{u1,v1},{u1,v0},{u0,v0}};
                         int turn=f.has("rotation")?Math.floorMod(f.get("rotation").getAsInt()/90,4):0;
-                        for(int i=0;i<4;i++){float[] p=points[i], t=tex[(i+turn)%4];buffer.vertex(matrices.peek(),p[0],p[1],p[2]).color(255,255,255,255).texture(t[0],t[1]).overlay(OverlayTexture.DEFAULT_UV).light(0xF000F0).normal(0,1,0);}
+                        for(int i=0;i<4;i++){float[] p=points[i], t=tex[(i+turn)%4];buffer.vertex(matrices.peek(),p[0],p[1],p[2]).color((tint>>16)&255,(tint>>8)&255,tint&255,(tint>>>24)&255).texture(t[0],t[1]).overlay(OverlayTexture.DEFAULT_UV).light(0xF000F0).normal(0,1,0);}
                     }
                     matrices.pop();
                 }
@@ -108,7 +111,7 @@ public final class MpsqAccessoryRenderer {
                     JsonArray vertices=mesh.getAsJsonArray("vertices"),indices=mesh.getAsJsonArray("indices");var buffer=consumers.getBuffer(RenderLayer.getEntityCutoutNoCull(texture));
                     for(int i=0;i+2<indices.size();i+=3)for(int k=0;k<3;k++){
                         JsonArray v=vertices.get(indices.get(i+k).getAsInt()).getAsJsonArray();
-                        buffer.vertex(matrices.peek(),v.get(0).getAsFloat(),v.get(1).getAsFloat(),v.get(2).getAsFloat()).color(255,255,255,255).texture(v.get(3).getAsFloat(),v.get(4).getAsFloat()).overlay(OverlayTexture.DEFAULT_UV).light(0xF000F0).normal(0,1,0);
+                        buffer.vertex(matrices.peek(),v.get(0).getAsFloat(),v.get(1).getAsFloat(),v.get(2).getAsFloat()).color((tint>>16)&255,(tint>>8)&255,tint&255,(tint>>>24)&255).texture(v.get(3).getAsFloat(),v.get(4).getAsFloat()).overlay(OverlayTexture.DEFAULT_UV).light(0xF000F0).normal(0,1,0);
                     }
                 }
     }

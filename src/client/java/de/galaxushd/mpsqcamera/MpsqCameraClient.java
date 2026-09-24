@@ -35,6 +35,7 @@ public class MpsqCameraClient implements ClientModInitializer {
         MpsqKickAnimationManager.initialize();
         MpsqTemplateAudio.initialize();
         MpsqAccessoryRenderer.initialize();
+        MpsqNpcManager.initialize();
         // Load the rank cache independently. A temporary camera or screen API
         // error must never prevent MPSQ nametags from replacing server ranks.
         var initialization = MpsqApiClient.initialize();
