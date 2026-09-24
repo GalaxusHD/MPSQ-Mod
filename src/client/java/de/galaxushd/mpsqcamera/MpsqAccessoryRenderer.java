@@ -18,10 +18,11 @@ import net.minecraft.util.math.RotationAxis;
 
 /** Head accessories rendered only for players actually visible in the current world. */
 public final class MpsqAccessoryRenderer {
-    private record Model(JsonArray elements,Map<String,Identifier> textures){}
+    private record Model(JsonArray elements,JsonArray meshes,Map<String,Identifier> textures){}
     private static final Map<String,Model> models=new HashMap<>();
     private static final Map<String,String> wearers=new HashMap<>();
     private static JsonArray objects=new JsonArray();
+    private static JsonArray npcs=new JsonArray();
     private static final Set<String> loading=new HashSet<>();
     private static final HttpClient HTTP=HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
     private static long next;
@@ -33,12 +34,16 @@ public final class MpsqAccessoryRenderer {
     public static void initialize(){
         ClientTickEvents.END_CLIENT_TICK.register(client->{
             String current=MpsqActionSync.server()+"|"+MpsqActionSync.world();
-            if(!scope.equals(current)){scope=current;generation++;polling=false;wearers.clear();objects=new JsonArray();loading.clear();for(Model m:models.values())for(Identifier id:m.textures.values())client.getTextureManager().destroyTexture(id);models.clear();next=0;}
+            if(!scope.equals(current)){scope=current;generation++;polling=false;wearers.clear();objects=new JsonArray();npcs=new JsonArray();loading.clear();for(Model m:models.values())for(Identifier id:m.textures.values())client.getTextureManager().destroyTexture(id);models.clear();next=0;}
             if(client.world==null||!MpsqApiClient.isReady()||polling||System.currentTimeMillis()<next)return;
             polling=true;next=System.currentTimeMillis()+15000;int epoch=generation;
             MpsqApiClient.get("/objects?server="+java.net.URLEncoder.encode(MpsqActionSync.server(),java.nio.charset.StandardCharsets.UTF_8)+"&world="+java.net.URLEncoder.encode(MpsqActionSync.world(),java.nio.charset.StandardCharsets.UTF_8)).whenComplete((data,error)->client.execute(()->{
                 if(epoch!=generation||error!=null)return;objects=data.getAsJsonArray();
                 for(var value:objects){var o=value.getAsJsonObject();String url=o.get("url").getAsString();if(!models.containsKey(url)&&models.size()+loading.size()<16)load(url,epoch);}
+            }));
+            MpsqApiClient.get("/npcs?server="+java.net.URLEncoder.encode(MpsqActionSync.server(),java.nio.charset.StandardCharsets.UTF_8)+"&world="+java.net.URLEncoder.encode(MpsqActionSync.world(),java.nio.charset.StandardCharsets.UTF_8)).whenComplete((data,error)->client.execute(()->{
+                if(epoch!=generation||error!=null||!data.isJsonArray())return;npcs=data.getAsJsonArray();
+                for(JsonElement value:npcs){JsonObject npc=value.getAsJsonObject();if(npc.has("url")&&!npc.get("url").isJsonNull()){String url=npc.get("url").getAsString();if(!models.containsKey(url)&&models.size()+loading.size()<16)load(url,epoch);}}
             }));
             MpsqApiClient.get("/accessory-wearers").whenComplete((data,error)->client.execute(()->{
                 if(epoch!=generation)return;polling=false;
@@ -75,6 +80,10 @@ public final class MpsqAccessoryRenderer {
                 drawModel(model,matrices,consumers);
                 matrices.pop();
             }
+            for(var value:npcs){var o=value.getAsJsonObject();if(!o.has("url")||o.get("url").isJsonNull())continue;Model model=models.get(o.get("url").getAsString());if(model==null)continue;
+                double x=o.get("x").getAsDouble(),y=o.get("y").getAsDouble(),z=o.get("z").getAsDouble();if(camera.squaredDistanceTo(x,y,z)>4096)continue;
+                matrices.push();matrices.translate(x+0.5-camera.x,y-camera.y,z+0.5-camera.z);matrices.scale(1f/16,1f/16,1f/16);drawModel(model,matrices,consumers);matrices.pop();
+            }
         });
     }
     private static void drawModel(Model model,MatrixStack matrices,VertexConsumerProvider consumers){
@@ -93,6 +102,14 @@ public final class MpsqAccessoryRenderer {
                         for(int i=0;i<4;i++){float[] p=points[i], t=tex[(i+turn)%4];buffer.vertex(matrices.peek(),p[0],p[1],p[2]).color(255,255,255,255).texture(t[0],t[1]).overlay(OverlayTexture.DEFAULT_UV).light(0xF000F0).normal(0,1,0);}
                     }
                     matrices.pop();
+                }
+                for(JsonElement value:model.meshes){
+                    JsonObject mesh=value.getAsJsonObject();Identifier texture=model.textures.get(mesh.get("texture").getAsString());if(texture==null)continue;
+                    JsonArray vertices=mesh.getAsJsonArray("vertices"),indices=mesh.getAsJsonArray("indices");var buffer=consumers.getBuffer(RenderLayer.getEntityCutoutNoCull(texture));
+                    for(int i=0;i+2<indices.size();i+=3)for(int k=0;k<3;k++){
+                        JsonArray v=vertices.get(indices.get(i+k).getAsInt()).getAsJsonArray();
+                        buffer.vertex(matrices.peek(),v.get(0).getAsFloat(),v.get(1).getAsFloat(),v.get(2).getAsFloat()).color(255,255,255,255).texture(v.get(3).getAsFloat(),v.get(4).getAsFloat()).overlay(OverlayTexture.DEFAULT_UV).light(0xF000F0).normal(0,1,0);
+                    }
                 }
     }
     private static float[] vec(JsonObject e,String key){JsonArray a=e.getAsJsonArray(key);return new float[]{a.get(0).getAsFloat(),a.get(1).getAsFloat(),a.get(2).getAsFloat()};}
@@ -121,7 +138,9 @@ public final class MpsqAccessoryRenderer {
             if(epoch!=generation)return;loading.remove(url);if(error!=null){MpsqCameraClient.LOGGER.debug("Accessoire konnte nicht geladen werden",error);return;}
             Map<String,Identifier> textures=new HashMap<>();
             try{
-                if(bundle.getAsJsonArray("elements").size()>512||bundle.getAsJsonObject("textures").size()>32)throw new IOException("Modellgrenze überschritten");
+                JsonArray elements=bundle.getAsJsonArray("elements"),meshes=bundle.has("meshes")?bundle.getAsJsonArray("meshes"):new JsonArray();
+                if(elements.size()>512||meshes.size()>512||bundle.getAsJsonObject("textures").size()>32)throw new IOException("Modellgrenze überschritten");
+                int vertexCount=0;for(JsonElement meshElement:meshes){JsonObject mesh=meshElement.getAsJsonObject();JsonArray vertices=mesh.getAsJsonArray("vertices"),indices=mesh.getAsJsonArray("indices");vertexCount+=vertices.size();if(vertexCount>200000||indices.size()>600000||indices.size()%3!=0)throw new IOException("Mesh-Grenze überschritten");for(JsonElement index:indices)if(index.getAsInt()<0||index.getAsInt()>=vertices.size())throw new IOException("Mesh-Index ungültig");}
                 long pixels=0;
                 for(var entry:bundle.getAsJsonObject("textures").entrySet()){
                     String data=entry.getValue().getAsString();byte[] png=Base64.getDecoder().decode(data.substring(data.indexOf(',')+1));
@@ -131,7 +150,7 @@ public final class MpsqAccessoryRenderer {
                     NativeImage image=NativeImage.read(new ByteArrayInputStream(png));Identifier id=Identifier.of(MpsqCameraClient.MOD_ID,"accessory/"+UUID.randomUUID());
                     var texture=new NativeImageBackedTexture(()->"MPSQ Accessoire",image);MinecraftClient.getInstance().getTextureManager().registerTexture(id,texture);texture.upload();textures.put(entry.getKey(),id);
                 }
-                models.put(url,new Model(bundle.getAsJsonArray("elements"),textures));
+                models.put(url,new Model(elements,meshes,textures));
             }catch(Exception e){for(Identifier id:textures.values())MinecraftClient.getInstance().getTextureManager().destroyTexture(id);MpsqCameraClient.LOGGER.warn("Accessoire-Modell ungültig",e);}
         }));
     }

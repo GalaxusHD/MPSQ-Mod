@@ -34,6 +34,14 @@ public final class MpsqActionSync {
             })));
 
         net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback.EVENT.register((dispatcher,access)->dispatcher.register(
+            net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.literal("mpsq-npc").executes(context->{
+                var client=MinecraftClient.getInstance();
+                if(client.crosshairTarget instanceof net.minecraft.util.hit.BlockHitResult hit && client.world!=null)client.send(()->client.setScreen(new MpsqNpcPlacementScreen(null,hit.getBlockPos())));
+                else context.getSource().sendError(Text.literal("Bitte den Bodenblock unter dem NPC anschauen."));
+                return 1;
+            })));
+
+        net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback.EVENT.register((dispatcher,access)->dispatcher.register(
             net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.literal("mpsq-knopf").executes(context->{
                 var client=MinecraftClient.getInstance();
                 if(client.crosshairTarget instanceof net.minecraft.util.hit.BlockHitResult hit && client.world!=null){
@@ -77,6 +85,8 @@ public final class MpsqActionSync {
                 MpsqAudioManager.startPlaylist("MPSQ",tracks);
             }
             case "STOP_AUDIO" -> MpsqAudioManager.stop();
+            case "SHOW_DIALOGUE" -> MpsqDialogueManager.start(data);
+            case "KICK_ANIMATION" -> MpsqKickAnimationManager.start(data.get("targetName").getAsString());
             case "START_COUNTDOWN" -> MpsqBossbarManager.startCountdown(data.get("title").getAsString(), data.get("duration").getAsInt(), event.get("created_at").getAsString());
             case "SHOW_BOSSBAR" -> MpsqBossbarManager.apply(new MpsqBossbarState("event",data.get("title").getAsString(),"purple",1,true));
             case "HIDE_BOSSBAR" -> MpsqBossbarManager.remove("event");

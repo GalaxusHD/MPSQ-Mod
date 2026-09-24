@@ -67,9 +67,13 @@ public class ModConfigScreen extends Screen {
         int accessoryWidth = Math.min(ACCESSORY_WIDTH, Math.max(60, width / 3));
         addDrawableChild(ButtonWidget.builder(Text.literal("Accessoires"), b -> client.setScreen(new MpsqAccessoriesScreen(this)))
                 .dimensions(width-LICENSE_MARGIN-accessoryWidth,8,accessoryWidth,BUTTON_HEIGHT).build());
-        if(TeamStateStore.self().map(p->p.permissionRank().level()>=TeamRank.OFFICER.level()).orElse(false))
+        boolean canManageModels=TeamStateStore.self().map(p->p.permissionRank().level()>=TeamRank.OFFICER.level()).orElse(false);
+        if(canManageModels) {
             addDrawableChild(ButtonWidget.builder(Text.literal("System"), b -> client.setScreen(new MpsqActionSetupScreen()))
                     .dimensions(SYSTEM_MARGIN,8,72,BUTTON_HEIGHT).build());
+            addDrawableChild(ButtonWidget.builder(Text.literal("Models"), b -> client.setScreen(new MpsqModelsScreen(this)))
+                    .dimensions(SYSTEM_MARGIN,8+BUTTON_HEIGHT+4,72,BUTTON_HEIGHT).build());
+        }
         int teamButtonY = height - LICENSE_MARGIN - BUTTON_HEIGHT * 2 - BUTTON_SPACING;
         // Keep the Ränge entry available while a staff member temporarily
         // uses the 001 event rank, so it can be removed again.

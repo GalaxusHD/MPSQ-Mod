@@ -12,7 +12,7 @@ public final class MpsqActionSetupScreen extends Screen {
     private TextFieldWidget value, duration;
     private ButtonWidget actionButton;
     private static final String[] QUICK_ACTIONS={"PLAY_AUDIO","START_PLAYLIST","STOP_AUDIO","START_COUNTDOWN","SHOW_BOSSBAR","HIDE_BOSSBAR","SEND_ANNOUNCEMENT"};
-    private static final String[] BLOCK_ACTIONS={"PLAY_AUDIO","START_PLAYLIST","STOP_AUDIO","START_COUNTDOWN","SHOW_BOSSBAR","HIDE_BOSSBAR","SEND_ANNOUNCEMENT","OPEN_REDEEM","OPEN_LINK"};
+    private static final String[] BLOCK_ACTIONS={"PLAY_AUDIO","START_PLAYLIST","STOP_AUDIO","START_COUNTDOWN","SHOW_BOSSBAR","HIDE_BOSSBAR","SEND_ANNOUNCEMENT","SHOW_DIALOGUE","OPEN_REDEEM","OPEN_LINK"};
     private final String[] actions;
     private int action;
     private String status="";
@@ -29,7 +29,7 @@ public final class MpsqActionSetupScreen extends Screen {
             action=(action+1)%actions.length; b.setMessage(Text.literal(actionLabel(actions[action])));
         }).dimensions(x,y,260,20).build());
         value=addDrawableChild(new TextFieldWidget(textRenderer,x,y+46,260,20,Text.literal("Text oder Sound-ID")));
-        value.setMaxLength(512);
+        value.setMaxLength(3072);
         duration=addDrawableChild(new TextFieldWidget(textRenderer,x,y+88,260,20,Text.literal("Sekunden")));
         duration.setText("30");
         addDrawableChild(ButtonWidget.builder(Text.literal(block.isEmpty()?"Auslösen":"Speichern"),b->save()).dimensions(x,y+120,125,20).build());
@@ -52,6 +52,7 @@ public final class MpsqActionSetupScreen extends Screen {
             case "OPEN_LINK" -> {if(!value.getText().startsWith("https://")){status="HTTPS-Link erforderlich";return;}data.addProperty("url",value.getText());}
             case "SHOW_BOSSBAR" -> data.addProperty("title",value.getText());
             case "SEND_ANNOUNCEMENT" -> data.addProperty("text",value.getText());
+            case "SHOW_DIALOGUE" -> {JsonArray pages=new JsonArray();for(String line:value.getText().split("\\|\\|",-1)){line=line.trim();if(line.isEmpty()||line.length()>240||pages.size()>=12){status="1–12 Textseiten mit höchstens 240 Zeichen, getrennt mit ||";return;}pages.add(line);}data.add("pages",pages);}
         }
         position.addProperty("x",pos.getX());position.addProperty("y",pos.getY());position.addProperty("z",pos.getZ());
         body.add("position",position);body.addProperty("serverId",server);body.addProperty("worldId",world);
@@ -70,7 +71,7 @@ public final class MpsqActionSetupScreen extends Screen {
     @Override public void render(DrawContext c,int x,int y,float d){
         super.render(c,x,y,d);
         c.drawCenteredTextWithShadow(textRenderer,title,width/2,24,MpsqTheme.TEXT_TITEL);
-        c.drawTextWithShadow(textRenderer,"Text oder Sound-ID (z. B. minecraft:music.menu)",width/2-130,92,0xFFFFFFFF);
+        c.drawTextWithShadow(textRenderer,actions[action].equals("SHOW_DIALOGUE")?"Textseiten mit || trennen":"Text oder Sound-ID (z. B. minecraft:music.menu)",width/2-130,92,0xFFFFFFFF);
         c.drawTextWithShadow(textRenderer,"Countdown-Dauer in Sekunden",width/2-130,134,0xFFFFFFFF);
         c.drawCenteredTextWithShadow(textRenderer,Text.literal(status),width/2,height-24,0xFFFFFFFF);
     }
@@ -83,6 +84,7 @@ public final class MpsqActionSetupScreen extends Screen {
             case "SHOW_BOSSBAR" -> "Bossbar anzeigen";
             case "HIDE_BOSSBAR" -> "Bossbar ausblenden";
             case "SEND_ANNOUNCEMENT" -> "Ansage senden";
+            case "SHOW_DIALOGUE" -> "Dialog (F zum Weitergehen)";
             case "OPEN_REDEEM" -> "Redeem öffnen";
             case "OPEN_LINK" -> "Link öffnen";
             default -> action;

@@ -33,7 +33,11 @@ public final class TeamCommandManager {
                     if (profile.canOpenTeamArea() && !target.isBlank()) {
                         JsonObject body = new JsonObject();
                         body.addProperty("displayName", target);
-                        MpsqApiClient.post("/team/disqualify", body);
+                        if (TeamVisibilitySettings.visible()) {
+                            body.addProperty("serverId", MpsqActionSync.server());
+                            body.addProperty("worldId", MpsqActionSync.world());
+                        }
+                        MpsqApiClient.post("/kick-animation", body);
                     }
                 });
                 return true;
