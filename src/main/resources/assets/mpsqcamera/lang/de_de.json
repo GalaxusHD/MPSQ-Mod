@@ -107,4 +107,5 @@
   ,"gui.mpsqcamera.mobile.empty": "Keine Kameras vorhanden."
   ,"status.mpsqcamera.mobile.offline": "Keine verknüpfte Kamera ist momentan verfügbar."
   ,"gui.mpsqcamera.selection.dimensions": "Breite: %s | Höhe: %s"
+  ,"key.mpsqcamera.dialogue_next": "Dialog fortsetzen"
 }
