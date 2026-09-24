@@ -2,6 +2,7 @@ package de.galaxushd.mpsqcamera.mixin.client;
 
 import de.galaxushd.mpsqcamera.MpsqKickAnimationManager;
 import net.minecraft.client.model.ModelPart;
+import net.minecraft.client.render.entity.model.BipedEntityModel;
 import net.minecraft.client.render.entity.model.PlayerEntityModel;
 import net.minecraft.client.render.entity.state.PlayerEntityRenderState;
 import org.spongepowered.asm.mixin.Mixin;
@@ -21,7 +22,7 @@ public abstract class PlayerEntityModelMixin {
             return;
         }
 
-        PlayerEntityModel<?> model = (PlayerEntityModel<?>) (Object) this;
+        BipedEntityModel<?> model = (BipedEntityModel<?>) (Object) this;
 
         apply(model.head, MpsqKickAnimationManager.rotation(state.name, "head"));
         apply(model.rightArm, MpsqKickAnimationManager.rotation(state.name, "rightArm"));
