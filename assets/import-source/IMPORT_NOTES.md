@@ -5,7 +5,7 @@ Die ersten drei Pakete sind vorbereitet, damit sie im Adminbereich mit dem Model
 - `minecraft-cat-lying/model.obj` + `jellie.png` → Kategorie **Möbel**, ID `minecraft-cat-lying`.
 - `coins-and-money/model.gltf` → Kategorie **Möbel**, ID `coins-and-money`. Die PNG-Textur ist im GLTF eingebettet.
 - `among-us/among-us.gltf` → Kategorie **NPC-Modell**, ID `among-us`. Die PNG-Textur ist im GLTF eingebettet.
-- `8f74992ddfa7277e.png` → als **NPC-Skin (Slim)** mit einer eigenen, eindeutigen ID hochladen.
+- `npc-skins/8f74992ddfa7277e.png` → als **NPC-Skin (Slim)** mit einer eigenen, eindeutigen ID hochladen. Die Originalkopie bleibt zusätzlich im `realistic-death-source`-Ordner, da die Textur aus diesem gelieferten Paket stammt.
 
 Im Admin-Upload das jeweilige Modell und bei OBJ zusätzlich die PNG-Textur gemeinsam auswählen. Bei GLTF reicht die GLTF-Datei, solange die Textur eingebettet ist. ZIP-Dateien selbst werden nicht hochgeladen; die Originalarchive liegen daneben als Referenzkopien.
 
