@@ -64,7 +64,7 @@ public final class MpsqAccessoryRenderer {
                     if(error!=null||!data.isJsonArray())return;
                     for(JsonElement value:data.getAsJsonArray()){JsonObject asset=value.getAsJsonObject();if(asset.has("id")&&asset.has("url"))localAssetUrls.put(asset.get("id").getAsString(),asset.get("url").getAsString());}
                     npcs=localNpcsSnapshot();
-                    for(JsonElement value:npcs){JsonObject npc=value.getAsJsonObject();String url=npc.get("url").getAsString();if(!models.containsKey(url)&&models.size()+loading.size()<64)load(url,epoch);}
+                    for(JsonElement value:npcs){JsonObject npc=value.getAsJsonObject();String url=npc.get("url").getAsString();if(!models.containsKey(url)&&models.size()+loading.size()<64)load(url,epoch,"npc_skin_slim".equals(str(npc,"category","")));}
                 }));
                 for(JsonElement value:objects){JsonObject row=value.getAsJsonObject();if(row.has("url")&&!row.get("url").isJsonNull()){String url=row.get("url").getAsString();if(!models.containsKey(url)&&models.size()+loading.size()<64)load(url,epoch);}}
             }else{
@@ -74,7 +74,7 @@ public final class MpsqAccessoryRenderer {
                 }));
                 MpsqApiClient.get("/npcs?server="+java.net.URLEncoder.encode(MpsqActionSync.server(),java.nio.charset.StandardCharsets.UTF_8)+"&world="+java.net.URLEncoder.encode(MpsqActionSync.world(),java.nio.charset.StandardCharsets.UTF_8)).whenComplete((data,error)->client.execute(()->{
                     if(epoch!=generation||error!=null||!data.isJsonArray())return;npcs=data.getAsJsonArray();
-                    for(JsonElement value:npcs){JsonObject npc=value.getAsJsonObject();if(npc.has("url")&&!npc.get("url").isJsonNull()){String url=npc.get("url").getAsString();if(!models.containsKey(url)&&models.size()+loading.size()<64)load(url,epoch);}}
+                    for(JsonElement value:npcs){JsonObject npc=value.getAsJsonObject();if(npc.has("url")&&!npc.get("url").isJsonNull()){String url=npc.get("url").getAsString();if(!models.containsKey(url)&&models.size()+loading.size()<64)load(url,epoch,"npc_skin_slim".equals(str(npc,"category","")));}}
                 }));
             }
             MpsqApiClient.get("/accessory-wearers").whenComplete((data,error)->client.execute(()->{
@@ -128,8 +128,8 @@ public final class MpsqAccessoryRenderer {
     }
     public static void tryOn(String url){tryOnUrl=url;tryOnStart=MinecraftClient.getInstance().player==null?null:MinecraftClient.getInstance().player.getPos();pressedKeys.clear();if(url!=null&&MinecraftClient.getInstance().player!=null)MinecraftClient.getInstance().player.sendMessage(net.minecraft.text.Text.literal("Vorschau aktiv · Bewegung oder eine Taste beendet sie (F5 bleibt erlaubt)."),true);}
     private static void clearTryOn(){tryOnUrl=null;tryOnStart=null;pressedKeys.clear();}
-    /** Shows the uploaded model's own texture atlas as a compact catalogue preview. */
-    public static void drawGuiPreview(net.minecraft.client.gui.DrawContext context,String url,int x,int y,float size){Model model=models.get(url);if(model==null){if(url!=null&&MpsqApiClient.isReady()&&models.size()+loading.size()<64)load(url,generation);context.fill(x-10,y-10,x+10,y+10,0xAA222222);return;}if(!model.textures.isEmpty()){Identifier texture=model.textures.values().iterator().next();context.fill(x-11,y-11,x+11,y+11,0xFF151515);context.drawTexturedQuad(texture,x-10,y-10,20,20,0f,0f,1f,1f);}}
+    /** Shows an actual model face in catalog rows instead of shrinking the entire atlas. */
+    public static void drawGuiPreview(net.minecraft.client.gui.DrawContext context,String url,int x,int y,float size){Model model=models.get(url);if(model==null){if(url!=null&&MpsqApiClient.isReady()&&models.size()+loading.size()<64)load(url,generation);context.fill(x-10,y-10,x+10,y+10,0xAA222222);return;}if(!model.textures.isEmpty()){Identifier texture=model.textures.values().iterator().next();float u0=0,v0=0,u1=1,v1=1;outer:for(JsonElement element:model.elements){JsonObject faces=element.getAsJsonObject().getAsJsonObject("faces");for(var face:faces.entrySet()){JsonObject data=face.getValue().getAsJsonObject();Identifier faceTexture=model.textures.get(data.get("texture").getAsString());if(faceTexture==null)continue;texture=faceTexture;JsonArray uv=data.getAsJsonArray("uv");u0=uv.get(0).getAsFloat();v0=uv.get(1).getAsFloat();u1=uv.get(2).getAsFloat();v1=uv.get(3).getAsFloat();break outer;}}context.fill(x-11,y-11,x+11,y+11,0xFF151515);context.drawTexturedQuad(texture,x-10,y-10,20,20,u0,v0,u1,v1);}}
     private static JsonArray localObjectsSnapshot(int epoch){
         JsonArray resolved=new JsonArray();
         for(JsonElement value:MpsqLocalObjectStore.loadWorld(MpsqActionSync.world())){
@@ -174,6 +174,20 @@ public final class MpsqAccessoryRenderer {
                 }
     }
     private static float[] vec(JsonObject e,String key){JsonArray a=e.getAsJsonArray(key);return new float[]{a.get(0).getAsFloat(),a.get(1).getAsFloat(),a.get(2).getAsFloat()};}
+    private static JsonObject playerSkinBundle(byte[] png,boolean slim){
+        JsonObject bundle=new JsonObject();JsonArray elements=new JsonArray();JsonObject textures=new JsonObject();textures.addProperty("skin",Base64.getEncoder().encodeToString(png));bundle.add("textures",textures);bundle.add("elements",elements);bundle.add("meshes",new JsonArray());
+        skinCube(elements,"head",4,24,4,12,32,12,new int[][]{{8,0,16,8},{16,0,24,8},{0,8,8,16},{8,8,16,16},{16,8,24,16},{24,8,32,16}});
+        skinCube(elements,"body",4,12,4,12,24,8,new int[][]{{20,16,28,20},{28,16,36,20},{16,20,20,32},{20,20,28,32},{28,20,32,32},{32,20,40,32}});
+        skinCube(elements,"right_arm",slim?1:0,12,4,4,24,8,slim?new int[][]{{44,16,47,20},{47,16,50,20},{40,20,44,32},{44,20,47,32},{47,20,51,32},{51,20,54,32}}:new int[][]{{44,16,48,20},{48,16,52,20},{40,20,44,32},{44,20,48,32},{48,20,52,32},{52,20,56,32}});
+        skinCube(elements,"left_arm",12,12,4,slim?15:16,24,8,slim?new int[][]{{36,48,39,52},{39,48,42,52},{32,52,36,64},{36,52,39,64},{39,52,43,64},{43,52,46,64}}:new int[][]{{36,48,40,52},{40,48,44,52},{32,52,36,64},{36,52,40,64},{40,52,44,64},{44,52,48,64}});
+        skinCube(elements,"right_leg",4,0,4,8,12,8,new int[][]{{4,16,8,20},{8,16,12,20},{0,20,4,32},{4,20,8,32},{8,20,12,32},{12,20,16,32}});
+        skinCube(elements,"left_leg",8,0,4,12,12,8,new int[][]{{20,48,24,52},{24,48,28,52},{16,52,20,64},{20,52,24,64},{24,52,28,64},{28,52,32,64}});
+        return bundle;
+    }
+    private static void skinCube(JsonArray out,String name,float x,float y,float z,float X,float Y,float Z,int[][] uv){
+        JsonObject e=new JsonObject();e.addProperty("name",name);e.add("from",jsonVec(x,y,z));e.add("to",jsonVec(X,Y,Z));e.add("origin",jsonVec(8,0,8));e.add("rotation",jsonVec(0,0,0));JsonObject faces=new JsonObject();String[] sides={"up","down","east","north","west","south"};for(int i=0;i<sides.length;i++){JsonObject f=new JsonObject();f.addProperty("texture","skin");JsonArray rect=new JsonArray();rect.add(uv[i][0]/64f);rect.add(uv[i][1]/64f);rect.add(uv[i][2]/64f);rect.add(uv[i][3]/64f);f.add("uv",rect);f.addProperty("rotation",0);faces.add(sides[i],f);}e.add("faces",faces);out.add(e);
+    }
+    private static JsonArray jsonVec(float x,float y,float z){JsonArray a=new JsonArray();a.add(x);a.add(y);a.add(z);return a;}
     private static float[][] points(String side,float[] a,float[] b){float x=a[0],y=a[1],z=a[2],X=b[0],Y=b[1],Z=b[2];return switch(side){
         case "north"->new float[][]{{X,y,z},{x,y,z},{x,Y,z},{X,Y,z}};
         case "south"->new float[][]{{x,y,Z},{X,y,Z},{X,Y,Z},{x,Y,Z}};
@@ -182,7 +196,9 @@ public final class MpsqAccessoryRenderer {
         case "up"->new float[][]{{x,Y,Z},{X,Y,Z},{X,Y,z},{x,Y,z}};
         case "down"->new float[][]{{x,y,z},{X,y,z},{X,y,Z},{x,y,Z}};
         default->null;};}
-    private static void load(String url,int epoch){
+    private static String str(JsonObject object,String key,String fallback){return object.has(key)&&!object.get(key).isJsonNull()?object.get(key).getAsString():fallback;}
+    private static void load(String url,int epoch){load(url,epoch,false);}
+    private static void load(String url,int epoch,boolean slim){
         if(!loading.add(url))return;
         CompletableFuture.supplyAsync(()->{
             try{
@@ -192,6 +208,7 @@ public final class MpsqAccessoryRenderer {
                 try(InputStream stream=response.body()){
                     if(response.statusCode()!=200)throw new IOException("Modell nicht verfügbar");
                     byte[] bytes=stream.readNBytes(12000001);if(bytes.length>12000000)throw new IOException("Modell zu groß");
+                    if(bytes.length>=8&&(bytes[0]&255)==137&&bytes[1]=='P'&&bytes[2]=='N'&&bytes[3]=='G')return playerSkinBundle(bytes,slim);
                     return JsonParser.parseString(new String(bytes,java.nio.charset.StandardCharsets.UTF_8)).getAsJsonObject();
                 }
             }catch(Exception e){throw new java.util.concurrent.CompletionException(e);}
