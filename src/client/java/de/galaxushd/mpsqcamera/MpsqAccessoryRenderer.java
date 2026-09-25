@@ -24,28 +24,42 @@ public final class MpsqAccessoryRenderer {
     private static JsonArray objects=new JsonArray();
     private static JsonArray npcs=new JsonArray();
     private static final Set<String> loading=new HashSet<>();
+    private static final Map<String,String> localAssetUrls=new HashMap<>();
+    private static boolean localCatalogRequested;
     private static final HttpClient HTTP=HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
     private static long next;
     private static boolean polling;
     private static int generation;
     private static String scope="";
     private MpsqAccessoryRenderer(){}
-    public static void refresh(){generation++;polling=false;loading.clear();next=0;}
+    public static void refresh(){generation++;polling=false;loading.clear();localAssetUrls.clear();localCatalogRequested=false;next=0;}
     public static JsonArray npcsSnapshot(){return npcs.deepCopy();}
     public static void initialize(){
         ClientTickEvents.END_CLIENT_TICK.register(client->{
             String current=MpsqActionSync.server()+"|"+MpsqActionSync.world();
-            if(!scope.equals(current)){scope=current;generation++;polling=false;wearers.clear();objects=new JsonArray();npcs=new JsonArray();loading.clear();for(Model m:models.values())for(Identifier id:m.textures.values())client.getTextureManager().destroyTexture(id);models.clear();next=0;}
+            if(!scope.equals(current)){scope=current;generation++;polling=false;wearers.clear();objects=new JsonArray();npcs=new JsonArray();loading.clear();localAssetUrls.clear();localCatalogRequested=false;for(Model m:models.values())for(Identifier id:m.textures.values())client.getTextureManager().destroyTexture(id);models.clear();next=0;}
             if(client.world==null||!MpsqApiClient.isReady()||polling||System.currentTimeMillis()<next)return;
             polling=true;next=System.currentTimeMillis()+15000;int epoch=generation;
-            MpsqApiClient.get("/objects?server="+java.net.URLEncoder.encode(MpsqActionSync.server(),java.nio.charset.StandardCharsets.UTF_8)+"&world="+java.net.URLEncoder.encode(MpsqActionSync.world(),java.nio.charset.StandardCharsets.UTF_8)).whenComplete((data,error)->client.execute(()->{
-                if(epoch!=generation||error!=null)return;objects=data.getAsJsonArray();
-                for(var value:objects){var o=value.getAsJsonObject();String url=o.get("url").getAsString();if(!models.containsKey(url)&&models.size()+loading.size()<16)load(url,epoch);}
-            }));
-            MpsqApiClient.get("/npcs?server="+java.net.URLEncoder.encode(MpsqActionSync.server(),java.nio.charset.StandardCharsets.UTF_8)+"&world="+java.net.URLEncoder.encode(MpsqActionSync.world(),java.nio.charset.StandardCharsets.UTF_8)).whenComplete((data,error)->client.execute(()->{
-                if(epoch!=generation||error!=null||!data.isJsonArray())return;npcs=data.getAsJsonArray();
-                for(JsonElement value:npcs){JsonObject npc=value.getAsJsonObject();if(npc.has("url")&&!npc.get("url").isJsonNull()){String url=npc.get("url").getAsString();if(!models.containsKey(url)&&models.size()+loading.size()<16)load(url,epoch);}}
-            }));
+            if(MpsqActionSync.server().isBlank()){
+                objects=localObjectsSnapshot(epoch);
+                if(!localCatalogRequested){localCatalogRequested=true;MpsqApiClient.get("/furniture/catalog").whenComplete((data,error)->client.execute(()->{
+                    if(epoch!=generation)return;
+                    if(error!=null||!data.isJsonArray()){localCatalogRequested=false;return;}
+                    for(JsonElement value:data.getAsJsonArray()){JsonObject asset=value.getAsJsonObject();if(asset.has("id")&&asset.has("url"))localAssetUrls.put(asset.get("id").getAsString(),asset.get("url").getAsString());}
+                    objects=localObjectsSnapshot(epoch);
+                    for(JsonElement value:objects){JsonObject row=value.getAsJsonObject();String url=row.get("url").getAsString();if(!models.containsKey(url)&&models.size()+loading.size()<16)load(url,epoch);}
+                }));}
+                for(JsonElement value:objects){JsonObject row=value.getAsJsonObject();if(row.has("url")&&!row.get("url").isJsonNull()){String url=row.get("url").getAsString();if(!models.containsKey(url)&&models.size()+loading.size()<16)load(url,epoch);}}
+            }else{
+                MpsqApiClient.get("/objects?server="+java.net.URLEncoder.encode(MpsqActionSync.server(),java.nio.charset.StandardCharsets.UTF_8)+"&world="+java.net.URLEncoder.encode(MpsqActionSync.world(),java.nio.charset.StandardCharsets.UTF_8)).whenComplete((data,error)->client.execute(()->{
+                    if(epoch!=generation||error!=null)return;objects=data.getAsJsonArray();
+                    for(var value:objects){var o=value.getAsJsonObject();String url=o.get("url").getAsString();if(!models.containsKey(url)&&models.size()+loading.size()<16)load(url,epoch);}
+                }));
+                MpsqApiClient.get("/npcs?server="+java.net.URLEncoder.encode(MpsqActionSync.server(),java.nio.charset.StandardCharsets.UTF_8)+"&world="+java.net.URLEncoder.encode(MpsqActionSync.world(),java.nio.charset.StandardCharsets.UTF_8)).whenComplete((data,error)->client.execute(()->{
+                    if(epoch!=generation||error!=null||!data.isJsonArray())return;npcs=data.getAsJsonArray();
+                    for(JsonElement value:npcs){JsonObject npc=value.getAsJsonObject();if(npc.has("url")&&!npc.get("url").isJsonNull()){String url=npc.get("url").getAsString();if(!models.containsKey(url)&&models.size()+loading.size()<16)load(url,epoch);}}
+                }));
+            }
             MpsqApiClient.get("/accessory-wearers").whenComplete((data,error)->client.execute(()->{
                 if(epoch!=generation)return;polling=false;
                 if(error!=null)return;
@@ -89,6 +103,14 @@ public final class MpsqAccessoryRenderer {
                 matrices.push();matrices.translate(x-camera.x,y+bob-camera.y,z-camera.z);matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(-yaw));matrices.multiply(RotationAxis.POSITIVE_X.rotationDegrees(pitch));matrices.scale(size/16f*pulse,size/16f*pulse,size/16f*pulse);drawModel(model,matrices,consumers,tint);matrices.pop();
             }
         });
+    }
+    private static JsonArray localObjectsSnapshot(int epoch){
+        JsonArray resolved=new JsonArray();
+        for(JsonElement value:MpsqLocalObjectStore.loadWorld(MpsqActionSync.world())){
+            if(!value.isJsonObject())continue;JsonObject source=value.getAsJsonObject();String id=source.has("model_id")?source.get("model_id").getAsString():"";String url=localAssetUrls.get(id);if(url==null)continue;
+            JsonObject row=source.deepCopy();row.addProperty("url",url);if(!row.has("rotation"))row.addProperty("rotation",0);resolved.add(row);
+        }
+        return resolved;
     }
     private static int glowColor(String color){return switch(color){case "white"->0xFFFFFFFF;case "orange"->0xFFFFAA33;case "magenta"->0xFFFF55FF;case "light_blue"->0xFF55AAFF;case "yellow"->0xFFFFFF55;case "lime"->0xFF55FF55;case "pink"->0xFFFF88BB;case "gray"->0xFF666666;case "light_gray"->0xFFBBBBBB;case "cyan"->0xFF55FFFF;case "purple"->0xFFAA55FF;case "blue"->0xFF5555FF;case "brown"->0xFF8B5A2B;case "green"->0xFF55AA33;case "red"->0xFFFF5555;case "black"->0xFF333333;default->0xFFFFFFFF;};}
     private static void drawModel(Model model,MatrixStack matrices,VertexConsumerProvider consumers,int tint){

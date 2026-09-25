@@ -24,6 +24,15 @@ public final class MpsqObjectScreen extends Screen {
     }
     private void save(boolean remove){
         if(pending)return;
+        if(!remove&&!model.getText().trim().matches("[a-z0-9_-]{1,64}")){status="Bitte eine gültige Möbel-ID eingeben.";return;}
+        if(server.isBlank() && client.getServer()!=null){
+            pending=true;status="Wird lokal gespeichert…";
+            boolean saved=MpsqLocalObjectStore.set(world,pos.getX(),pos.getY(),pos.getZ(),model.getText().trim(),rotation,remove);
+            pending=false;
+            status=saved?"In dieser Einzelspielerwelt gespeichert.":"Speichern in der Einzelspielerwelt fehlgeschlagen.";
+            if(saved)MpsqAccessoryRenderer.refresh();
+            return;
+        }
         JsonObject body=new JsonObject();body.addProperty("server",server);body.addProperty("world",world);body.addProperty("x",pos.getX());body.addProperty("y",pos.getY());body.addProperty("z",pos.getZ());body.addProperty("rotation",rotation);body.addProperty("modelId",model.getText());body.addProperty("remove",remove);
         pending=true;status="Wird gespeichert…";MpsqApiClient.post("/objects",body).whenComplete((data,error)->client.execute(()->{pending=false;status=error==null?"Gespeichert.":"Fehler: "+error.getMessage();if(error==null)MpsqAccessoryRenderer.refresh();}));
     }

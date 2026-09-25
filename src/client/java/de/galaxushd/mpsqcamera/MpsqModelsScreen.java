@@ -14,6 +14,11 @@ public final class MpsqModelsScreen extends Screen {
     public MpsqModelsScreen(Screen parent){super(Text.literal("Models"));this.parent=parent;}
     @Override protected void init(){if(requested)return;requested=true;
         MpsqApiClient.get("/models/catalog").whenComplete((d,e)->client.execute(()->{if(e==null&&d.isJsonArray()){assets=d.getAsJsonArray();status="";}else status="Modellkatalog konnte nicht geladen werden.";clamp();}));
+        if(MpsqActionSync.server().isBlank()){
+            placed=MpsqLocalObjectStore.loadWorld(MpsqActionSync.world());
+            status="Einzelspieler-Möbel werden nur lokal gespeichert.";
+            return;
+        }
         String scope="?server="+java.net.URLEncoder.encode(MpsqActionSync.server(),java.nio.charset.StandardCharsets.UTF_8)+"&world="+java.net.URLEncoder.encode(MpsqActionSync.world(),java.nio.charset.StandardCharsets.UTF_8);
         MpsqApiClient.get("/objects"+scope).whenComplete((d,e)->client.execute(()->{if(e==null&&d.isJsonArray())placed=d.getAsJsonArray();else if(status.isBlank())status="Platzierte Möbel konnten nicht geladen werden.";clamp();}));
         MpsqApiClient.get("/npcs"+scope).whenComplete((d,e)->client.execute(()->{if(e==null&&d.isJsonArray())npcs=d.getAsJsonArray();clamp();}));
