@@ -143,6 +143,13 @@ public final class CinemaBrowserManager {
         }
     }
 
+    /** Lazily starts the shared MCEF audio bridge for uploaded MPSQ sounds. */
+    public static boolean ensureAudioReady() {
+        if (!MCEF.isInitialized() && !ensureInitialized()) return false;
+        CinemaAudioManager.initialize();
+        return true;
+    }
+
     public static void clear() {
         new HashSet<>(BROWSERS.keySet()).forEach(CinemaBrowserManager::close);
         FAILED_BROWSERS.clear();

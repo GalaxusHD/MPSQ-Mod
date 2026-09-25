@@ -11,6 +11,10 @@ public final class MpsqActionSetupScreen extends Screen {
     private final String block, server, world;
     private TextFieldWidget value, duration;
     private ButtonWidget actionButton;
+    private ButtonWidget soundTypeButton;
+    private static final String[] SOUND_TYPES={"minecraft","mp3","mp4"};
+    private static final String[] SOUND_TYPE_LABELS={"Minecraft-ID","MP3-Datei-ID","MP4-Datei-ID"};
+    private int soundType;
     private static final String[] QUICK_ACTIONS={"PLAY_AUDIO","START_PLAYLIST","STOP_AUDIO","START_COUNTDOWN","SHOW_BOSSBAR","HIDE_BOSSBAR","SEND_ANNOUNCEMENT"};
     private static final String[] BLOCK_ACTIONS={"PLAY_AUDIO","START_PLAYLIST","STOP_AUDIO","START_COUNTDOWN","SHOW_BOSSBAR","HIDE_BOSSBAR","SEND_ANNOUNCEMENT","SHOW_DIALOGUE","OPEN_REDEEM","OPEN_LINK"};
     private final String[] actions;
@@ -26,23 +30,26 @@ public final class MpsqActionSetupScreen extends Screen {
     @Override protected void init() {
         int x=width/2-130,y=60;
         actionButton=addDrawableChild(ButtonWidget.builder(Text.literal(actionLabel(actions[action])),b->{
-            action=(action+1)%actions.length; b.setMessage(Text.literal(actionLabel(actions[action])));
+            action=(action+1)%actions.length; b.setMessage(Text.literal(actionLabel(actions[action])));updateSoundTypeVisibility();
         }).dimensions(x,y,260,20).build());
-        value=addDrawableChild(new TextFieldWidget(textRenderer,x,y+46,260,20,Text.literal("Text oder Sound-ID")));
+        soundTypeButton=addDrawableChild(ButtonWidget.builder(Text.literal(SOUND_TYPE_LABELS[soundType]),b->{soundType=(soundType+1)%SOUND_TYPES.length;b.setMessage(Text.literal(SOUND_TYPE_LABELS[soundType]));}).dimensions(x,y+23,260,20).build());
+        value=addDrawableChild(new TextFieldWidget(textRenderer,x,y+49,260,20,Text.literal("Text oder Sound-ID")));
         value.setMaxLength(3072);
         duration=addDrawableChild(new TextFieldWidget(textRenderer,x,y+88,260,20,Text.literal("Sekunden")));
         duration.setText("30");
         addDrawableChild(ButtonWidget.builder(Text.literal(block.isEmpty()?"Auslösen":"Speichern"),b->save()).dimensions(x,y+120,125,20).build());
         addDrawableChild(ButtonWidget.builder(Text.literal("Abbrechen"),b->close()).dimensions(x+135,y+120,125,20).build());
+        updateSoundTypeVisibility();
     }
+    private void updateSoundTypeVisibility(){boolean audio=actions[action].equals("PLAY_AUDIO")||actions[action].equals("START_PLAYLIST");boolean countdown=actions[action].equals("START_COUNTDOWN");if(soundTypeButton!=null){soundTypeButton.visible=audio;soundTypeButton.active=audio;}if(duration!=null){duration.visible=countdown;duration.active=countdown;}}
     private void save() {
         JsonObject data=new JsonObject(),body=new JsonObject(),position=new JsonObject();
         switch(actions[action]) {
-            case "PLAY_AUDIO" -> { if(net.minecraft.util.Identifier.tryParse(value.getText())==null){status="Gültige Sound-ID erforderlich";return;} data.addProperty("sound",value.getText()); }
+            case "PLAY_AUDIO" -> { if(soundType==0&&net.minecraft.util.Identifier.tryParse(value.getText())==null){status="Gültige Minecraft-Sound-ID erforderlich";return;}if(soundType>0&&!value.getText().matches("[a-zA-Z0-9_-]{1,64}")){status="Bitte die Datei-ID aus dem Sound-Upload angeben.";return;}data.addProperty("sourceType",SOUND_TYPES[soundType]);data.addProperty("sound",value.getText().trim()); }
             case "START_PLAYLIST" -> {
                 JsonArray tracks=new JsonArray();
-                for(String id:value.getText().split(",")){id=id.trim();if(net.minecraft.util.Identifier.tryParse(id)==null){status="Sound-IDs durch Kommas trennen";return;}tracks.add(id);}
-                data.add("tracks",tracks);
+                for(String id:value.getText().split(",")){id=id.trim();if(soundType==0?net.minecraft.util.Identifier.tryParse(id)==null:!id.matches("[a-zA-Z0-9_-]{1,64}")){status=soundType==0?"Sound-IDs durch Kommas trennen":"Datei-IDs durch Kommas trennen";return;}tracks.add(id);}
+                data.addProperty("sourceType",SOUND_TYPES[soundType]);data.add("tracks",tracks);
             }
             case "START_COUNTDOWN" -> {
                 try { int seconds=Integer.parseInt(duration.getText()); if(seconds<1||seconds>7200)throw new NumberFormatException(); data.addProperty("duration",seconds); }
@@ -71,8 +78,9 @@ public final class MpsqActionSetupScreen extends Screen {
     @Override public void render(DrawContext c,int x,int y,float d){
         super.render(c,x,y,d);
         c.drawCenteredTextWithShadow(textRenderer,title,width/2,24,MpsqTheme.TEXT_TITEL);
-        c.drawTextWithShadow(textRenderer,actions[action].equals("SHOW_DIALOGUE")?"Textseiten mit || trennen":"Text oder Sound-ID (z. B. minecraft:music.menu)",width/2-130,92,0xFFFFFFFF);
-        c.drawTextWithShadow(textRenderer,"Countdown-Dauer in Sekunden",width/2-130,134,0xFFFFFFFF);
+        String hint=actions[action].equals("SHOW_DIALOGUE")?"Textseiten mit || trennen":(actions[action].equals("PLAY_AUDIO")||actions[action].equals("START_PLAYLIST"))?(soundType==0?"Minecraft-Sound-ID, z. B. minecraft:music.menu":"Sound-Datei-ID aus dem MPSQ-Upload") : "Text oder Titel";
+        if(actions[action].equals("START_COUNTDOWN"))c.drawTextWithShadow(textRenderer,"Countdown-Dauer in Sekunden",width/2-130,132,0xFFFFFFFF);
+        else c.drawTextWithShadow(textRenderer,hint,width/2-130,132,0xFFFFFFFF);
         c.drawCenteredTextWithShadow(textRenderer,Text.literal(status),width/2,height-24,0xFFFFFFFF);
     }
     private static String actionLabel(String action) {

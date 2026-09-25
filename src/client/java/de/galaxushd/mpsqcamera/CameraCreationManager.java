@@ -42,7 +42,7 @@ public final class CameraCreationManager {
                 }
                 continue;
             }
-            client.setScreen(new CameraCreateScreen());
+            client.setScreen(new MpsqCreateMenuScreen());
         }
     }
 

@@ -27,11 +27,13 @@ public class ModConfigScreen extends Screen {
 
     private TextFieldWidget codeInputField;
     private ButtonWidget joinButton;
+    private boolean roleRefreshStarted;
 
     public ModConfigScreen() { super(Text.translatable("gui.mpsqcamera.main.title")); }
 
     @Override
     protected void init() {
+        refreshRoleForMenu();
         int buttonWidth = Math.min(BUTTON_WIDTH, width - HORIZONTAL_MARGIN * 2);
         int menuHeight = MENU_CONTROL_COUNT * BUTTON_HEIGHT + (MENU_CONTROL_COUNT - 1) * BUTTON_SPACING;
         int menuTop = height / 2 + Math.max(0, (height / 2 - menuHeight) / 2);
@@ -103,6 +105,21 @@ public class ModConfigScreen extends Screen {
                     .dimensions(LICENSE_MARGIN, teamButtonY, LICENSE_WIDTH, BUTTON_HEIGHT).build());
         }
         updateActivationCodeState();
+    }
+
+    private void refreshRoleForMenu() {
+        if (roleRefreshStarted || client == null) return;
+        roleRefreshStarted = true;
+        MpsqApiClient.initialize()
+                .thenCompose(ignored -> MpsqApiClient.refreshTeamProfile())
+                .thenCompose(ignored -> MpsqApiClient.refreshTeamMembers())
+                .whenComplete((ignored, error) -> client.execute(() -> {
+                    if (error != null) {
+                        MpsqCameraClient.LOGGER.debug("MPSQ-Rang konnte beim Öffnen des Menüs nicht geladen werden", error);
+                    } else if (client.currentScreen == this) {
+                        clearAndInit();
+                    }
+                }));
     }
 
     private int nextControlY(int menuTop, int index) { return menuTop + index * (BUTTON_HEIGHT + BUTTON_SPACING); }

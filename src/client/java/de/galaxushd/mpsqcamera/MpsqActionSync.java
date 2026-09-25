@@ -26,6 +26,10 @@ public final class MpsqActionSync {
     public static void initialize() {
         ClientTickEvents.END_CLIENT_TICK.register(client -> tick(client));
         net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback.EVENT.register((dispatcher,access)->dispatcher.register(
+            net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.literal("mpsq-objekte").executes(context->{
+                var client=MinecraftClient.getInstance();client.send(()->client.setScreen(new MpsqCreateMenuScreen()));return 1;
+            })));
+        net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback.EVENT.register((dispatcher,access)->dispatcher.register(
             net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.literal("mpsq-objekt").executes(context->{
                 var client=MinecraftClient.getInstance();
                 if(client.crosshairTarget instanceof net.minecraft.util.hit.BlockHitResult hit && client.world!=null)client.send(()->client.setScreen(new MpsqObjectScreen(hit.getBlockPos())));
@@ -36,8 +40,8 @@ public final class MpsqActionSync {
         net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback.EVENT.register((dispatcher,access)->dispatcher.register(
             net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.literal("mpsq-npc").executes(context->{
                 var client=MinecraftClient.getInstance();
-                if(client.crosshairTarget instanceof net.minecraft.util.hit.BlockHitResult hit && client.world!=null)client.send(()->client.setScreen(new MpsqNpcPlacementScreen(null,hit.getBlockPos())));
-                else context.getSource().sendError(Text.literal("Bitte den Bodenblock unter dem NPC anschauen."));
+                if(client.player!=null&&client.world!=null)client.send(()->client.setScreen(MpsqNpcPlacementScreen.atPlayer(null,client.player)));
+                else context.getSource().sendError(Text.literal("Du musst einer Welt beitreten."));
                 return 1;
             })));
 
@@ -57,6 +61,7 @@ public final class MpsqActionSync {
         if (!current.equals(scope)) {
             scope=current; cursor=null; pending=false; generation++; next=0;
             MpsqAudioManager.stop();
+            MpsqMediaAudioManager.stop();
             MpsqBossbarManager.clear();
         }
         if (client.world == null || server().isBlank() || !MpsqApiClient.isReady() || pending || System.currentTimeMillis()<next) return;
@@ -82,9 +87,11 @@ public final class MpsqActionSync {
                 var tracks=new ArrayList<String>();
                 if(data.has("tracks")) for(JsonElement track:data.getAsJsonArray("tracks")) tracks.add(track.getAsString());
                 else if(data.has("sound")) tracks.add(data.get("sound").getAsString());
-                MpsqAudioManager.startPlaylist("MPSQ",tracks);
+                String source=data.has("sourceType")?data.get("sourceType").getAsString():"minecraft";
+                if(source.equals("mp3")||source.equals("mp4")){MpsqAudioManager.stop();MpsqMediaAudioManager.play(source,tracks);}
+                else {MpsqMediaAudioManager.stop();MpsqAudioManager.startPlaylist("MPSQ",tracks);}
             }
-            case "STOP_AUDIO" -> MpsqAudioManager.stop();
+            case "STOP_AUDIO" -> {MpsqAudioManager.stop();MpsqMediaAudioManager.stop();}
             case "SHOW_DIALOGUE" -> MpsqDialogueManager.start(data);
             case "KICK_ANIMATION" -> MpsqKickAnimationManager.start(data.get("targetName").getAsString());
             case "START_COUNTDOWN" -> MpsqBossbarManager.startCountdown(data.get("title").getAsString(), data.get("duration").getAsInt(), event.get("created_at").getAsString());

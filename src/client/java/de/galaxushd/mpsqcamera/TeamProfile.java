@@ -8,6 +8,7 @@ public record TeamProfile(UUID id, String displayName, TeamRank baseRank, TeamRa
     public TeamRank permissionRank() { return baseRank; }
     public boolean canOpenTeamArea() { return baseRank.level() >= TeamRank.UNDERCOVER_001.level(); }
     public boolean canViewCameras() { return permissionRank().canViewCameras(); }
+    public boolean canUseTexts() { return baseRank.level() >= TeamRank.OFFICER.level(); }
     public boolean canManageMember(TeamProfile target) {
         TeamRank own = permissionRank();
         if (own == TeamRank.SENIOR_OFFICER) return target.baseRank() != TeamRank.SENIOR_OFFICER;
