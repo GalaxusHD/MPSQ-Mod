@@ -37,7 +37,7 @@ public final class MpsqAccessoriesScreen extends Screen {
         }c.disableScissor();drawScrollbar(c,center+151,TOP,bottom,list.size()*ROW);
         c.drawCenteredTextWithShadow(textRenderer,status,center,height-47,0xFFFFFFFF);
         if(list.size()*ROW>height-TOP-BOTTOM)c.drawCenteredTextWithShadow(textRenderer,"Mausrad zum Scrollen",center,height-34,0xFFBBBBBB);
-        c.drawTextWithShadow(textRenderer,Text.literal("Zurück"),center-142,height-19,0xFFFFFFFF);c.drawTextWithShadow(textRenderer,Text.literal("Code einlösen"),center+58,height-19,0xFFFFFFFF);
+        c.drawTextWithShadow(textRenderer,Text.literal("Zurück"),center-142,height-19,0xFFFFFFFF);
     }
     private boolean staff(){return TeamStateStore.self().map(p->p.permissionRank().level()>=TeamRank.OFFICER.level()).orElse(false);}
     private void drawScrollbar(DrawContext c,int x,int top,int bottom,int contentHeight){int visible=bottom-top;if(contentHeight<=visible)return;int thumb=Math.max(18,visible*visible/contentHeight),travel=visible-thumb,max=maxScroll(),y=top+(max==0?0:travel*scroll/max);c.fill(x,top,x+4,bottom,0x66000000);c.fill(x,y,x+4,y+thumb,draggingScrollbar?0xFFFF7777:0xFFBBBBBB);}
@@ -46,7 +46,7 @@ public final class MpsqAccessoriesScreen extends Screen {
     private static String str(JsonObject o,String k,String fallback){return o.has(k)&&!o.get(k).isJsonNull()?o.get(k).getAsString():fallback;}
     @Override public boolean mouseClicked(double x,double y,int button){if(button==0){int c=width/2;if(x>=c+149&&x<=c+158&&y>=TOP&&y<height-BOTTOM&&maxScroll()>0){draggingScrollbar=true;scrollTo(y);return true;}if(y>=48&&y<66){if(x>=c-150&&x<c){tab=0;scroll=0;return true;}if(x>=c&&x<=c+150){tab=1;scroll=0;return true;}}
         if(y>=TOP&&y<height-BOTTOM&&x>=c-150&&x<=c+150){int index=(int)(y-TOP+scroll)/ROW;JsonArray list=rows();if(index>=0&&index<list.size()){JsonObject row=list.get(index).getAsJsonObject();if(tab==0&&row.has("accessory_id"))equip(row.get("equipped").getAsBoolean()?null:row.get("accessory_id").getAsString());return true;}}
-        if(y>=height-25){if(x<c){close();return true;}client.setScreen(new MpsqRedeemScreen());return true;}}
+        if(y>=height-25&&x<c){close();return true;}}
         return super.mouseClicked(x,y,button);}
     @Override public boolean mouseDragged(double x,double y,int button,double dx,double dy){if(draggingScrollbar&&button==0){scrollTo(y);return true;}return super.mouseDragged(x,y,button,dx,dy);}
     @Override public boolean mouseReleased(double x,double y,int button){if(button==0)draggingScrollbar=false;return super.mouseReleased(x,y,button);}
