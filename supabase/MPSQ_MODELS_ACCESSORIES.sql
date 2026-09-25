@@ -20,6 +20,12 @@ create table if not exists public.mpsq_world_npcs (
   glow_color text not null default 'none',
   animation text not null default 'none',
   interaction_data jsonb not null default '{"pages":["Hallo!"]}'::jsonb,
+  yaw double precision not null default 0,
+  pitch double precision not null default 0,
+  face_player boolean not null default false,
+  position_x double precision,
+  position_y double precision,
+  position_z double precision,
   created_by uuid not null references public.mpsq_clients(id),
   created_at timestamptz not null default now(),
   unique(server_id,world_id,x,y,z,model_id)
@@ -29,6 +35,12 @@ alter table public.mpsq_world_npcs add column if not exists scale double precisi
 alter table public.mpsq_world_npcs add column if not exists glow_color text not null default 'none';
 alter table public.mpsq_world_npcs add column if not exists animation text not null default 'none';
 alter table public.mpsq_world_npcs add column if not exists interaction_data jsonb not null default '{"pages":["Hallo!"]}'::jsonb;
+alter table public.mpsq_world_npcs add column if not exists yaw double precision not null default 0;
+alter table public.mpsq_world_npcs add column if not exists pitch double precision not null default 0;
+alter table public.mpsq_world_npcs add column if not exists face_player boolean not null default false;
+alter table public.mpsq_world_npcs add column if not exists position_x double precision;
+alter table public.mpsq_world_npcs add column if not exists position_y double precision;
+alter table public.mpsq_world_npcs add column if not exists position_z double precision;
 create index if not exists mpsq_world_npcs_scope_idx
   on public.mpsq_world_npcs(server_id,world_id,x,y,z);
 alter table public.mpsq_world_npcs enable row level security;

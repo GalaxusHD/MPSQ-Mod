@@ -86,7 +86,7 @@ begin
  if not found or not t.enabled or t.server_id<>p_server or t.world_id<>p_world then
    raise exception 'Trigger nicht verfügbar';
  end if;
- select case when base_rank='sr_offizier' then base_rank else coalesce(active_rank,base_rank) end into actor_rank from public.mpsq_team_profiles where client_id=p_actor;
+ select coalesce(base_rank,'spieler') into actor_rank from public.mpsq_team_profiles where client_id=p_actor;
  if not (ranks ? t.minimum_rank) or coalesce((ranks->>actor_rank)::integer,-1)<(ranks->>t.minimum_rank)::integer then raise exception 'Keine Berechtigung'; end if;
  if t.last_fired_at > now()-interval '2 seconds' then return jsonb_build_object('cooldown',true); end if;
  update public.mpsq_action_triggers set last_fired_at=now() where id=t.id;
@@ -241,6 +241,12 @@ create table if not exists public.mpsq_world_npcs (
   glow_color text not null default 'none',
   animation text not null default 'none',
   interaction_data jsonb not null default '{"pages":["Hallo!"]}'::jsonb,
+  yaw double precision not null default 0,
+  pitch double precision not null default 0,
+  face_player boolean not null default false,
+  position_x double precision,
+  position_y double precision,
+  position_z double precision,
   created_by uuid not null references public.mpsq_clients(id),
   created_at timestamptz not null default now(),
   unique(server_id,world_id,x,y,z,model_id)
@@ -250,6 +256,12 @@ alter table public.mpsq_world_npcs add column if not exists scale double precisi
 alter table public.mpsq_world_npcs add column if not exists glow_color text not null default 'none';
 alter table public.mpsq_world_npcs add column if not exists animation text not null default 'none';
 alter table public.mpsq_world_npcs add column if not exists interaction_data jsonb not null default '{"pages":["Hallo!"]}'::jsonb;
+alter table public.mpsq_world_npcs add column if not exists yaw double precision not null default 0;
+alter table public.mpsq_world_npcs add column if not exists pitch double precision not null default 0;
+alter table public.mpsq_world_npcs add column if not exists face_player boolean not null default false;
+alter table public.mpsq_world_npcs add column if not exists position_x double precision;
+alter table public.mpsq_world_npcs add column if not exists position_y double precision;
+alter table public.mpsq_world_npcs add column if not exists position_z double precision;
 create index if not exists mpsq_world_npcs_scope_idx on public.mpsq_world_npcs(server_id,world_id,x,y,z);
 alter table public.mpsq_world_npcs enable row level security;
 revoke all on public.mpsq_world_npcs from anon,authenticated;
