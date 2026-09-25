@@ -34,3 +34,7 @@ das vollständige Datenbankschema waren in `MPSQ-Mod-main.zip` nicht enthalten.
 - kurzlebige R2-Upload- und Download-Links für Kamerabilder
 - gemeinsame Supabase-To-dos einschließlich Backend-Zustand der Häkchen
 
+
+## NPC-Aufgaben / Punkte
+
+Zusätzlich zur Team-Migration muss `supabase/NPC_TASKS_POINTS.sql` einmal nach `MPSQ_MODELS_ACCESSORIES.sql` ausgeführt werden. Danach die aktuelle `mpsq-api` Edge Function bereitstellen. Diese Migration erweitert NPCs um `task_type`, legt den einmaligen Tutorialabschluss und das Punkte-Ledger an und stellt `GET /me/points` bereit.
