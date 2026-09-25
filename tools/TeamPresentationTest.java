@@ -24,7 +24,7 @@ public final class TeamPresentationTest {
         }
         TeamProfile officerEvent = new TeamProfile(UUID.randomUUID(), "Officer", TeamRank.OFFICER, TeamRank.UNDERCOVER_001, true);
         check(officerEvent.canUseTexts(), "client texts permission differs from backend");
-        check(officerEvent.permissionRank() == TeamRank.UNDERCOVER_001, "ordinary event restrictions removed");
+        check(officerEvent.permissionRank() == TeamRank.OFFICER, "temporary event rank removed officer permissions");
         TeamProfile root = profile("MP_SquidGame", TeamRank.SENIOR_OFFICER, true);
         TeamProfile duplicate = profile("mp_squidgame", TeamRank.PLAYER, true);
         for (List<TeamProfile> rows : List.of(List.of(root, duplicate), List.of(duplicate, root))) {
