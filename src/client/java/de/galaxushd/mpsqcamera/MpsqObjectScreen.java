@@ -25,15 +25,17 @@ public final class MpsqObjectScreen extends Screen {
     private void save(boolean remove){
         if(pending)return;
         if(!remove&&!model.getText().trim().matches("[a-z0-9_-]{1,64}")){status="Bitte eine gültige Möbel-ID eingeben.";return;}
+        BlockPos target=pos;int facing=rotation;
+        if(!remove&&model.getText().trim().equalsIgnoreCase("minecraft-cat-lying")&&client.player!=null){target=client.player.getBlockPos();facing=Math.floorMod(Math.round(client.player.getYaw()+180),360)/90*90;}
         if(server.isBlank() && client.getServer()!=null){
             pending=true;status="Wird lokal gespeichert…";
-            boolean saved=MpsqLocalObjectStore.set(world,pos.getX(),pos.getY(),pos.getZ(),model.getText().trim(),rotation,remove);
+            boolean saved=MpsqLocalObjectStore.set(world,target.getX(),target.getY(),target.getZ(),model.getText().trim(),facing,remove);
             pending=false;
             status=saved?"In dieser Einzelspielerwelt gespeichert.":"Speichern in der Einzelspielerwelt fehlgeschlagen.";
             if(saved)MpsqAccessoryRenderer.refresh();
             return;
         }
-        JsonObject body=new JsonObject();body.addProperty("server",server);body.addProperty("world",world);body.addProperty("x",pos.getX());body.addProperty("y",pos.getY());body.addProperty("z",pos.getZ());body.addProperty("rotation",rotation);body.addProperty("modelId",model.getText());body.addProperty("remove",remove);
+        JsonObject body=new JsonObject();body.addProperty("server",server);body.addProperty("world",world);body.addProperty("x",target.getX());body.addProperty("y",target.getY());body.addProperty("z",target.getZ());body.addProperty("rotation",facing);body.addProperty("modelId",model.getText());body.addProperty("remove",remove);
         pending=true;status="Wird gespeichert…";MpsqApiClient.post("/objects",body).whenComplete((data,error)->client.execute(()->{pending=false;status=error==null?"Gespeichert.":"Fehler: "+error.getMessage();if(error==null)MpsqAccessoryRenderer.refresh();}));
     }
     @Override public void renderBackground(DrawContext c,int x,int y,float d){super.renderBackground(c,x,y,d);MpsqTheme.drawBackground(c,width,height);}

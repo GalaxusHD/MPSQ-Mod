@@ -441,14 +441,9 @@ public final class MpsqApiClient {
         if (body == null) request.method(method, HttpRequest.BodyPublishers.noBody());
         else request.header("Content-Type", "application/json").method(method, HttpRequest.BodyPublishers.ofString(GSON.toJson(body)));
         return HTTP.sendAsync(request.build(), HttpResponse.BodyHandlers.ofString()).thenApply(response -> {
-            JsonElement json;
-            try { json = response.body() == null || response.body().isBlank() ? JsonNull.INSTANCE : JsonParser.parseString(response.body()); }
-            catch (RuntimeException malformed) {
-                String fallback = "MPSQ-API antwortete mit ungültigen Daten (HTTP " + response.statusCode() + ")";
-                throw new IllegalStateException(fallback);
-            }
+            JsonElement json = JsonParser.parseString(response.body());
             if (response.statusCode() < 200 || response.statusCode() >= 300) {
-                String message = json.isJsonObject() && json.getAsJsonObject().has("error") ? json.getAsJsonObject().get("error").getAsString() : "HTTP " + response.statusCode();
+                String message = json.isJsonObject() && json.getAsJsonObject().has("error") ? json.getAsJsonObject().get("error").getAsString() : response.body();
                 MpsqCameraClient.LOGGER.warn("MPSQ-API {} {} fehlgeschlagen ({}): {}", method, path, response.statusCode(), message);
                 throw new IllegalStateException(message);
             }

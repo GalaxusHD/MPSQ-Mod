@@ -66,8 +66,9 @@ public final class MpsqActionSetupScreen extends Screen {
         body.addProperty("blockId",block);body.addProperty("actionType",actions[action]);body.add("actionData",data);
         body.addProperty("minimumRank",("OPEN_REDEEM".equals(actions[action])||"OPEN_LINK".equals(actions[action]))?"vip":"offizier");
         status="Wird gespeichert…";
-        if(MpsqActionSync.server().isBlank() || MpsqActionSync.world().isBlank()) {
-            status="Bitte zuerst einer Welt auf dem MPSQ-Server beitreten.";
+        if(MpsqActionSync.server().isBlank() && client.getServer()!=null) {
+            boolean saved=MpsqLocalActionStore.set(pos,block,actions[action],data);
+            status=saved?"Aktion in dieser Einzelspielerwelt gespeichert.":"Lokale Aktion konnte nicht gespeichert werden.";
             return;
         }
         MpsqApiClient.post(block.isEmpty()?"/actions":"/triggers",body).whenComplete((r,e)->client.execute(()->{

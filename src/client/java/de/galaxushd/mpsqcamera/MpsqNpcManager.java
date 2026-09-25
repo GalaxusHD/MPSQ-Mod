@@ -54,6 +54,15 @@ public final class MpsqNpcManager {
     }
 
     private static void interact(JsonObject npc) {
+        String task = npc.has("task_type") && !npc.get("task_type").isJsonNull() ? npc.get("task_type").getAsString() : "none";
+        if ("accessories".equals(task)) {
+            MinecraftClient.getInstance().setScreen(new MpsqAccessoriesScreen(null,true));
+            return;
+        }
+        if ("quest".equals(task)) {
+            MinecraftClient.getInstance().setScreen(new MpsqQuestsScreen(null,npc.get("id").getAsString()));
+            return;
+        }
         JsonObject data = npc.has("interaction_data") && npc.get("interaction_data").isJsonObject()
                 ? npc.getAsJsonObject("interaction_data") : new JsonObject();
         if (!data.has("pages") || !data.get("pages").isJsonArray() || data.getAsJsonArray("pages").isEmpty()) {
@@ -61,6 +70,19 @@ public final class MpsqNpcManager {
             pages.add(npc.has("name") ? npc.get("name").getAsString() : "Hallo!");
             data.add("pages", pages);
         }
-        MpsqDialogueManager.start(data);
+        boolean tutorialDone=npc.has("tutorial_completed")&&npc.get("tutorial_completed").getAsBoolean();
+        if ("tutorial".equals(task) && !tutorialDone) {
+            String id = npc.get("id").getAsString();
+            MpsqDialogueManager.start(data, (ignored, done) -> {
+                if (!done) return;
+                JsonObject body = new JsonObject(); body.addProperty("server", MpsqActionSync.server()); body.addProperty("world", MpsqActionSync.world());
+                MpsqApiClient.post("/npcs/" + id + "/tutorial-complete", body).whenComplete((result, error) -> MinecraftClient.getInstance().execute(() -> {
+                    if (error == null) MpsqAccessoryRenderer.refresh();
+                    else if (MinecraftClient.getInstance().player != null) MinecraftClient.getInstance().player.sendMessage(net.minecraft.text.Text.literal("Tutorial-Abschluss konnte nicht gespeichert werden. Bitte erneut versuchen."), false);
+                }));
+            });
+        } else {
+            MpsqDialogueManager.start(data);
+        }
     }
 }

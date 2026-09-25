@@ -50,6 +50,13 @@ public final class MpsqTriggerManager {
         if (!client.options.useKey.isPressed() || client.currentScreen != null) { lastClick = null; return; }
         if (lastClick != null && lastClick.equals(pos)) return;
         lastClick = pos;
+        if(MpsqActionSync.server().isBlank()&&client.getServer()!=null){
+            JsonObject local=MpsqLocalActionStore.find(pos);
+            if(local!=null&&local.get("blockId").getAsString().equals(net.minecraft.registry.Registries.BLOCK.getId(client.world.getBlockState(pos).getBlock()).toString())){
+                JsonObject event=new JsonObject();event.addProperty("action_type",local.get("actionType").getAsString());event.add("action_data",local.getAsJsonObject("actionData"));event.addProperty("created_at",java.time.Instant.now().toString());MpsqActionSync.dispatch(event);
+            }
+            return;
+        }
         String worldId = client.world.getRegistryKey().getValue().toString();
         TRIGGERS.stream().filter(trigger -> trigger.worldId().equals(worldId) && trigger.position().equals(pos) && net.minecraft.registry.Registries.BLOCK.getId(client.world.getBlockState(pos).getBlock()).toString().equals(trigger.blockId())).findFirst()
                 .ifPresent(trigger -> MpsqApiClient.fireTrigger(trigger.id()).thenAccept(result -> {

@@ -29,15 +29,17 @@ public final class TeamCommandManager {
             String normalized = command.startsWith("/") ? command.substring(1) : command;
             if (normalized.regionMatches(true, 0, "p kick ", 0, 7)) {
                 String target = normalized.substring(7).trim().split("\\s+", 2)[0];
+                if (!target.isBlank()) MpsqKickAnimationManager.start(target);
                 TeamStateStore.self().ifPresent(profile -> {
                     if (profile.canOpenTeamArea() && !target.isBlank()) {
                         JsonObject body = new JsonObject();
                         body.addProperty("displayName", target);
-                        if (TeamVisibilitySettings.visible()) {
-                            body.addProperty("serverId", MpsqActionSync.server());
-                            body.addProperty("worldId", MpsqActionSync.world());
+                        String server = MpsqActionSync.server(), world = MpsqActionSync.world();
+                        if (!server.isBlank() && !world.isBlank()) {
+                            body.addProperty("serverId", server);
+                            body.addProperty("worldId", world);
+                            MpsqApiClient.post("/kick-animation", body);
                         }
-                        MpsqApiClient.post("/kick-animation", body);
                     }
                 });
                 return true;
