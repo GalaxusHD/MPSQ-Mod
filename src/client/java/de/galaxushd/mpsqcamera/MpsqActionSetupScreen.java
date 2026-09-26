@@ -15,8 +15,8 @@ public final class MpsqActionSetupScreen extends Screen {
     private static final String[] SOUND_TYPES={"minecraft","mp3","mp4"};
     private static final String[] SOUND_TYPE_LABELS={"Minecraft-ID","MP3-Datei-ID","MP4-Datei-ID"};
     private int soundType;
-    private static final String[] QUICK_ACTIONS={"PLAY_AUDIO","START_PLAYLIST","STOP_AUDIO","START_COUNTDOWN","SHOW_BOSSBAR","HIDE_BOSSBAR","SEND_ANNOUNCEMENT"};
-    private static final String[] BLOCK_ACTIONS={"PLAY_AUDIO","START_PLAYLIST","STOP_AUDIO","START_COUNTDOWN","SHOW_BOSSBAR","HIDE_BOSSBAR","SEND_ANNOUNCEMENT","SHOW_DIALOGUE","OPEN_REDEEM","OPEN_LINK"};
+    private static final String[] QUICK_ACTIONS={"TOGGLE_AUDIO","TOGGLE_COUNTDOWN","TOGGLE_BOSSBAR","SEND_ANNOUNCEMENT"};
+    private static final String[] BLOCK_ACTIONS={"TOGGLE_AUDIO","TOGGLE_COUNTDOWN","TOGGLE_BOSSBAR","SEND_ANNOUNCEMENT","SHOW_DIALOGUE","OPEN_REDEEM","OPEN_LINK"};
     private final String[] actions;
     private int action;
     private String status="";
@@ -41,10 +41,13 @@ public final class MpsqActionSetupScreen extends Screen {
         addDrawableChild(ButtonWidget.builder(Text.literal("Abbrechen"),b->close()).dimensions(x+135,y+120,125,20).build());
         updateSoundTypeVisibility();
     }
-    private void updateSoundTypeVisibility(){boolean audio=actions[action].equals("PLAY_AUDIO")||actions[action].equals("START_PLAYLIST");boolean countdown=actions[action].equals("START_COUNTDOWN");if(soundTypeButton!=null){soundTypeButton.visible=audio;soundTypeButton.active=audio;}if(duration!=null){duration.visible=countdown;duration.active=countdown;}}
+    private void updateSoundTypeVisibility(){boolean audio=actions[action].equals("TOGGLE_AUDIO");boolean countdown=actions[action].equals("TOGGLE_COUNTDOWN");if(soundTypeButton!=null){soundTypeButton.visible=audio;soundTypeButton.active=audio;}if(duration!=null){duration.visible=countdown;duration.active=countdown;}}
     private void save() {
         JsonObject data=new JsonObject(),body=new JsonObject(),position=new JsonObject();
         switch(actions[action]) {
+            case "TOGGLE_AUDIO" -> {if(soundType==0&&net.minecraft.util.Identifier.tryParse(value.getText())==null){status="Gültige Minecraft-Sound-ID erforderlich";return;}if(soundType>0&&!value.getText().matches("[a-zA-Z0-9_-]{1,64}")){status="Bitte die Datei-ID aus dem Sound-Upload angeben.";return;}data.addProperty("sourceType",SOUND_TYPES[soundType]);data.addProperty("sound",value.getText().trim());}
+            case "TOGGLE_BOSSBAR" -> data.addProperty("title",value.getText().isBlank()?"MPSQ":value.getText());
+            case "TOGGLE_COUNTDOWN" -> {try{int seconds=Integer.parseInt(duration.getText());if(seconds<1||seconds>7200)throw new NumberFormatException();data.addProperty("duration",seconds);}catch(NumberFormatException e){status="Dauer: 1–7200 Sekunden";return;}data.addProperty("title",value.getText().isBlank()?"MPSQ":value.getText());}
             case "PLAY_AUDIO" -> { if(soundType==0&&net.minecraft.util.Identifier.tryParse(value.getText())==null){status="Gültige Minecraft-Sound-ID erforderlich";return;}if(soundType>0&&!value.getText().matches("[a-zA-Z0-9_-]{1,64}")){status="Bitte die Datei-ID aus dem Sound-Upload angeben.";return;}data.addProperty("sourceType",SOUND_TYPES[soundType]);data.addProperty("sound",value.getText().trim()); }
             case "START_PLAYLIST" -> {
                 JsonArray tracks=new JsonArray();
@@ -71,6 +74,7 @@ public final class MpsqActionSetupScreen extends Screen {
             status=saved?"Aktion in dieser Einzelspielerwelt gespeichert.":"Lokale Aktion konnte nicht gespeichert werden.";
             return;
         }
+        if(!MpsqActionSync.isMpsqServer()){status="Online-Aktionen sind nur auf mixelpixel.net verfügbar.";return;}
         MpsqApiClient.post(block.isEmpty()?"/actions":"/triggers",body).whenComplete((r,e)->client.execute(()->{
             status=e==null?(block.isEmpty()?"Aktion gesendet.":"Gespeichert. Rechtsklick löst die Aktion aus."):"Speichern fehlgeschlagen: "+e.getMessage();
             if(e==null)MpsqTriggerManager.refresh();
@@ -79,19 +83,16 @@ public final class MpsqActionSetupScreen extends Screen {
     @Override public void render(DrawContext c,int x,int y,float d){
         super.render(c,x,y,d);
         c.drawCenteredTextWithShadow(textRenderer,title,width/2,24,MpsqTheme.TEXT_TITEL);
-        String hint=actions[action].equals("SHOW_DIALOGUE")?"Textseiten mit || trennen":(actions[action].equals("PLAY_AUDIO")||actions[action].equals("START_PLAYLIST"))?(soundType==0?"Minecraft-Sound-ID, z. B. minecraft:music.menu":"Sound-Datei-ID aus dem MPSQ-Upload") : "Text oder Titel";
-        if(actions[action].equals("START_COUNTDOWN"))c.drawTextWithShadow(textRenderer,"Countdown-Dauer in Sekunden",width/2-130,132,0xFFFFFFFF);
+        String hint=actions[action].equals("SHOW_DIALOGUE")?"Textseiten mit || trennen":actions[action].equals("TOGGLE_AUDIO")?(soundType==0?"Minecraft-Sound-ID, z. B. minecraft:music.menu":"Sound-Datei-ID aus dem MPSQ-Upload") : "Text oder Titel";
+        if(actions[action].equals("TOGGLE_COUNTDOWN"))c.drawTextWithShadow(textRenderer,"Countdown-Dauer in Sekunden",width/2-130,132,0xFFFFFFFF);
         else c.drawTextWithShadow(textRenderer,hint,width/2-130,132,0xFFFFFFFF);
         c.drawCenteredTextWithShadow(textRenderer,Text.literal(status),width/2,height-24,0xFFFFFFFF);
     }
     private static String actionLabel(String action) {
         return switch(action) {
-            case "PLAY_AUDIO" -> "Musik / Ton";
-            case "START_PLAYLIST" -> "Playlist starten";
-            case "STOP_AUDIO" -> "Musik stoppen";
-            case "START_COUNTDOWN" -> "Countdown starten";
-            case "SHOW_BOSSBAR" -> "Bossbar anzeigen";
-            case "HIDE_BOSSBAR" -> "Bossbar ausblenden";
+            case "TOGGLE_AUDIO" -> "Musik / Ton umschalten";
+            case "TOGGLE_COUNTDOWN" -> "Countdown umschalten";
+            case "TOGGLE_BOSSBAR" -> "Bossbar umschalten";
             case "SEND_ANNOUNCEMENT" -> "Ansage senden";
             case "SHOW_DIALOGUE" -> "Dialog (F zum Weitergehen)";
             case "OPEN_REDEEM" -> "Redeem öffnen";

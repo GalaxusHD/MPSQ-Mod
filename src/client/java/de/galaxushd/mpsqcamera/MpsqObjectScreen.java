@@ -16,7 +16,8 @@ public final class MpsqObjectScreen extends Screen {
     private boolean pending;
     public MpsqObjectScreen(BlockPos support){super(Text.literal("MPSQ-Objekt platzieren"));pos=support.up().toImmutable();server=MpsqActionSync.server();world=MpsqActionSync.world();}
     @Override protected void init(){
-        model=addDrawableChild(new TextFieldWidget(textRenderer,width/2-120,70,240,20,Text.literal("Modell-ID")));model.setMaxLength(64);model.setPlaceholder(Text.literal("Modell-ID aus dem Admin-Upload"));
+        model=addDrawableChild(new TextFieldWidget(textRenderer,width/2-120,70,145,20,Text.literal("Modell-ID")));model.setMaxLength(64);model.setPlaceholder(Text.literal("Modell-ID"));
+        addDrawableChild(ButtonWidget.builder(Text.literal("Katalog"),b->client.setScreen(new MpsqModelsScreen(this))).dimensions(width/2+30,70,90,20).build());
         addDrawableChild(ButtonWidget.builder(Text.literal("Drehung: "+rotation+"°"),b->{rotation=(rotation+90)%360;b.setMessage(Text.literal("Drehung: "+rotation+"°"));}).dimensions(width/2-120,98,240,20).build());
         addDrawableChild(ButtonWidget.builder(Text.literal("Platzieren / Ersetzen"),b->save(false)).dimensions(width/2-120,126,240,20).build());
         addDrawableChild(ButtonWidget.builder(Text.literal("Objekt hier entfernen"),b->save(true)).dimensions(width/2-120,154,240,20).build());
@@ -35,6 +36,7 @@ public final class MpsqObjectScreen extends Screen {
             if(saved)MpsqAccessoryRenderer.refresh();
             return;
         }
+        if(!MpsqActionSync.isMpsqServer()){status="Online-Speicher ist nur auf mixelpixel.net verfügbar.";return;}
         JsonObject body=new JsonObject();body.addProperty("server",server);body.addProperty("world",world);body.addProperty("x",target.getX());body.addProperty("y",target.getY());body.addProperty("z",target.getZ());body.addProperty("rotation",facing);body.addProperty("modelId",model.getText());body.addProperty("remove",remove);
         pending=true;status="Wird gespeichert…";MpsqApiClient.post("/objects",body).whenComplete((data,error)->client.execute(()->{pending=false;status=error==null?"Gespeichert.":"Fehler: "+error.getMessage();if(error==null)MpsqAccessoryRenderer.refresh();}));
     }

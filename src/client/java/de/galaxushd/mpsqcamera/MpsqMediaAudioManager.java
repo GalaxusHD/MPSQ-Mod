@@ -17,6 +17,7 @@ import java.util.List;
 public final class MpsqMediaAudioManager {
     private static MCEFBrowser browser;
     private static long generation;
+    private static boolean active;
 
     private MpsqMediaAudioManager() { }
 
@@ -29,6 +30,7 @@ public final class MpsqMediaAudioManager {
     public static void play(String type, List<String> assetIds) {
         stop();
         if (!(type.equals("mp3") || type.equals("mp4")) || assetIds == null || assetIds.isEmpty() || assetIds.size() > 100) return;
+        active=true;
         long request = ++generation;
         List<java.util.concurrent.CompletableFuture<String>> lookups = new ArrayList<>();
         for (String id : assetIds) {
@@ -83,6 +85,7 @@ public final class MpsqMediaAudioManager {
 
     public static void stop() {
         generation++;
+        active=false;
         MCEFBrowser current = browser;
         browser = null;
         if (current != null) {
@@ -90,4 +93,5 @@ public final class MpsqMediaAudioManager {
             catch (RuntimeException exception) { MpsqCameraClient.LOGGER.debug("MPSQ-Medienbrowser ließ sich nicht schließen", exception); }
         }
     }
+    public static boolean playing(){return active;}
 }

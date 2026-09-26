@@ -10,6 +10,8 @@ public final class MpsqBossbarManager {
     private MpsqBossbarManager() { }
     public static void apply(MpsqBossbarState state) { if (state != null) STATES.put(state.id(), state); }
     public static void remove(String id) { STATES.remove(id); }
+    public static boolean countdownRunning(){return countdownEnd>System.currentTimeMillis();}
+    public static void stopCountdown(){countdownEnd=0;STATES.remove("countdown");}
     public static MpsqBossbarState get(String id) { return STATES.get(id); }
     public static void startCountdown(String title,int seconds,String createdAt) {
         if(seconds<1||seconds>7200) return;

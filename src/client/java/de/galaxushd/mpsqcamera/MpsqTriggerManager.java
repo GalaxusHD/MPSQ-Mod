@@ -42,7 +42,7 @@ public final class MpsqTriggerManager {
     private static void tick(MinecraftClient client) {
         String current=MpsqActionSync.server()+"|"+MpsqActionSync.world();
         if(!scope.equals(current)){scope=current;generation++;pending=false;TRIGGERS.clear();lastClick=null;nextPoll=0;}
-        if (client.world == null || client.player == null || !MpsqApiClient.isReady()) { lastClick = null; return; }
+        if (client.world == null || client.player == null || !TeamVisibilitySettings.visible() || (!MpsqActionSync.server().isBlank()&&!MpsqActionSync.isMpsqServer()) || !MpsqApiClient.isReady()) { lastClick = null; return; }
         long now = System.currentTimeMillis();
         if (now >= nextPoll) { nextPoll = now + 15_000L; refresh(); }
         if (!(client.crosshairTarget instanceof BlockHitResult hit)) { lastClick = null; return; }

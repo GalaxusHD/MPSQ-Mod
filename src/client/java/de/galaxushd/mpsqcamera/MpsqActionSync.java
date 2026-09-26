@@ -11,6 +11,7 @@ import net.minecraft.text.Text;
 public final class MpsqActionSync {
     private static String scope = "", cursor;
     private static boolean pending;
+    private static boolean wasVisible=true;
     private static long next;
     private static int generation;
     private MpsqActionSync() {}
@@ -18,6 +19,7 @@ public final class MpsqActionSync {
         var entry = MinecraftClient.getInstance().getCurrentServerEntry();
         return entry == null ? "" : entry.address.toLowerCase(java.util.Locale.ROOT);
     }
+    public static boolean isMpsqServer(){String host=server().replaceFirst(":\\d+$","");return host.equals("mixelpixel.net")||host.equals("play.mixelpixel.net");}
     public static String world() {
         var world = MinecraftClient.getInstance().world;
         return world == null ? "" : world.getRegistryKey().getValue().toString();
@@ -26,24 +28,14 @@ public final class MpsqActionSync {
     public static void initialize() {
         ClientTickEvents.END_CLIENT_TICK.register(client -> tick(client));
         net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback.EVENT.register((dispatcher,access)->dispatcher.register(
-            net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.literal("mpsq-objekte").executes(context->{
-                var client=MinecraftClient.getInstance();client.send(()->client.setScreen(new MpsqCreateMenuScreen()));return 1;
-            })));
-        net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback.EVENT.register((dispatcher,access)->dispatcher.register(
-            net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.literal("mpsq-objekt").executes(context->{
-                var client=MinecraftClient.getInstance();
-                if(client.crosshairTarget instanceof net.minecraft.util.hit.BlockHitResult hit && client.world!=null)client.send(()->client.setScreen(new MpsqObjectScreen(hit.getBlockPos())));
-                else context.getSource().sendError(Text.literal("Bitte den Bodenblock unter dem Objekt anschauen."));
-                return 1;
-            })));
-
-        net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback.EVENT.register((dispatcher,access)->dispatcher.register(
-            net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.literal("mpsq-npc").executes(context->{
-                var client=MinecraftClient.getInstance();
-                if(client.player!=null&&client.world!=null)client.send(()->client.setScreen(MpsqNpcPlacementScreen.atPlayer(null,client.player)));
-                else context.getSource().sendError(Text.literal("Du musst einer Welt beitreten."));
-                return 1;
-            })));
+            net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.literal("mpsq-points")
+                .then(net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.argument("amount",com.mojang.brigadier.arguments.IntegerArgumentType.integer(1,10000))
+                    .executes(context->{int amount=com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(context,"amount");
+                        var profile=TeamStateStore.self().orElse(null);
+                        if(profile==null||profile.permissionRank().level()<TeamRank.OFFICER.level()){context.getSource().sendError(Text.literal("Dafür brauchst du den Rang Offizier oder höher."));return 0;}
+                        JsonObject body=new JsonObject();body.addProperty("amount",amount);
+                        MpsqApiClient.post("/me/points/grant",body).whenComplete((data,error)->MinecraftClient.getInstance().execute(()->context.getSource().sendFeedback(Text.literal(error==null?"Punkte gutgeschrieben.":"Punkte konnten nicht vergeben werden: "+error.getMessage()))));return 1;
+                    }))));
 
         net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback.EVENT.register((dispatcher,access)->dispatcher.register(
             net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.literal("mpsq-knopf").executes(context->{
@@ -57,6 +49,7 @@ public final class MpsqActionSync {
             })));
     }
     private static void tick(MinecraftClient client) {
+        if(!TeamVisibilitySettings.visible()){if(wasVisible){MpsqAudioManager.stop();MpsqMediaAudioManager.stop();MpsqBossbarManager.clear();}wasVisible=false;return;}wasVisible=true;
         String current = server() + "|" + world();
         if (!current.equals(scope)) {
             scope=current; cursor=null; pending=false; generation++; next=0;
@@ -64,7 +57,7 @@ public final class MpsqActionSync {
             MpsqMediaAudioManager.stop();
             MpsqBossbarManager.clear();
         }
-        if (client.world == null || server().isBlank() || !MpsqApiClient.isReady() || pending || System.currentTimeMillis()<next) return;
+        if (client.world == null || !isMpsqServer() || !MpsqApiClient.isReady() || pending || System.currentTimeMillis()<next) return;
         int requestGeneration=generation;
         pending=true;
         String path="/action-events?server="+encode(server())+"&world="+encode(world())+(cursor==null?"":"&after="+cursor);
@@ -83,6 +76,12 @@ public final class MpsqActionSync {
     public static void dispatch(JsonObject event) {
         JsonObject data=event.getAsJsonObject("action_data");
         switch(event.get("action_type").getAsString()) {
+            case "TOGGLE_AUDIO" -> {
+                if(MpsqAudioManager.playing()||MpsqMediaAudioManager.playing()){MpsqAudioManager.stop();MpsqMediaAudioManager.stop();}
+                else {String source=data.has("sourceType")?data.get("sourceType").getAsString():"minecraft";String sound=data.has("sound")?data.get("sound").getAsString():"";if(source.equals("mp3")||source.equals("mp4")){MpsqAudioManager.stop();MpsqMediaAudioManager.play(source,java.util.List.of(sound));}else{MpsqMediaAudioManager.stop();MpsqAudioManager.startPlaylist("MPSQ",java.util.List.of(sound));}}
+            }
+            case "TOGGLE_BOSSBAR" -> {if(MpsqBossbarManager.get("event")!=null)MpsqBossbarManager.remove("event");else MpsqBossbarManager.apply(new MpsqBossbarState("event",data.get("title").getAsString(),"purple",1,true));}
+            case "TOGGLE_COUNTDOWN" -> {if(MpsqBossbarManager.countdownRunning())MpsqBossbarManager.stopCountdown();else MpsqBossbarManager.startCountdown(data.get("title").getAsString(),data.get("duration").getAsInt(),event.get("created_at").getAsString());}
             case "PLAY_AUDIO", "START_PLAYLIST" -> {
                 var tracks=new ArrayList<String>();
                 if(data.has("tracks")) for(JsonElement track:data.getAsJsonArray("tracks")) tracks.add(track.getAsString());

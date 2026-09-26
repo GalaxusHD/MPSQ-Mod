@@ -26,6 +26,7 @@ public final class MpsqAccessoryRenderer {
     private static JsonArray npcs=new JsonArray();
     private static final Set<String> loading=new HashSet<>();
     private static final Map<String,String> localAssetUrls=new HashMap<>();
+    private static final Map<String,String> localAssetCategories=new HashMap<>();
     private static boolean localCatalogRequested;
     private static String tryOnUrl;
     private static net.minecraft.util.math.Vec3d tryOnStart;
@@ -36,7 +37,7 @@ public final class MpsqAccessoryRenderer {
     private static int generation;
     private static String scope="";
     private MpsqAccessoryRenderer(){}
-    public static void refresh(){generation++;polling=false;loading.clear();localAssetUrls.clear();localCatalogRequested=false;next=0;}
+    public static void refresh(){generation++;polling=false;loading.clear();localAssetUrls.clear();localAssetCategories.clear();localCatalogRequested=false;next=0;}
     public static JsonArray npcsSnapshot(){return npcs.deepCopy();}
     public static void initialize(){
         ClientTickEvents.END_CLIENT_TICK.register(client->{
@@ -46,8 +47,8 @@ public final class MpsqAccessoryRenderer {
                 else {long window=client.getWindow().getHandle();for(int key=1;key<=org.lwjgl.glfw.GLFW.GLFW_KEY_LAST;key++){boolean down=org.lwjgl.glfw.GLFW.glfwGetKey(window,key)==org.lwjgl.glfw.GLFW.GLFW_PRESS;if(down&&!pressedKeys.get(key)&&key!=org.lwjgl.glfw.GLFW.GLFW_KEY_F5){clearTryOn();break;}if(down)pressedKeys.set(key);else pressedKeys.clear(key);}}
             }
             String current=MpsqActionSync.server()+"|"+MpsqActionSync.world();
-            if(!scope.equals(current)){scope=current;generation++;polling=false;wearers.clear();objects=new JsonArray();npcs=new JsonArray();loading.clear();localAssetUrls.clear();localCatalogRequested=false;for(Model m:models.values())for(Identifier id:m.textures.values())client.getTextureManager().destroyTexture(id);models.clear();next=0;}
-            if(client.world==null||!MpsqApiClient.isReady()||polling||System.currentTimeMillis()<next)return;
+            if(!scope.equals(current)){scope=current;generation++;polling=false;wearers.clear();objects=new JsonArray();npcs=new JsonArray();loading.clear();localAssetUrls.clear();localAssetCategories.clear();localCatalogRequested=false;for(Model m:models.values())for(Identifier id:m.textures.values())client.getTextureManager().destroyTexture(id);models.clear();next=0;}
+            if(client.world==null||!TeamVisibilitySettings.visible()||(!MpsqActionSync.server().isBlank()&&!MpsqActionSync.isMpsqServer())||!MpsqApiClient.isReady()||polling||System.currentTimeMillis()<next)return;
             polling=true;next=System.currentTimeMillis()+15000;int epoch=generation;
             if(MpsqActionSync.server().isBlank()){
                 objects=localObjectsSnapshot(epoch);
@@ -55,14 +56,14 @@ public final class MpsqAccessoryRenderer {
                 if(!localCatalogRequested){localCatalogRequested=true;MpsqApiClient.get("/furniture/catalog").whenComplete((data,error)->client.execute(()->{
                     if(epoch!=generation)return;
                     if(error!=null||!data.isJsonArray()){localCatalogRequested=false;return;}
-                    for(JsonElement value:data.getAsJsonArray()){JsonObject asset=value.getAsJsonObject();if(asset.has("id")&&asset.has("url"))localAssetUrls.put(asset.get("id").getAsString(),asset.get("url").getAsString());}
+                    for(JsonElement value:data.getAsJsonArray()){JsonObject asset=value.getAsJsonObject();if(asset.has("id")&&asset.has("url")){String id=asset.get("id").getAsString();localAssetUrls.put(id,asset.get("url").getAsString());localAssetCategories.put(id,str(asset,"category","furniture"));}}
                     objects=localObjectsSnapshot(epoch);
                     for(JsonElement value:objects){JsonObject row=value.getAsJsonObject();String url=row.get("url").getAsString();if(!models.containsKey(url)&&models.size()+loading.size()<64)load(url,epoch);}
                 }));}
                 MpsqApiClient.get("/models/catalog").whenComplete((data,error)->client.execute(()->{
                     if(epoch!=generation)return;
                     if(error!=null||!data.isJsonArray())return;
-                    for(JsonElement value:data.getAsJsonArray()){JsonObject asset=value.getAsJsonObject();if(asset.has("id")&&asset.has("url"))localAssetUrls.put(asset.get("id").getAsString(),asset.get("url").getAsString());}
+                    for(JsonElement value:data.getAsJsonArray()){JsonObject asset=value.getAsJsonObject();if(asset.has("id")&&asset.has("url")){String id=asset.get("id").getAsString();localAssetUrls.put(id,asset.get("url").getAsString());localAssetCategories.put(id,str(asset,"category","npc_model"));}}
                     npcs=localNpcsSnapshot();
                     for(JsonElement value:npcs){JsonObject npc=value.getAsJsonObject();String url=npc.get("url").getAsString();if(!models.containsKey(url)&&models.size()+loading.size()<64)load(url,epoch,"npc_skin_slim".equals(str(npc,"category","")));}
                 }));
@@ -94,7 +95,7 @@ public final class MpsqAccessoryRenderer {
         });
         WorldRenderEvents.AFTER_ENTITIES.register(context->{
             var client=MinecraftClient.getInstance();var matrices=context.matrixStack();var consumers=context.consumers();
-            if(client.world==null||matrices==null||consumers==null)return;
+            if(client.world==null||matrices==null||consumers==null||!TeamVisibilitySettings.visible())return;
             var camera=context.camera().getPos();
             for(var value:objects){var o=value.getAsJsonObject();Model model=models.get(o.get("url").getAsString());if(model==null)continue;
                 double x=o.get("x").getAsDouble(),y=o.get("y").getAsDouble(),z=o.get("z").getAsDouble();if(camera.squaredDistanceTo(x,y,z)>4096)continue;
@@ -117,8 +118,16 @@ public final class MpsqAccessoryRenderer {
                 double x=o.has("world_x")?o.get("world_x").getAsDouble():o.get("x").getAsDouble()+0.5,y=o.has("world_y")?o.get("world_y").getAsDouble():o.get("y").getAsDouble(),z=o.has("world_z")?o.get("world_z").getAsDouble():o.get("z").getAsDouble()+0.5;if(camera.squaredDistanceTo(x,y,z)>4096)continue;
                 float size=o.has("scale")?o.get("scale").getAsFloat():1f;String animation=o.has("animation")?o.get("animation").getAsString():"none";float phase=(System.currentTimeMillis()%4000L)/1000f;float bob=animation.equals("bob")?(float)Math.sin(phase*Math.PI*2)*0.08f:0;float pulse=animation.equals("pulse")?1f+(float)Math.sin(phase*Math.PI*2)*0.08f:1f;float yaw=o.has("yaw")?o.get("yaw").getAsFloat():0f,pitch=o.has("pitch")?o.get("pitch").getAsFloat():0f;boolean face=o.has("face_player")&&o.get("face_player").getAsBoolean();
                 if(face&&client.player!=null&&client.player.squaredDistanceTo(x,y+0.5,z)<=900){double dx=client.player.getX()-x,dz=client.player.getZ()-z,dy=client.player.getEyeY()-(y+0.5);yaw=(float)Math.toDegrees(Math.atan2(-dx,dz));pitch=(float)-Math.toDegrees(Math.atan2(dy,Math.sqrt(dx*dx+dz*dz)));}
-                if(animation.equals("turn"))yaw+=phase*90f;int tint=glowColor(o.has("glow_color")?o.get("glow_color").getAsString():"none");
-                matrices.push();matrices.translate(x-camera.x,y+bob-camera.y,z-camera.z);matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(-yaw));matrices.multiply(RotationAxis.POSITIVE_X.rotationDegrees(pitch));matrices.scale(size/16f*pulse,size/16f*pulse,size/16f*pulse);drawModel(model,matrices,consumers,tint);matrices.pop();
+                if(animation.equals("turn"))yaw+=phase*90f;
+                if(animation.equals("nod"))pitch+=(float)Math.sin(phase*Math.PI*2)*12f;
+                if(animation.equals("tilt"))yaw+=(float)Math.sin(phase*Math.PI*2)*14f;
+                if(animation.equals("look_around"))yaw+=(float)Math.sin(phase*Math.PI)*28f;
+                if(animation.equals("shake"))yaw+=(float)Math.sin(phase*Math.PI*8)*5f;
+                if(animation.equals("wave"))pulse=1f+(float)Math.sin(phase*Math.PI*2)*0.035f;
+                int glow=glowColor(o.has("glow_color")?o.get("glow_color").getAsString():"none");
+                matrices.push();matrices.translate(x-camera.x,y+bob-camera.y,z-camera.z);matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(-yaw));matrices.multiply(RotationAxis.POSITIVE_X.rotationDegrees(pitch));matrices.scale(size/16f*pulse,size/16f*pulse,size/16f*pulse);drawModel(model,matrices,consumers,0xFFFFFFFF);
+                if(!"none".equals(o.has("glow_color")?o.get("glow_color").getAsString():"none")){var outline=client.getBufferBuilders().getOutlineVertexConsumers();outline.setColor((glow>>16)&255,(glow>>8)&255,glow&255,255);drawModel(model,matrices,outline,glow);outline.draw();}
+                matrices.pop();
                 String task=o.has("task_type")?o.get("task_type").getAsString():"none";boolean tutorialDone=o.has("tutorial_completed")&&o.get("tutorial_completed").getAsBoolean();
                 String tag=switch(task){case "accessories"->"accessories";case "quest"->"quests";case "tutorial"->tutorialDone?null:"tutorial";default->null;};
                 if(tag!=null){drawBillboard(context,matrices,consumers,Identifier.of("mpsqcamera","textures/gui/npc_tags/"+tag+".png"),x-camera.x,y+size+bob+0.12-camera.y,z-camera.z,1.65f,0.20f);
@@ -129,7 +138,7 @@ public final class MpsqAccessoryRenderer {
     public static void tryOn(String url){tryOnUrl=url;tryOnStart=MinecraftClient.getInstance().player==null?null:MinecraftClient.getInstance().player.getPos();pressedKeys.clear();if(url!=null&&MinecraftClient.getInstance().player!=null)MinecraftClient.getInstance().player.sendMessage(net.minecraft.text.Text.literal("Vorschau aktiv · Bewegung oder eine Taste beendet sie (F5 bleibt erlaubt)."),true);}
     private static void clearTryOn(){tryOnUrl=null;tryOnStart=null;pressedKeys.clear();}
     /** Shows an actual model face in catalog rows instead of shrinking the entire atlas. */
-    public static void drawGuiPreview(net.minecraft.client.gui.DrawContext context,String url,int x,int y,float size){Model model=models.get(url);if(model==null){if(url!=null&&MpsqApiClient.isReady()&&models.size()+loading.size()<64)load(url,generation);context.fill(x-10,y-10,x+10,y+10,0xAA222222);return;}if(!model.textures.isEmpty()){Identifier texture=model.textures.values().iterator().next();float u0=0,v0=0,u1=1,v1=1;outer:for(JsonElement element:model.elements){JsonObject faces=element.getAsJsonObject().getAsJsonObject("faces");for(var face:faces.entrySet()){JsonObject data=face.getValue().getAsJsonObject();Identifier faceTexture=model.textures.get(data.get("texture").getAsString());if(faceTexture==null)continue;texture=faceTexture;JsonArray uv=data.getAsJsonArray("uv");u0=uv.get(0).getAsFloat();v0=uv.get(1).getAsFloat();u1=uv.get(2).getAsFloat();v1=uv.get(3).getAsFloat();break outer;}}context.fill(x-11,y-11,x+11,y+11,0xFF151515);context.drawTexturedQuad(texture,x-10,y-10,20,20,u0,v0,u1,v1);}}
+    public static void drawGuiPreview(net.minecraft.client.gui.DrawContext context,String url,int x,int y,float size){int px=Math.max(20,Math.min(64,Math.round(20*size)));Model model=models.get(url);if(model==null){if(url!=null&&MpsqApiClient.isReady()&&models.size()+loading.size()<64)load(url,generation);context.fill(x-px/2-1,y-px/2-1,x+px/2+1,y+px/2+1,0xAA222222);return;}if(!model.textures.isEmpty()){Identifier texture=model.textures.values().iterator().next();float u0=0,v0=0,u1=1,v1=1;String[] preference={"south","north","west","east","up","down"};boolean found=false;for(String wanted:preference){if(found)break;for(JsonElement element:model.elements){JsonObject faces=element.getAsJsonObject().getAsJsonObject("faces");if(!faces.has(wanted))continue;JsonObject data=faces.getAsJsonObject(wanted);Identifier faceTexture=model.textures.get(str(data,"texture",""));if(faceTexture==null)continue;texture=faceTexture;JsonArray uv=data.getAsJsonArray("uv");u0=uv.get(0).getAsFloat();v0=uv.get(1).getAsFloat();u1=uv.get(2).getAsFloat();v1=uv.get(3).getAsFloat();found=true;break;}}context.fill(x-px/2-1,y-px/2-1,x+px/2+1,y+px/2+1,0xFF151515);context.drawTexturedQuad(texture,x-px/2,y-px/2,px,px,u0,v0,u1,v1);}}
     private static JsonArray localObjectsSnapshot(int epoch){
         JsonArray resolved=new JsonArray();
         for(JsonElement value:MpsqLocalObjectStore.loadWorld(MpsqActionSync.world())){
@@ -138,7 +147,7 @@ public final class MpsqAccessoryRenderer {
         }
         return resolved;
     }
-    private static JsonArray localNpcsSnapshot(){JsonArray resolved=new JsonArray();for(JsonElement value:MpsqLocalNpcStore.loadWorld(MpsqActionSync.world())){JsonObject row=value.getAsJsonObject().deepCopy();String id=row.has("asset_id")?row.get("asset_id").getAsString():"";String url=localAssetUrls.get(id);if(url==null)continue;row.addProperty("url",url);row.addProperty("asset_id",id);resolved.add(row);}return resolved;}
+    private static JsonArray localNpcsSnapshot(){JsonArray resolved=new JsonArray();for(JsonElement value:MpsqLocalNpcStore.loadWorld(MpsqActionSync.world())){JsonObject row=value.getAsJsonObject().deepCopy();String id=row.has("asset_id")?row.get("asset_id").getAsString():"";String url=localAssetUrls.get(id);if(url==null)continue;row.addProperty("url",url);row.addProperty("asset_id",id);row.addProperty("category",localAssetCategories.getOrDefault(id,str(row,"category","npc_model")));resolved.add(row);}return resolved;}
     private static int glowColor(String color){return switch(color){case "white"->0xFFFFFFFF;case "orange"->0xFFFFAA33;case "magenta"->0xFFFF55FF;case "light_blue"->0xFF55AAFF;case "yellow"->0xFFFFFF55;case "lime"->0xFF55FF55;case "pink"->0xFFFF88BB;case "gray"->0xFF666666;case "light_gray"->0xFFBBBBBB;case "cyan"->0xFF55FFFF;case "purple"->0xFFAA55FF;case "blue"->0xFF5555FF;case "brown"->0xFF8B5A2B;case "green"->0xFF55AA33;case "red"->0xFFFF5555;case "black"->0xFF333333;default->0xFFFFFFFF;};}
     private static void drawBillboard(WorldRenderContext context,MatrixStack matrices,VertexConsumerProvider consumers,Identifier texture,double x,double y,double z,float width,float height){
         matrices.push();matrices.translate(x,y,z);matrices.multiply(context.camera().getRotation());var entry=matrices.peek();var buffer=consumers.getBuffer(RenderLayer.getEntityCutoutNoCull(texture));
@@ -182,6 +191,15 @@ public final class MpsqAccessoryRenderer {
         skinCube(elements,"left_arm",12,12,4,slim?15:16,24,8,slim?new int[][]{{36,48,39,52},{39,48,42,52},{32,52,36,64},{36,52,39,64},{39,52,43,64},{43,52,46,64}}:new int[][]{{36,48,40,52},{40,48,44,52},{32,52,36,64},{36,52,40,64},{40,52,44,64},{44,52,48,64}});
         skinCube(elements,"right_leg",4,0,4,8,12,8,new int[][]{{4,16,8,20},{8,16,12,20},{0,20,4,32},{4,20,8,32},{8,20,12,32},{12,20,16,32}});
         skinCube(elements,"left_leg",8,0,4,12,12,8,new int[][]{{20,48,24,52},{24,48,28,52},{16,52,20,64},{20,52,24,64},{24,52,28,64},{28,52,32,64}});
+        // Skin overlays are separate, slightly expanded cuboids so Minecraft's
+        // transparent second layer (hat, jacket, sleeves and trousers) stays visible.
+        skinCube(elements,"hat_layer",3.5f,23.5f,3.5f,12.5f,32.5f,12.5f,new int[][]{{40,0,48,8},{48,0,56,8},{32,8,40,16},{40,8,48,16},{48,8,56,16},{56,8,64,16}});
+        skinCube(elements,"jacket_layer",3.75f,11.75f,3.75f,12.25f,24.25f,8.25f,new int[][]{{20,32,28,36},{28,32,36,36},{16,36,20,48},{20,36,28,48},{28,36,32,48},{32,36,40,48}});
+        int armRight=slim?3:4,armLeft=slim?3:4;
+        skinCube(elements,"right_sleeve",-0.25f,11.75f,3.75f,armRight+0.25f,24.25f,8.25f,slim?new int[][]{{44,32,47,36},{47,32,50,36},{40,36,44,48},{44,36,47,48},{47,36,51,48},{51,36,54,48}}:new int[][]{{44,32,48,36},{48,32,52,36},{40,36,44,48},{44,36,48,48},{48,36,52,48},{52,36,56,48}});
+        skinCube(elements,"left_sleeve",12-0.25f,11.75f,3.75f,12+armLeft+0.25f,24.25f,8.25f,slim?new int[][]{{52,48,55,52},{55,48,58,52},{48,52,52,64},{52,52,55,64},{55,52,59,64},{59,52,62,64}}:new int[][]{{52,48,56,52},{56,48,60,52},{48,52,52,64},{52,52,56,64},{56,52,60,64},{60,52,64,64}});
+        skinCube(elements,"right_pants_layer",3.75f,-0.25f,3.75f,8.25f,12.25f,8.25f,new int[][]{{4,32,8,36},{8,32,12,36},{0,36,4,48},{4,36,8,48},{8,36,12,48},{12,36,16,48}});
+        skinCube(elements,"left_pants_layer",7.75f,-0.25f,3.75f,12.25f,12.25f,8.25f,new int[][]{{4,48,8,52},{8,48,12,52},{0,52,4,64},{4,52,8,64},{8,52,12,64},{12,52,16,64}});
         return bundle;
     }
     private static void skinCube(JsonArray out,String name,float x,float y,float z,float X,float Y,float Z,int[][] uv){
