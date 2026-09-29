@@ -18,17 +18,22 @@ public abstract class PlayerEntityModelMixin {
 
     @Inject(method = "setAngles", at = @At("TAIL"))
     private void mpsq$applyKickKeyframes(PlayerEntityRenderState state, CallbackInfo ci) {
-        if (state == null || state.name == null) {
-            return;
+        BipedEntityModel<?> model = (BipedEntityModel<?>) (Object) this;
+        if (state != null && state.name != null) {
+            apply(model.head, MpsqKickAnimationManager.rotation(state.name, "head"));
+            apply(model.rightArm, MpsqKickAnimationManager.rotation(state.name, "rightArm"));
+            apply(model.leftArm, MpsqKickAnimationManager.rotation(state.name, "leftArm"));
+            apply(model.rightLeg, MpsqKickAnimationManager.rotation(state.name, "rightLeg"));
+            apply(model.leftLeg, MpsqKickAnimationManager.rotation(state.name, "leftLeg"));
         }
 
-        BipedEntityModel<?> model = (BipedEntityModel<?>) (Object) this;
-
-        apply(model.head, MpsqKickAnimationManager.rotation(state.name, "head"));
-        apply(model.rightArm, MpsqKickAnimationManager.rotation(state.name, "rightArm"));
-        apply(model.leftArm, MpsqKickAnimationManager.rotation(state.name, "leftArm"));
-        apply(model.rightLeg, MpsqKickAnimationManager.rotation(state.name, "rightLeg"));
-        apply(model.leftLeg, MpsqKickAnimationManager.rotation(state.name, "leftLeg"));
+        de.galaxushd.mpsqcamera.MpsqNpcSkinRenderer.JointPose pose =
+                de.galaxushd.mpsqcamera.MpsqNpcSkinRenderer.activeNpcPose();
+        if (pose != null) {
+            add(model.head, pose.headX(), pose.headY(), pose.headZ());
+            add(model.leftArm, pose.leftArmX(), pose.leftArmY(), pose.leftArmZ());
+            add(model.rightArm, pose.rightArmX(), pose.rightArmY(), pose.rightArmZ());
+        }
     }
 
     private static void apply(ModelPart part, float[] rotation) {
@@ -39,5 +44,12 @@ public abstract class PlayerEntityModelMixin {
         part.pitch = rotation[0];
         part.yaw = rotation[1];
         part.roll = rotation[2];
+    }
+
+    private static void add(ModelPart part, float x, float y, float z) {
+        if (part == null) return;
+        part.pitch += x;
+        part.yaw += y;
+        part.roll += z;
     }
 }
