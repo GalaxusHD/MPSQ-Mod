@@ -15,9 +15,9 @@ Minecraft 1.21.8, Java 21, Fabric API und MCEF bleiben erforderlich.
 
 ## Modelle
 
-Admin-Upload akzeptiert Java-Itemmodell-JSON mit separat ausgewählten PNGs und statische Blockbench-Dateien (.bbmodel) mit eingebetteten oder separat gelieferten PNGs.
-Unterstützt: Würfelelemente, UV-Flächen, Elementrotationen. Nicht unterstützt: Meshes, Animationen, vererbte Parent-Geometrie, gedrehte Gruppen, rescale-Rotation. Diese Fälle müssen vor dem Import in Blockbench aufgelöst werden und werden sonst abgewiesen.
-Maximal 512 Elemente, 32 Texturen, 1024×1024 je PNG und insgesamt 2.097.152 Texturpixel pro Modell. Das Modell wird für Kopfaccessoires um den Kopfanker platziert; Körper-/Handanimationen sind nicht angebunden.
+Admin-Upload akzeptiert Java-Itemmodell-JSON mit separat ausgewählten PNGs und statische Blockbench-Dateien (.bbmodel) mit eingebetteten oder separat gelieferten PNGs. GLTF/OBJ werden als statische Dreiecksmodelle importiert.
+Unterstützt: Würfelelemente, UV-Flächen, Elementrotationen sowie Blockbench-Outliner-Gruppen und deren verschachtelte Drehungen. Möbel werden beim Laden in feste Flächen mit eigenen Normalen umgewandelt; NPCs und Accessoires nutzen weiterhin ihre Knochenhierarchie. Blockbench-Animationsclips und Rescale-Rotationen werden nicht abgespielt.
+Maximal 512 Elemente, 32 Texturen, 1024×1024 je PNG und insgesamt 2.097.152 Texturpixel pro Modell. Kataloge zeigen eine isometrische Vorschau; Skins erscheinen als Kopf-Thumbnail. Accessoires werden am Kopfanker platziert; Bewegungen an Körper und Händen sind nicht angebunden.
 Die Maße entsprechen Java-Modellen: 16 Einheiten = 1 Block. Eigene fertige Möbel-/Accessoiregrafiken und Audiodateien sind nicht im Paket enthalten.
 
 ## Prüfung
