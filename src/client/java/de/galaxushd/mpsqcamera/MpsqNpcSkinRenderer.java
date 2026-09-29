@@ -28,13 +28,15 @@ import net.minecraft.util.Hand;
 import net.minecraft.util.Identifier;
 
 /** Loads uploaded player skins and renders them through Minecraft's player renderer. */
-final class MpsqNpcSkinRenderer {
+public final class MpsqNpcSkinRenderer {
     record Skin(Identifier texture, boolean slim) {}
+    public record JointPose(float headX,float headY,float headZ,float leftArmX,float leftArmY,float leftArmZ,float rightArmX,float rightArmY,float rightArmZ) {}
 
     private static final HttpClient HTTP = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(10)).build();
     private static final Map<String, Skin> SKINS = new HashMap<>();
     private static final Set<String> LOADING = java.util.concurrent.ConcurrentHashMap.newKeySet();
+    private static final ThreadLocal<JointPose> ACTIVE_NPC_POSE = new ThreadLocal<>();
 
     private MpsqNpcSkinRenderer() {}
 
@@ -94,7 +96,7 @@ final class MpsqNpcSkinRenderer {
         }));
     }
 
-    static void render(PlayerEntityRenderState state, double x, double y, double z, float scale,
+    static void render(PlayerEntityRenderState state, double x, double y, double z, float scale,String animation,
                        net.minecraft.client.util.math.MatrixStack matrices,
                        VertexConsumerProvider consumers, int light, int outlineColor) {
         MinecraftClient client = MinecraftClient.getInstance();
@@ -102,27 +104,36 @@ final class MpsqNpcSkinRenderer {
         matrices.translate(x, y, z);
         matrices.scale(scale, scale, scale);
         boolean glowing = state.hasOutline;
-        state.hasOutline = false;
-        client.getEntityRenderDispatcher().render(state, 0.0, 0.0, 0.0, matrices, consumers, light);
-        if (glowing) {
-            // The outline consumer creates the silhouette. Keep vanilla's entity outline
-            // flag off here, otherwise the player renderer may route/tint the body itself.
+        float phase=state.age*0.075f,slow=(float)Math.sin(phase),side=(float)Math.cos(phase*0.7f);
+        float wave="wave".equals(animation)?1f:0f;
+        ACTIVE_NPC_POSE.set(new JointPose(0, (float)Math.toRadians(Math.sin(phase*0.55f)*2.5),
+                (float)Math.toRadians(Math.sin(phase*0.8f)*2.0),
+                (float)Math.toRadians(slow*1.8f), (float)Math.toRadians(side*1.2f), (float)Math.toRadians(2.0+slow*1.5f),
+                (float)Math.toRadians(-slow*1.8f-wave*165f), (float)Math.toRadians(-side*1.2f),
+                (float)Math.toRadians(-2.0-slow*1.5f-wave*8f)));
+        try {
             state.hasOutline = false;
-            var outline = client.getBufferBuilders().getOutlineVertexConsumers();
-            outline.setColor((outlineColor >> 16) & 255, (outlineColor >> 8) & 255,
-                    outlineColor & 255, 255);
-            client.getEntityRenderDispatcher().render(state, 0.0, 0.0, 0.0, matrices, outline, light);
-            outline.draw();
+            client.getEntityRenderDispatcher().render(state, 0.0, 0.0, 0.0, matrices, consumers, light);
+            if (glowing) {
+                state.hasOutline = false;
+                var outline = client.getBufferBuilders().getOutlineVertexConsumers();
+                outline.setColor((outlineColor >> 16) & 255, (outlineColor >> 8) & 255,
+                        outlineColor & 255, 255);
+                client.getEntityRenderDispatcher().render(state, 0.0, 0.0, 0.0, matrices, outline, light);
+                outline.draw();
+            }
+        } finally {
+            ACTIVE_NPC_POSE.remove();
+            state.hasOutline = false;
+            matrices.pop();
         }
-        state.hasOutline = false;
-        matrices.pop();
     }
 
     private static String key(String url, boolean slim) {
         return url + (slim ? "#slim" : "#wide");
     }
 
-    static PlayerEntityRenderState createState(Skin skin, float yaw, float pitch, float age, boolean glowing) {
+    static PlayerEntityRenderState createState(Skin skin, float yaw, float headYaw, float pitch, float age, boolean glowing) {
         PlayerEntityRenderState state = new PlayerEntityRenderState();
         state.entityType = EntityType.PLAYER;
         state.width = 0.6f;
@@ -131,7 +142,7 @@ final class MpsqNpcSkinRenderer {
         state.skinTextures = new SkinTextures(skin.texture(), "", null, null,
                 skin.slim() ? SkinTextures.Model.SLIM : SkinTextures.Model.WIDE, false);
         state.bodyYaw = yaw;
-        state.relativeHeadYaw = 0.0f;
+        state.relativeHeadYaw = headYaw;
         state.pitch = pitch;
         state.age = age;
         state.baseScale = 1.0f;
@@ -159,6 +170,8 @@ final class MpsqNpcSkinRenderer {
         state.hasOutline = glowing;
         return state;
     }
+
+    public static JointPose activeNpcPose(){return ACTIVE_NPC_POSE.get();}
 
     static void clear(MinecraftClient client) {
         for (Skin skin : SKINS.values()) client.getTextureManager().destroyTexture(skin.texture());

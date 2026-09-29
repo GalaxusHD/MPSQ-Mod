@@ -4,7 +4,6 @@ import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.text.Text;
-import net.minecraft.util.hit.BlockHitResult;
 
 /** One entry point for creating the three currently supported MPSQ objects. */
 public final class MpsqCreateMenuScreen extends Screen {
@@ -15,8 +14,7 @@ public final class MpsqCreateMenuScreen extends Screen {
         addDrawableChild(ButtonWidget.builder(Text.literal("Kamera"), b -> client.setScreen(new CameraCreateScreen()))
                 .dimensions(x, y, 210, 24).build());
         addDrawableChild(ButtonWidget.builder(Text.literal("Möbel"), b -> {
-            if (client.crosshairTarget instanceof BlockHitResult hit) client.setScreen(new MpsqObjectScreen(hit.getBlockPos()));
-            else if (client.player != null) client.player.sendMessage(Text.literal("Schau den Block an, auf dem das Möbel stehen soll."), true);
+            if (client.player != null) client.setScreen(new MpsqObjectScreen(client.player.getBlockPos().down()));
         }).dimensions(x, y + 31, 210, 24).build());
         addDrawableChild(ButtonWidget.builder(Text.literal("NPC"), b -> {
             if (client.player != null) client.setScreen(MpsqNpcPlacementScreen.atPlayer(this, client.player));

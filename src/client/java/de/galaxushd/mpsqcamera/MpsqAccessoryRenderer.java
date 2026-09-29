@@ -19,7 +19,7 @@ import net.minecraft.util.math.RotationAxis;
 
 /** Head accessories rendered only for players actually visible in the current world. */
 public final class MpsqAccessoryRenderer {
-    private record Model(JsonArray elements,JsonArray meshes,JsonArray bones,Map<String,Identifier> textures,Map<String,Integer> previewColors,List<RenderFace> bakedGeometry){}
+    private record Model(JsonArray elements,JsonArray meshes,JsonArray bones,Map<String,Identifier> textures,Map<String,Integer> previewColors,List<RenderFace> bakedGeometry,float centerX,float centerZ,float minY){}
     private record RenderFace(Identifier texture,float[][] vertices,float nx,float ny,float nz){}
     private record PreviewPoint(double x,double y,double z){}
     private record PreviewPolygon(double[][] points,int color,double depth){}
@@ -110,7 +110,7 @@ public final class MpsqAccessoryRenderer {
             var camera=context.camera().getPos();
             for(var value:objects){var o=value.getAsJsonObject();Model model=models.get(o.get("url").getAsString());if(model==null)continue;
                 double x=o.get("x").getAsDouble(),y=o.get("y").getAsDouble(),z=o.get("z").getAsDouble();if(camera.squaredDistanceTo(x,y,z)>4096)continue;
-                matrices.push();matrices.translate(x+0.5-camera.x,y-camera.y,z+0.5-camera.z);matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(o.get("rotation").getAsFloat()));matrices.translate(-0.5,0,-0.5);matrices.scale(1f/16,1f/16,1f/16);drawBakedFurniture(model,matrices,consumers,0xFFFFFFFF);matrices.pop();
+                matrices.push();matrices.translate(x+0.5-camera.x,y-camera.y,z+0.5-camera.z);matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(o.get("rotation").getAsFloat()));matrices.translate(-0.5,0,-0.5);matrices.scale(1f/16,1f/16,1f/16);matrices.translate(8f-model.centerX,-model.minY,8f-model.centerZ);drawBakedFurniture(model,matrices,consumers,0xFFFFFFFF);matrices.pop();
             }
             for(var player:client.world.getPlayers()){
                 if(player.isInvisible()||player.isSpectator()||(player==client.player&&client.options.getPerspective().isFirstPerson()))continue;
@@ -126,9 +126,9 @@ public final class MpsqAccessoryRenderer {
                 matrices.pop();
             }
             for(var value:npcs){var o=value.getAsJsonObject();if(!o.has("url")||o.get("url").isJsonNull())continue;String category=str(o,"category","npc_model");boolean playerSkin="npc_skin_normal".equals(category)||"npc_skin_slim".equals(category);boolean slim="npc_skin_slim".equals(category);String url=o.get("url").getAsString();Model model=playerSkin?null:models.get(url);MpsqNpcSkinRenderer.Skin skin=playerSkin?MpsqNpcSkinRenderer.get(url,slim):null;if(playerSkin?skin==null:model==null)continue;
-                double x=o.has("world_x")?o.get("world_x").getAsDouble():o.get("x").getAsDouble()+0.5,y=o.has("world_y")?o.get("world_y").getAsDouble():o.get("y").getAsDouble(),z=o.has("world_z")?o.get("world_z").getAsDouble():o.get("z").getAsDouble()+0.5;if(camera.squaredDistanceTo(x,y,z)>4096)continue;
-                float size=o.has("scale")?o.get("scale").getAsFloat():1f;String animation=o.has("animation")?o.get("animation").getAsString():"none";float phase=(System.currentTimeMillis()%4000L)/1000f;float bob=animation.equals("bob")?(float)Math.sin(phase*Math.PI*2)*0.08f:0;float pulse=animation.equals("pulse")?1f+(float)Math.sin(phase*Math.PI*2)*0.08f:1f;float yaw=o.has("yaw")?o.get("yaw").getAsFloat():0f,pitch=o.has("pitch")?o.get("pitch").getAsFloat():0f;boolean face=o.has("face_player")&&o.get("face_player").getAsBoolean();float npcHeight=playerSkin?1.8f*size:size;
-                if(face&&client.player!=null&&client.player.squaredDistanceTo(x,y+npcHeight*0.5,z)<=900){double dx=client.player.getX()-x,dz=client.player.getZ()-z,lookFromY=y+npcHeight*0.85,targetY=client.player.getY()+0.9,dy=targetY-lookFromY;yaw=(float)Math.toDegrees(Math.atan2(-dx,dz));pitch=(float)-Math.toDegrees(Math.atan2(dy,Math.sqrt(dx*dx+dz*dz)));}
+                double x=o.has("x")?o.get("x").getAsDouble()+0.5:(o.has("world_x")?o.get("world_x").getAsDouble():0),y=o.has("world_y")?o.get("world_y").getAsDouble():o.get("y").getAsDouble(),z=o.has("z")?o.get("z").getAsDouble()+0.5:(o.has("world_z")?o.get("world_z").getAsDouble():0);if(camera.squaredDistanceTo(x,y,z)>4096)continue;
+                float size=o.has("scale")?o.get("scale").getAsFloat():1f;String animation=o.has("animation")?o.get("animation").getAsString():"none";float phase=(System.currentTimeMillis()%4000L)/1000f;float bob=animation.equals("bob")?(float)Math.sin(phase*Math.PI*2)*0.08f:0;float pulse=animation.equals("pulse")?1f+(float)Math.sin(phase*Math.PI*2)*0.08f:1f;float yaw=o.has("yaw")?o.get("yaw").getAsFloat():0f,pitch=o.has("pitch")?o.get("pitch").getAsFloat():0f;float bodyYaw=yaw,headYaw=0;boolean face=o.has("face_player")&&o.get("face_player").getAsBoolean();float npcHeight=playerSkin?1.8f*size:size;
+                if(face&&client.player!=null&&client.player.squaredDistanceTo(x,y+npcHeight*0.5,z)<=900){double dx=client.player.getX()-x,dz=client.player.getZ()-z,lookFromY=y+(playerSkin?1.62f*size:npcHeight*0.85f),targetY=client.player.getEyeY(),dy=targetY-lookFromY;float targetYaw=(float)Math.toDegrees(Math.atan2(-dx,dz));float yawOffset=clamp(wrapDegrees(targetYaw-bodyYaw),-60f,60f);headYaw=yawOffset;yaw=bodyYaw+yawOffset;pitch=clamp((float)-Math.toDegrees(Math.atan2(dy,Math.sqrt(dx*dx+dz*dz))),-35f,35f);}
                 if(animation.equals("turn"))yaw+=phase*90f;
                 if(animation.equals("nod"))pitch+=(float)Math.sin(phase*Math.PI*2)*12f;
                 if(animation.equals("tilt"))yaw+=(float)Math.sin(phase*Math.PI*2)*14f;
@@ -137,8 +137,8 @@ public final class MpsqAccessoryRenderer {
                 if(animation.equals("wave"))pulse=1f+(float)Math.sin(phase*Math.PI*2)*0.035f;
                 int glow=glowColor(o.has("glow_color")?o.get("glow_color").getAsString():"none");
                 boolean glowing= !"none".equals(o.has("glow_color")?o.get("glow_color").getAsString():"none");
-                if(playerSkin){var state=MpsqNpcSkinRenderer.createState(skin,yaw,pitch,(System.currentTimeMillis()%100000L)/50.0f,glowing);int light=WorldRenderer.getLightmapCoordinates(client.world,net.minecraft.util.math.BlockPos.ofFloored(x,y,z));MpsqNpcSkinRenderer.render(state,x-camera.x,y+bob-camera.y,z-camera.z,size*pulse,matrices,consumers,light,glow);}
-                else {matrices.push();matrices.translate(x-camera.x,y+bob-camera.y,z-camera.z);matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(-yaw));matrices.multiply(RotationAxis.POSITIVE_X.rotationDegrees(pitch));matrices.scale(size/16f*pulse,size/16f*pulse,size/16f*pulse);drawBbModel(model,matrices,consumers,0xFFFFFFFF);
+                if(playerSkin){var state=MpsqNpcSkinRenderer.createState(skin,bodyYaw,headYaw,pitch,(System.currentTimeMillis()%100000L)/50.0f,glowing);int light=WorldRenderer.getLightmapCoordinates(client.world,net.minecraft.util.math.BlockPos.ofFloored(x,y,z));MpsqNpcSkinRenderer.render(state,x-camera.x,y+bob-camera.y,z-camera.z,size*pulse,animation,matrices,consumers,light,glow);}
+                else {matrices.push();matrices.translate(x-camera.x,y+bob-camera.y,z-camera.z);matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(-yaw));matrices.multiply(RotationAxis.POSITIVE_X.rotationDegrees(pitch));matrices.scale(size/16f*pulse,size/16f*pulse,size/16f*pulse);matrices.translate(-model.centerX,-model.minY,-model.centerZ);drawBbModel(model,matrices,consumers,0xFFFFFFFF);
                     if(glowing){var outline=client.getBufferBuilders().getOutlineVertexConsumers();outline.setColor((glow>>16)&255,(glow>>8)&255,glow&255,255);drawBbModel(model,matrices,outline,0xFFFFFFFF);outline.draw();}
                     matrices.pop();}
                 String task=o.has("task_type")?o.get("task_type").getAsString():"none";boolean tutorialDone=o.has("tutorial_completed")&&o.get("tutorial_completed").getAsBoolean();
@@ -234,6 +234,31 @@ public final class MpsqAccessoryRenderer {
         case "down"->new float[][]{{x,y,z},{X,y,z},{X,y,Z},{x,y,Z}};
         default->null;};}
     private static String str(JsonObject object,String key,String fallback){return object.has(key)&&!object.get(key).isJsonNull()?object.get(key).getAsString():fallback;}
+    /** Computes model-space X/Z bounds, including cube and bone rotations. */
+    private static float[] geometryAnchor(JsonArray elements,JsonArray meshes,JsonArray bones){
+        double[] bounds={Double.POSITIVE_INFINITY,Double.NEGATIVE_INFINITY,Double.POSITIVE_INFINITY,Double.NEGATIVE_INFINITY,Double.POSITIVE_INFINITY};
+        Map<Integer,List<JsonObject>> chains=new HashMap<>();
+        if(bones!=null)for(JsonElement bone:bones)collectBoneChains(bone.getAsJsonObject(),new ArrayList<>(),chains);
+        for(int index=0;index<elements.size();index++){
+            JsonObject element=elements.get(index).getAsJsonObject();if(!element.has("from")||!element.has("to"))continue;
+            float[] from=vec(element,"from"),to=vec(element,"to"),origin=vec(element,"origin"),rotation=element.has("rotation")?vec(element,"rotation"):new float[3];
+            List<JsonObject> chain=chains.getOrDefault(index,List.of());
+            for(int mask=0;mask<8;mask++){
+                float[] point={((mask&1)==0?from[0]:to[0]),((mask&2)==0?from[1]:to[1]),((mask&4)==0?from[2]:to[2])};
+                point=rotatePoint(point,origin,rotation);
+                for(int i=chain.size()-1;i>=0;i--){JsonObject bone=chain.get(i);point=rotatePoint(point,vec(bone,"origin"),bone.has("rotation")?vec(bone,"rotation"):new float[3]);}
+                bounds[0]=Math.min(bounds[0],point[0]);bounds[1]=Math.max(bounds[1],point[0]);bounds[2]=Math.min(bounds[2],point[2]);bounds[3]=Math.max(bounds[3],point[2]);
+                bounds[4]=Math.min(bounds[4],point[1]);
+            }
+        }
+        if(meshes!=null)for(JsonElement meshElement:meshes){JsonObject mesh=meshElement.getAsJsonObject();if(!mesh.has("vertices"))continue;for(JsonElement vertex:mesh.getAsJsonArray("vertices")){JsonArray v=vertex.getAsJsonArray();if(v.size()<3)continue;double x=v.get(0).getAsDouble(),y=v.get(1).getAsDouble(),z=v.get(2).getAsDouble();bounds[0]=Math.min(bounds[0],x);bounds[1]=Math.max(bounds[1],x);bounds[2]=Math.min(bounds[2],z);bounds[3]=Math.max(bounds[3],z);bounds[4]=Math.min(bounds[4],y);}}
+        if(!Double.isFinite(bounds[0])||!Double.isFinite(bounds[1])||!Double.isFinite(bounds[2])||!Double.isFinite(bounds[3]))return new float[]{0,0,0};
+        return new float[]{(float)((bounds[0]+bounds[1])*0.5),(float)((bounds[2]+bounds[3])*0.5),(float)bounds[4]};
+    }
+    private static void collectBoneChains(JsonObject bone,List<JsonObject> parents,Map<Integer,List<JsonObject>> chains){List<JsonObject> chain=new ArrayList<>(parents);chain.add(bone);if(bone.has("elements")&&bone.get("elements").isJsonArray())for(JsonElement index:bone.getAsJsonArray("elements"))chains.put(index.getAsInt(),chain);if(bone.has("children")&&bone.get("children").isJsonArray())for(JsonElement child:bone.getAsJsonArray("children"))collectBoneChains(child.getAsJsonObject(),chain,chains);}
+    private static float[] rotatePoint(float[] point,float[] origin,float[] rotation){double x=point[0]-origin[0],y=point[1]-origin[1],z=point[2]-origin[2];double rx=Math.toRadians(rotation[0]),ry=Math.toRadians(rotation[1]),rz=Math.toRadians(rotation[2]);double ny=y*Math.cos(rx)-z*Math.sin(rx),nz=y*Math.sin(rx)+z*Math.cos(rx);y=ny;z=nz;double nx=x*Math.cos(ry)+z*Math.sin(ry);nz=-x*Math.sin(ry)+z*Math.cos(ry);x=nx;z=nz;nx=x*Math.cos(rz)-y*Math.sin(rz);ny=x*Math.sin(rz)+y*Math.cos(rz);return new float[]{(float)(nx+origin[0]),(float)(ny+origin[1]),(float)(z+origin[2])};}
+    private static float wrapDegrees(float angle){return ((angle+180f)%360f+360f)%360f-180f;}
+    private static float clamp(float value,float min,float max){return Math.max(min,Math.min(max,value));}
     private static void load(String url,int epoch){
         if(!loading.add(url))return;
         CompletableFuture.supplyAsync(()->{
@@ -262,7 +287,8 @@ public final class MpsqAccessoryRenderer {
                 }
                 for(JsonElement element:elements){JsonObject faces=element.getAsJsonObject().getAsJsonObject("faces");for(var face:faces.entrySet()){JsonObject f=face.getValue().getAsJsonObject();NativeImage image=previewImages.get(str(f,"texture",""));if(image!=null&&f.has("uv"))previewColors.put(previewColorKey(f),averageColor(image,f.getAsJsonArray("uv")));}}
                 JsonArray bones=bundle.has("bones")&&bundle.get("bones").isJsonArray()?bundle.getAsJsonArray("bones"):new JsonArray();if(bones.size()>256)throw new IOException("Zu viele Modellknochen");validateBones(bones,0);
-                models.put(url,new Model(elements,meshes,bones,textures,previewColors,bakeFurnitureGeometry(elements,meshes,bones,textures)));
+                float[] center=geometryAnchor(elements,meshes,bones);
+                models.put(url,new Model(elements,meshes,bones,textures,previewColors,bakeFurnitureGeometry(elements,meshes,bones,textures),center[0],center[1],center[2]));
             }catch(Exception e){for(Identifier id:textures.values())MinecraftClient.getInstance().getTextureManager().destroyTexture(id);MpsqCameraClient.LOGGER.warn("Accessoire-Modell ungültig",e);}
         }));
     }
