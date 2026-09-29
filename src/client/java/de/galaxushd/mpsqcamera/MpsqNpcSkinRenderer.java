@@ -56,20 +56,13 @@ final class MpsqNpcSkinRenderer {
                 if (!"https".equals(uri.getScheme()) || !api.getHost().equals(uri.getHost())) {
                     throw new IOException("Unzulässige Skin-Quelle");
                 }
-                HttpResponse<InputStream> response = HTTP.send(
-                        HttpRequest.newBuilder(uri).timeout(Duration.ofSeconds(20)).GET().build(),
-                        HttpResponse.BodyHandlers.ofInputStream());
-                try (InputStream stream = response.body()) {
-                    if (response.statusCode() != 200) throw new IOException("Skin nicht verfügbar");
-                    byte[] bytes = stream.readNBytes(2_250_001);
-                    if (bytes.length < 24 || bytes.length > 2_250_000) throw new IOException("Ungültige Skin-Datei");
-                    int width = java.nio.ByteBuffer.wrap(bytes).getInt(16);
-                    int height = java.nio.ByteBuffer.wrap(bytes).getInt(20);
-                    if (width != 64 || (height != 64 && height != 32)) {
-                        throw new IOException("Skin muss 64 × 64 oder 64 × 32 Pixel groß sein");
-                    }
-                    return bytes;
-                }
+                byte[] bytes=MpsqLocalWorldStore.readAsset(url,2_250_000);
+                if(bytes==null){HttpResponse<InputStream> response = HTTP.send(HttpRequest.newBuilder(uri).timeout(Duration.ofSeconds(20)).GET().build(),HttpResponse.BodyHandlers.ofInputStream());try(InputStream stream=response.body()){if(response.statusCode()!=200)throw new IOException("Skin nicht verfügbar");bytes=stream.readNBytes(2_250_001);if(bytes.length>2_250_000)throw new IOException("Ungültige Skin-Datei");MpsqLocalWorldStore.writeAsset(url,bytes);}}
+                if (bytes.length < 24 || bytes.length > 2_250_000) throw new IOException("Ungültige Skin-Datei");
+                int width = java.nio.ByteBuffer.wrap(bytes).getInt(16);
+                int height = java.nio.ByteBuffer.wrap(bytes).getInt(20);
+                if (width != 64 || (height != 64 && height != 32)) throw new IOException("Skin muss 64 × 64 oder 64 × 32 Pixel groß sein");
+                return bytes;
             } catch (Exception e) {
                 throw new java.util.concurrent.CompletionException(e);
             }
@@ -112,7 +105,9 @@ final class MpsqNpcSkinRenderer {
         state.hasOutline = false;
         client.getEntityRenderDispatcher().render(state, 0.0, 0.0, 0.0, matrices, consumers, light);
         if (glowing) {
-            state.hasOutline = true;
+            // The outline consumer creates the silhouette. Keep vanilla's entity outline
+            // flag off here, otherwise the player renderer may route/tint the body itself.
+            state.hasOutline = false;
             var outline = client.getBufferBuilders().getOutlineVertexConsumers();
             outline.setColor((outlineColor >> 16) & 255, (outlineColor >> 8) & 255,
                     outlineColor & 255, 255);

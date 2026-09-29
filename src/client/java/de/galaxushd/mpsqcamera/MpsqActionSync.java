@@ -33,6 +33,7 @@ public final class MpsqActionSync {
                     .executes(context->{int amount=com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(context,"amount");
                         var profile=TeamStateStore.self().orElse(null);
                         if(profile==null||profile.permissionRank().level()<TeamRank.OFFICER.level()){context.getSource().sendError(Text.literal("Dafür brauchst du den Rang Offizier oder höher."));return 0;}
+                        if(server().isBlank()&&MpsqLocalWorldStore.available()){boolean saved=MpsqLocalWorldStore.addPoints(amount);context.getSource().sendFeedback(Text.literal(saved?amount+" lokale Punkte für diese Welt gutgeschrieben.":"Lokale Punkte konnten nicht gespeichert werden."));return saved?1:0;}
                         JsonObject body=new JsonObject();body.addProperty("amount",amount);
                         MpsqApiClient.post("/me/points/grant",body).whenComplete((data,error)->MinecraftClient.getInstance().execute(()->context.getSource().sendFeedback(Text.literal(error==null?"Punkte gutgeschrieben.":"Punkte konnten nicht vergeben werden: "+error.getMessage()))));return 1;
                     }))));
