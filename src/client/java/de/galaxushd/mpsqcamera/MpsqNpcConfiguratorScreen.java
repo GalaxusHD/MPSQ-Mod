@@ -24,6 +24,7 @@ public final class MpsqNpcConfiguratorScreen extends Screen {
 
     private final Screen parent;
     private final String npcId,server,world;
+    private final String previewCategory;
     private int tab;
     private String displayName,glowColor,animation,dialogue,status="",taskType="none";
     private String previewUrl="";
@@ -36,7 +37,7 @@ public final class MpsqNpcConfiguratorScreen extends Screen {
 
     public MpsqNpcConfiguratorScreen(Screen parent,JsonObject npc){
         super(Text.literal("NPC-Konfigurator"));this.parent=parent;this.npcId=npc.get("id").getAsString();
-        this.server=MpsqActionSync.server();this.world=MpsqActionSync.world();
+        this.server=MpsqActionSync.server();this.world=MpsqActionSync.world();this.previewCategory=str(npc,"category","npc_model");
         this.displayName=str(npc,"display_name",str(npc,"name","NPC"));this.previewUrl=str(npc,"url","");this.scale=npc.has("scale")?npc.get("scale").getAsFloat():1f;
         this.glowColor=str(npc,"glow_color","none");this.animation=str(npc,"animation","none");
         this.taskType=str(npc,"task_type","none");
@@ -86,7 +87,7 @@ public final class MpsqNpcConfiguratorScreen extends Screen {
         c.disableScissor();c.drawTextWithShadow(textRenderer,textRenderer.trimToWidth(status,right-left-30),left+15,bottom-39,status.startsWith("Gespeichert")?0xFF77DD99:0xFFFFA0AA);
     }
 
-    private void drawNpcPreview(DrawContext c,int x,int y){c.fill(x,y,x+68,y+68,0xFF252A35);c.fill(x+3,y+3,x+65,y+65,0xFF323846);if(!previewUrl.isBlank()){MpsqAccessoryRenderer.drawGuiPreview(c,previewUrl,x+34,y+34,2.8f);}else{int accent=0xFFFF536A;c.fill(x+26,y+11,x+42,y+27,accent);c.fill(x+20,y+28,x+48,y+47,accent);c.fill(x+14,y+31,x+20,y+42,0xFF171A21);c.fill(x+48,y+31,x+54,y+42,0xFF171A21);c.fill(x+23,y+47,x+30,y+60,accent);c.fill(x+38,y+47,x+45,y+60,accent);}c.drawCenteredTextWithShadow(textRenderer,Text.literal("VORSCHAU"),x+34,y+71,0xFFBBBBBB);}
+    private void drawNpcPreview(DrawContext c,int x,int y){c.fill(x,y,x+68,y+68,0xFF252A35);c.fill(x+3,y+3,x+65,y+65,0xFF323846);if(!previewUrl.isBlank()){if(previewCategory.startsWith("npc_skin"))MpsqAccessoryRenderer.drawGuiSkinPreview(c,previewUrl,x+34,y+34,2.8f,previewCategory.endsWith("slim"));else MpsqAccessoryRenderer.drawGuiPreview(c,previewUrl,x+34,y+34,2.8f);}else{int accent=0xFFFF536A;c.fill(x+26,y+11,x+42,y+27,accent);c.fill(x+20,y+28,x+48,y+47,accent);c.fill(x+14,y+31,x+20,y+42,0xFF171A21);c.fill(x+48,y+31,x+54,y+42,0xFF171A21);c.fill(x+23,y+47,x+30,y+60,accent);c.fill(x+38,y+47,x+45,y+60,accent);}c.drawCenteredTextWithShadow(textRenderer,Text.literal("VORSCHAU"),x+34,y+71,0xFFBBBBBB);}
     private void drawTab(DrawContext c,int x,int y,int index,boolean selected){c.fill(x,y,x+106,y+25,selected?0xFF9C203C:0xFF242A35);drawPixelIcon(c,x+6,y+6,index,selected?0xFFFF9BA7:0xFFB9C0CD);c.drawTextWithShadow(textRenderer,Text.literal(switch(index){case 0->"Optik";case 1->"Text";case 2->"Pose";case 3->"Winkel";default->"Aufgabe";}),x+23,y+9,0xFFFFFFFF);}
     private void drawPixelIcon(DrawContext c,int x,int y,int icon,int color){String[] pattern=switch(icon%6){case 0->new String[]{"01110","11111","10101","11111","01010"};case 1->new String[]{"00100","01110","11111","01110","00100"};case 2->new String[]{"10001","01010","00100","01010","10001"};case 3->new String[]{"00100","01110","11111","00100","00100"};case 4->new String[]{"01010","11111","11111","01110","00100"};default->new String[]{"10001","01010","00100","01010","10001"};};for(int row=0;row<pattern.length;row++)for(int col=0;col<pattern[row].length();col++)if(pattern[row].charAt(col)=='1')c.fill(x+col*2,y+row*2,x+col*2+2,y+row*2+2,color);}
     private void drawPalette(DrawContext c,int x,int y){for(int i=0;i<COLORS.length;i++){int cx=x+(i%6)*23,cy=y+(i/6)*21;int color=COLOR_VALUES[i];c.fill(cx-2,cy-2,cx+18,cy+16,glowColor.equals(COLORS[i])?0xFFFFFFFF:0xFF11151D);c.fill(cx,cy,cx+14,cy+12,color);if(i==0){c.fill(cx+5,cy+5,cx+9,cy+7,0xFF333844);}}}
