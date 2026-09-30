@@ -26,6 +26,7 @@ public final class MpsqAccessoryRenderer {
     private static final Map<String,Model> models=new HashMap<>();
     private static final Map<String,Identifier> previews=new HashMap<>();
     private static final Map<String,String> wearers=new HashMap<>();
+    private static final Set<String> completedTutorials=new HashSet<>();
     private static JsonArray objects=new JsonArray();
     private static JsonArray npcs=new JsonArray();
     private static final Set<String> loading=new HashSet<>();
@@ -43,6 +44,7 @@ public final class MpsqAccessoryRenderer {
     private static String scope="";
     private MpsqAccessoryRenderer(){}
     public static void refresh(){generation++;polling=false;loading.clear();MpsqNpcSkinRenderer.clear(MinecraftClient.getInstance());clearModels(MinecraftClient.getInstance());localAssetUrls.clear();localAssetCategories.clear();localCatalogRequested=false;next=0;}
+    public static void markTutorialCompleted(String npcId){if(npcId!=null&&!npcId.isBlank())completedTutorials.add(npcId);}
     static boolean isCurrentGeneration(int epoch){return epoch==generation;}
     public static JsonArray npcsSnapshot(){return npcs.deepCopy();}
     public static void initialize(){
@@ -53,7 +55,7 @@ public final class MpsqAccessoryRenderer {
                 else {long window=client.getWindow().getHandle();for(int key=1;key<=org.lwjgl.glfw.GLFW.GLFW_KEY_LAST;key++){boolean down=org.lwjgl.glfw.GLFW.glfwGetKey(window,key)==org.lwjgl.glfw.GLFW.GLFW_PRESS;if(down&&!pressedKeys.get(key)&&key!=org.lwjgl.glfw.GLFW.GLFW_KEY_F5){clearTryOn();break;}if(down)pressedKeys.set(key);else pressedKeys.clear(key);}}
             }
             String current=MpsqActionSync.server()+"|"+MpsqActionSync.world();
-            if(!scope.equals(current)){scope=current;generation++;polling=false;wearers.clear();objects=new JsonArray();npcs=new JsonArray();loading.clear();MpsqNpcSkinRenderer.clear(client);clearModels(client);localAssetUrls.clear();localAssetCategories.clear();localCatalogRequested=false;localAccessoryCatalogRequested=false;next=0;}
+            if(!scope.equals(current)){scope=current;generation++;polling=false;wearers.clear();objects=new JsonArray();npcs=new JsonArray();completedTutorials.clear();loading.clear();MpsqNpcSkinRenderer.clear(client);clearModels(client);localAssetUrls.clear();localAssetCategories.clear();localCatalogRequested=false;localAccessoryCatalogRequested=false;next=0;}
             boolean localWorld=MpsqActionSync.server().isBlank()&&client.getServer()!=null;
             if(client.world==null||!TeamVisibilitySettings.visible()||(!MpsqActionSync.server().isBlank()&&!MpsqActionSync.isMpsqServer())||(!localWorld&&!MpsqApiClient.isReady())||polling||System.currentTimeMillis()<next)return;
             polling=true;next=System.currentTimeMillis()+15000;int epoch=generation;
@@ -141,16 +143,15 @@ public final class MpsqAccessoryRenderer {
                 else {matrices.push();matrices.translate(x-camera.x,y+bob-camera.y,z-camera.z);matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(-yaw));matrices.multiply(RotationAxis.POSITIVE_X.rotationDegrees(pitch));matrices.scale(size/16f*pulse,size/16f*pulse,size/16f*pulse);matrices.translate(-model.centerX,-model.minY,-model.centerZ);drawBbModel(model,matrices,consumers,0xFFFFFFFF);
                     if(glowing){var outline=client.getBufferBuilders().getOutlineVertexConsumers();outline.setColor((glow>>16)&255,(glow>>8)&255,glow&255,255);drawBbModel(model,matrices,outline,0xFFFFFFFF);outline.draw();}
                     matrices.pop();}
-                String task=o.has("task_type")?o.get("task_type").getAsString():"none";boolean tutorialDone=o.has("tutorial_completed")&&o.get("tutorial_completed").getAsBoolean();
+                String task=o.has("task_type")?o.get("task_type").getAsString():"none";boolean tutorialDone=(o.has("tutorial_completed")&&o.get("tutorial_completed").getAsBoolean())||completedTutorials.contains(str(o,"id",""));
                 String tag=switch(task){case "accessories"->"accessories";case "quest"->"quests";case "tutorial"->tutorialDone?null:"tutorial";default->null;};
                 if(tag!=null){
-                    double towardX=camera.x-x,towardZ=camera.z-z,horizontalLength=Math.sqrt(towardX*towardX+towardZ*towardZ);
                     double tagX=x-camera.x,tagZ=z-camera.z;
-                    if(horizontalLength>1.0e-4){tagX+=(towardX/horizontalLength)*0.30*size;tagZ+=(towardZ/horizontalLength)*0.30*size;}
                     float tagScale=size,tagHeight=0.20f*tagScale;
                     float aspect=switch(tag){case "accessories"->2624f/320f;case "quests"->1504f/320f;default->1952f/320f;};
-                    drawBillboard(context,matrices,consumers,Identifier.of("mpsqcamera","textures/gui/npc_tags/"+tag+".png"),tagX,y+npcHeight+bob+0.12*tagScale-camera.y,tagZ,tagHeight*aspect,tagHeight);
-                    if("tutorial".equals(tag)){float hover=(float)Math.sin(System.currentTimeMillis()/360.0)*0.07f*tagScale;drawBillboard(context,matrices,consumers,Identifier.of("mpsqcamera","textures/gui/npc_tags/tutorial_exclamation.png"),tagX,y+npcHeight+bob+(0.48f*tagScale)+hover-camera.y,tagZ,0.42f*tagScale,0.42f*tagScale);}}
+                    double tagY=y+npcHeight+bob+0.48*tagScale-camera.y;
+                    drawBillboard(context,matrices,consumers,Identifier.of("mpsqcamera","textures/gui/npc_tags/"+tag+".png"),tagX,tagY,tagZ,tagHeight*aspect,tagHeight);
+                    if("tutorial".equals(tag)){float hover=(float)Math.sin(System.currentTimeMillis()/360.0)*0.07f*tagScale;drawBillboard(context,matrices,consumers,Identifier.of("mpsqcamera","textures/gui/npc_tags/tutorial_exclamation.png"),tagX,tagY+0.34f*tagScale+hover,tagZ,0.42f*tagScale,0.42f*tagScale);}}
             }
         });
     }

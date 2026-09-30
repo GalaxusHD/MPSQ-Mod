@@ -45,7 +45,7 @@ public final class MpsqQuestsScreen extends Screen {
                 else status="Quests konnten nicht geladen werden.";
                 clamp();
             }));
-            if(canEdit())addDrawableChild(ButtonWidget.builder(Text.literal("+ Quest"),b->edit(null)).dimensions(width/2-52,45,104,22).build());
+            if(staff())addDrawableChild(ButtonWidget.builder(Text.literal("+"),b->edit(null)).dimensions(width/2-11,45,22,22).build());
         }else {initEditor();loadAccessoryCatalog();}
     }
 
@@ -131,7 +131,7 @@ public final class MpsqQuestsScreen extends Screen {
             c.drawCenteredTextWithShadow(textRenderer,"QUEST STUDIO",center,62,0xFFFFFFFF);
             c.drawCenteredTextWithShadow(textRenderer,textRenderer.trimToWidth(status,Math.max(100,width-24)),center,height-24,0xFFFFA0AA);
         }else{
-            String help=canEdit()?"+ erstellt eine Quest · Linksklick: annehmen/ablehnen/Belohnung · Rechtsklick: bearbeiten":"Linksklick: annehmen/ablehnen/Belohnung · Rechtsklick: Fortschritt";
+            String help=canEdit()?"Linksklick: annehmen/ablehnen/Belohnung · Rechtsklick: bearbeiten":"Linksklick: annehmen/ablehnen/Belohnung · Rechtsklick: Fortschritt";
             c.drawCenteredTextWithShadow(textRenderer,Text.literal(help),center,76,0xFFBBBBBB);
             int left=boardLeft(),boardW=boardWidth(),cw=cardWidth(),bottom=height-BOTTOM;
             c.enableScissor(left,TOP,left+boardW,bottom);
