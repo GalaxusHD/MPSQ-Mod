@@ -37,10 +37,9 @@ public final class MpsqNpcManager {
             JsonObject npc = element.getAsJsonObject();
             if(!npc.has("x")||!npc.has("y")||!npc.has("z"))continue;int x=npc.get("x").getAsInt(),y=npc.get("y").getAsInt(),z=npc.get("z").getAsInt();
             double size=npc.has("scale")?npc.get("scale").getAsDouble():1;
-            String category=npc.has("category")?npc.get("category").getAsString():"npc_model";
-            double height=category.startsWith("npc_skin_")?1.8*size:size;
-            // Uploaded NPC models use a 16-unit canvas, rendered at scale / 16,
-            // so the visible model is approximately `scale` blocks tall.
+            String category=npc.has("category")?npc.get("category").getAsString():"";
+            if(!"npc_skin_normal".equals(category)&&!"npc_skin_slim".equals(category))continue;
+            double height=1.8*size;
             Box hitbox=new Box(x+.5-size*.45,y,z+.5-size*.45,x+.5+size*.45,y+height,z+.5+size*.45);
             var hit=hitbox.raycast(eye,eye.add(look.multiply(6.0)));
             if(hit.isPresent()){
