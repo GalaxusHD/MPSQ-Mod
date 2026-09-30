@@ -288,7 +288,7 @@ serve(async req => {
       const body=await json(req), kind=String(body.kind??"");
       const id=String(body.id??"").trim();
       const category=String(body.category??(kind==="model"?"accessory":kind==="jar"?"mod_release":""));
-      const validCategory=kind==="model"?["furniture","accessory","npc_model"].includes(category):kind==="sound"?category==="sound":kind==="npc_skin"?["npc_skin","npc_skin_normal","npc_skin_slim"].includes(category):kind==="jar"?category==="mod_release":false;
+      const validCategory=kind==="model"?["furniture","accessory"].includes(category):kind==="sound"?category==="sound":kind==="npc_skin"?["npc_skin_normal","npc_skin_slim"].includes(category):kind==="jar"?category==="mod_release":false;
       if(!/^[a-z0-9_-]{1,64}$/.test(id)||!validCategory)return out({error:"Bitte ID und passenden Datei-Bereich angeben."},400);
       let bytes:Uint8Array, filename:string, contentType:string;
       if(kind==="jar"||kind==="sound"||kind==="npc_skin"){
@@ -443,7 +443,7 @@ serve(async req => {
     }
     if(path==="/models/catalog" && req.method==="GET"){
       const self=await teamProfile(clientId);if(level(permissionRank(self))<level("offizier"))return out({error:"Keine Berechtigung"},403);
-      const r=await rest("/mpsq_assets?kind=in.(model,npc_skin)&category=in.(furniture,npc_model,npc_skin,npc_skin_normal,npc_skin_slim)&select=id,kind,category,behavior,path,filename,display_name,created_at&order=category.asc,created_at.desc&limit=1000");
+      const r=await rest("/mpsq_assets?kind=in.(model,npc_skin)&category=in.(furniture,npc_skin_normal,npc_skin_slim)&select=id,kind,category,behavior,path,filename,display_name,created_at&order=category.asc,created_at.desc&limit=1000");
       const assets=await r.json();if(!r.ok)return out({error:"Modellkatalog nicht verfügbar"},r.status);
       const defs=await(await rest("/mpsq_accessories?select=display_name,model_id&limit=1000")).json();
       return out(assets.map((a:any)=>({id:a.id,asset_id:a.id,kind:a.kind,category:a.category,behavior:a.behavior,filename:a.filename,name:defs.find((n:any)=>n.model_id===a.id)?.display_name??a.display_name??a.id,created_at:a.created_at,url:`${Deno.env.get("SUPABASE_URL")}/storage/v1/object/public/mpsq-assets/${a.path}`})));
@@ -464,7 +464,7 @@ serve(async req => {
       const r=await rest(`/mpsq_world_npcs?server_id=eq.${encodeURIComponent(server.toLowerCase())}&world_id=eq.${encodeURIComponent(world)}&select=*,mpsq_assets(id,category,filename,display_name,path)&limit=500`);
       const rows=await r.json();if(!r.ok)return out({error:"NPCs nicht verfügbar; bitte die aktuelle Supabase-Migration ausführen."},r.status);
       const done=await(await rest(`/mpsq_tutorial_completions?client_id=eq.${clientId}&select=client_id&limit=1`)).json();const tutorialDone=Array.isArray(done)&&done.length>0;
-      return out(rows.map((n:any)=>({...n,task_type:n.task_type??"none",tutorial_completed:n.task_type==="tutorial"&&tutorialDone,world_x:n.position_x??n.x+0.5,world_y:n.position_y??n.y,world_z:n.position_z??n.z+0.5,asset_id:n.model_id,category:n.mpsq_assets?.category,name:n.display_name??n.mpsq_assets?.display_name??n.mpsq_assets?.filename??n.model_id,url:n.mpsq_assets?.path?`${Deno.env.get("SUPABASE_URL")}/storage/v1/object/public/mpsq-assets/${n.mpsq_assets.path}`:null})));
+      return out(rows.filter((n:any)=>["npc_skin_normal","npc_skin_slim"].includes(n.mpsq_assets?.category)).map((n:any)=>({...n,task_type:n.task_type??"none",tutorial_completed:n.task_type==="tutorial"&&tutorialDone,world_x:n.position_x??n.x+0.5,world_y:n.position_y??n.y,world_z:n.position_z??n.z+0.5,asset_id:n.model_id,category:n.mpsq_assets?.category,name:n.display_name??n.mpsq_assets?.display_name??n.mpsq_assets?.filename??n.model_id,url:n.mpsq_assets?.path?`${Deno.env.get("SUPABASE_URL")}/storage/v1/object/public/mpsq-assets/${n.mpsq_assets.path}`:null})));
     }
     if(path==="/me/points" && req.method==="GET"){
       const rows=await(await rest(`/mpsq_point_accounts?client_id=eq.${clientId}&select=balance&limit=1`)).json();return out({points:Number(rows?.[0]?.balance??0),currency:"MPSQ-Punkte"});
@@ -481,8 +481,8 @@ serve(async req => {
       const self=await teamProfile(clientId);if(!canEditEvent(self))return out({error:"Keine Berechtigung"},403);const b=await json(req);
       if(!b.server||!b.world||![b.x,b.y,b.z].every((n:any)=>Number.isInteger(n)&&Math.abs(n)<=30000000))return out({error:"Server, Welt oder NPC-Koordinaten fehlen oder sind ungültig"},400);
       if(b.remove===true){const r=await rest(`/mpsq_world_npcs?server_id=eq.${encodeURIComponent(String(b.server).toLowerCase())}&world_id=eq.${encodeURIComponent(String(b.world))}&x=eq.${b.x}&y=eq.${b.y}&z=eq.${b.z}`,{method:"DELETE"});return out({ok:r.ok},r.ok?200:r.status);}
-      if(!/^[a-z0-9_-]{1,64}$/.test(String(b.assetId??"")))return out({error:"Ungültige NPC-Modell-ID"},400);
-      const asset=await(await rest(`/mpsq_assets?id=eq.${encodeURIComponent(b.assetId)}&kind=in.(model,npc_skin)&category=in.(npc_model,npc_skin_normal,npc_skin_slim)&select=id,kind,category`)).json();if(!asset[0])return out({error:"NPC-Modell oder Skin nicht gefunden oder nicht dem NPC-Bereich zugeordnet"},404);
+      if(!/^[a-z0-9_-]{1,64}$/.test(String(b.assetId??"")))return out({error:"Ungültige NPC-Skin-ID"},400);
+      const asset=await(await rest(`/mpsq_assets?id=eq.${encodeURIComponent(b.assetId)}&kind=eq.npc_skin&category=in.(npc_skin_normal,npc_skin_slim)&select=id,kind,category`)).json();if(!asset[0])return out({error:"NPC-Skin nicht gefunden. Erlaubt sind nur normale oder Slim-Skins."},404);if(b.category&&b.category!==asset[0].category)return out({error:"Der ausgewählte Skin-Typ stimmt nicht mit dem NPC-Skin überein."},400);
       const displayName=String(b.name??asset[0].id).trim().slice(0,64)||String(asset[0].id);const scale=Number(b.scale??1),glow=String(b.glowColor??"none"),animation=String(b.animation??"none"),pages=b.interactionData?.pages??["Hallo!"],yaw=Number(b.yaw??0),pitch=Number(b.pitch??0),facePlayer=b.facePlayer===true,positionX=Number(b.positionX??(b.x+0.5)),positionY=Number(b.positionY??b.y),positionZ=Number(b.positionZ??(b.z+0.5));
       if(!Number.isFinite(scale)||scale<0.25||scale>3||!Number.isFinite(yaw)||Math.abs(yaw)>3600||!Number.isFinite(pitch)||pitch < -90||pitch > 90||![positionX,positionY,positionZ].every((n:any)=>Number.isFinite(n)&&Math.abs(n)<=30000000)||!NPC_GLOW_COLORS.includes(glow)||!NPC_ANIMATIONS.includes(animation)||!validNpcPages(pages))return out({error:"NPC-Eigenschaften ungültig"},400);
       const taskType=String(b.taskType??"none");if(!["none","accessories","tutorial","quest"].includes(taskType))return out({error:"NPC-Aufgabe ungültig"},400);
