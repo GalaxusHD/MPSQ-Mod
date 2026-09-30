@@ -126,14 +126,12 @@ public final class MpsqNpcSkinRenderer {
     }
 
     private static int glowRgb(String color) {
-        return switch (color) {
-            case "white" -> 0xFFFFFF; case "orange" -> 0xFF9800; case "magenta" -> 0xFF00FF;
-            case "light_blue" -> 0x55AAFF; case "yellow" -> 0xFFFF00; case "lime" -> 0x55FF55;
-            case "pink" -> 0xFF88BB; case "gray" -> 0x555555; case "light_gray" -> 0xAAAAAA;
-            case "cyan" -> 0x00FFFF; case "purple" -> 0xAA00FF; case "blue" -> 0x5555FF;
-            case "brown" -> 0x996633; case "green" -> 0x00AA00; case "red" -> 0xFF3333;
-            case "black" -> 0x111111; default -> 0;
-        };
+        if (color == null || !color.matches("#[0-9a-fA-F]{6}")) return 0;
+        try {
+            return Integer.parseInt(color.substring(1), 16);
+        } catch (NumberFormatException ignored) {
+            return 0;
+        }
     }
     private static String key(String url, boolean slim) {
         return url + (slim ? "#slim" : "#wide");
