@@ -116,7 +116,6 @@ public final class MpsqNpcSkinRenderer {
                 try {
                     client.getEntityRenderDispatcher().render(state, 0.0, 0.0, 0.0, matrices, outlineConsumers, light);
                 } finally {
-                    outlineConsumers.draw();
                     outlineConsumers.setColor(255, 255, 255, 255);
                 }
             }
@@ -130,12 +129,7 @@ public final class MpsqNpcSkinRenderer {
     }
 
     private static int glowRgb(String color) {
-        if (color == null || !color.matches("#[0-9a-fA-F]{6}")) return 0;
-        try {
-            return Integer.parseInt(color.substring(1), 16);
-        } catch (NumberFormatException ignored) {
-            return 0;
-        }
+        return "minecraft:glowing".equals(color) || (color != null && color.matches("#[0-9a-fA-F]{6}")) ? 0xFFFFFF : 0;
     }
     private static String key(String url, boolean slim) {
         return url + (slim ? "#slim" : "#wide");

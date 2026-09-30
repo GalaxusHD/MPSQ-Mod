@@ -16,8 +16,8 @@ public final class MpsqNpcConfiguratorScreen extends Screen {
     private static final String[] TABS={"Aussehen","Interaktion","Drehung","Aufgabe"};
     private static final String[] TASKS={"none","accessories","tutorial","quest"};
     private static final String[] TASK_LABELS={"Keine Aufgabe","Accessoires","Tutorial","Quests"};
-    private static final String[] GLOW_COLORS={"none","#c3971f","#8027b0","#2149c4","#ec2f53","#087078","#c19701","#9146ff","#cf2020","#282323"};
-    private static final String[] GLOW_LABELS={"Aus","Gelb","Violett","Blau","Pink","Türkis","Gold","Lila","Rot","Grau"};
+    private static final String[] GLOW_COLORS={"none","minecraft:glowing"};
+    private static final String[] GLOW_LABELS={"Aus","An"};
 
     private final Screen parent;
     private final String npcId,server,world;
@@ -34,7 +34,7 @@ public final class MpsqNpcConfiguratorScreen extends Screen {
         super(Text.literal("NPC-Konfigurator"));this.parent=parent;this.npcId=npc.get("id").getAsString();
         this.server=MpsqActionSync.server();this.world=MpsqActionSync.world();
         this.displayName=str(npc,"display_name",str(npc,"name","NPC"));this.scale=npc.has("scale")?npc.get("scale").getAsFloat():1f;
-        this.taskType=str(npc,"task_type","none");this.glowColor=validGlow(str(npc,"glow_color","none"))?str(npc,"glow_color","none"):"none";
+        this.taskType=str(npc,"task_type","none");this.glowColor=readGlow(str(npc,"glow_color","none"));
         this.yaw=npc.has("yaw")?npc.get("yaw").getAsFloat():0f;this.pitch=npc.has("pitch")?npc.get("pitch").getAsFloat():0f;this.facePlayer=npc.has("face_player")&&npc.get("face_player").getAsBoolean();
         JsonObject interaction=npc.has("interaction_data")&&npc.get("interaction_data").isJsonObject()?npc.getAsJsonObject("interaction_data"):new JsonObject();
         List<String> pages=new ArrayList<>();if(interaction.has("pages")&&interaction.get("pages").isJsonArray())for(var page:interaction.getAsJsonArray("pages"))pages.add(page.getAsString());this.dialogue=String.join(" || ",pages);
@@ -86,8 +86,9 @@ public final class MpsqNpcConfiguratorScreen extends Screen {
     private int panelWidth(){return Math.max(280,Math.min(520,width-24));}private int panelLeft(){return Math.max(8,(width-panelWidth())/2);}private int panelRight(){return panelLeft()+panelWidth();}private int panelTop(){return 24;}private int panelBottom(){return height-8;}
     private void setTaskType(String value){taskType=value;if("none".equals(value))glowColor="none";clearAndInit();}
     private String taskLabel(String value){for(int i=0;i<TASKS.length;i++)if(TASKS[i].equals(value))return TASK_LABELS[i];return TASK_LABELS[0];}
-    private static String glowLabel(String value){for(int i=0;i<GLOW_COLORS.length;i++)if(GLOW_COLORS[i].equals(value))return i==0?GLOW_LABELS[i]:GLOW_LABELS[i]+" "+value;return GLOW_LABELS[0];}
+    private static String glowLabel(String value){for(int i=0;i<GLOW_COLORS.length;i++)if(GLOW_COLORS[i].equals(value))return GLOW_LABELS[i];return GLOW_LABELS[0];}
     private static boolean validGlow(String value){for(String color:GLOW_COLORS)if(color.equals(value))return true;return false;}
+    private static String readGlow(String value){return validGlow(value)?value:(value!=null&&value.matches("#[0-9a-fA-F]{6}")?"minecraft:glowing":"none");}
     private static String nextGlow(String value){for(int i=0;i<GLOW_COLORS.length;i++)if(GLOW_COLORS[i].equals(value))return GLOW_COLORS[(i+1)%GLOW_COLORS.length];return GLOW_COLORS[0];}
     private void captureFields(){if(nameField!=null)displayName=nameField.getText().trim();if(dialogueField!=null)dialogue=dialogueField.getText();}
     private void save(){if(pending)return;captureFields();List<String> pages=new ArrayList<>();if(!dialogue.isBlank())for(String p:dialogue.split("\\|\\|",-1)){String page=p.trim();if(page.isEmpty()||page.length()>240||pages.size()>=12){status="Jede Dialogseite braucht 1–240 Zeichen (max. 12 Seiten).";return;}pages.add(page);}if(displayName.isBlank()){status="Bitte einen NPC-Namen eingeben.";return;}
