@@ -16,6 +16,7 @@ import java.util.concurrent.CompletableFuture;
 
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.VertexConsumerProvider;
+import net.minecraft.client.render.OutlineVertexConsumerProvider;
 import net.minecraft.client.render.entity.state.PlayerEntityRenderState;
 import net.minecraft.client.texture.NativeImage;
 import net.minecraft.client.texture.NativeImageBackedTexture;
@@ -96,17 +97,25 @@ public final class MpsqNpcSkinRenderer {
         }));
     }
 
-    static void render(PlayerEntityRenderState state, double x, double y, double z, float scale,
+    static void render(PlayerEntityRenderState state, double x, double y, double z, float scale, String glowColor,
                        net.minecraft.client.util.math.MatrixStack matrices,
                        VertexConsumerProvider consumers, int light) {
         MinecraftClient client = MinecraftClient.getInstance();
         matrices.push();
         matrices.translate(x, y, z);
-        matrices.scale(scale, scale, scale);
         float phase=state.age*0.075f;
         float armSwing=(float)Math.toRadians(Math.sin(phase)*2.5f);
         ACTIVE_NPC_POSE.set(new JointPose(armSwing,0,0,-armSwing,0,0));
         try {
+            int outlineColor = glowRgb(glowColor);
+            matrices.scale(scale, scale, scale);
+            if (outlineColor != 0 && consumers instanceof VertexConsumerProvider.Immediate immediate) {
+                OutlineVertexConsumerProvider outlineConsumers = new OutlineVertexConsumerProvider(immediate);
+                outlineConsumers.setColor((outlineColor >> 16) & 255, (outlineColor >> 8) & 255, outlineColor & 255, 255);
+                state.hasOutline = true;
+                client.getEntityRenderDispatcher().render(state, 0.0, 0.0, 0.0, matrices, outlineConsumers, light);
+                outlineConsumers.draw();
+            }
             state.hasOutline = false;
             client.getEntityRenderDispatcher().render(state, 0.0, 0.0, 0.0, matrices, consumers, light);
         } finally {
@@ -114,6 +123,17 @@ public final class MpsqNpcSkinRenderer {
             state.hasOutline = false;
             matrices.pop();
         }
+    }
+
+    private static int glowRgb(String color) {
+        return switch (color) {
+            case "white" -> 0xFFFFFF; case "orange" -> 0xFF9800; case "magenta" -> 0xFF00FF;
+            case "light_blue" -> 0x55AAFF; case "yellow" -> 0xFFFF00; case "lime" -> 0x55FF55;
+            case "pink" -> 0xFF88BB; case "gray" -> 0x555555; case "light_gray" -> 0xAAAAAA;
+            case "cyan" -> 0x00FFFF; case "purple" -> 0xAA00FF; case "blue" -> 0x5555FF;
+            case "brown" -> 0x996633; case "green" -> 0x00AA00; case "red" -> 0xFF3333;
+            case "black" -> 0x111111; default -> 0;
+        };
     }
     private static String key(String url, boolean slim) {
         return url + (slim ? "#slim" : "#wide");
