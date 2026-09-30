@@ -30,7 +30,7 @@ import net.minecraft.util.Identifier;
 /** Loads uploaded player skins and renders them through Minecraft's player renderer. */
 public final class MpsqNpcSkinRenderer {
     record Skin(Identifier texture, boolean slim) {}
-    public record JointPose(float headX,float headY,float headZ,float leftArmX,float leftArmY,float leftArmZ,float rightArmX,float rightArmY,float rightArmZ) {}
+    public record JointPose(float leftArmX,float leftArmY,float leftArmZ,float rightArmX,float rightArmY,float rightArmZ) {}
 
     private static final HttpClient HTTP = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(10)).build();
@@ -96,44 +96,30 @@ public final class MpsqNpcSkinRenderer {
         }));
     }
 
-    static void render(PlayerEntityRenderState state, double x, double y, double z, float scale,String animation,
+    static void render(PlayerEntityRenderState state, double x, double y, double z, float scale,
                        net.minecraft.client.util.math.MatrixStack matrices,
-                       VertexConsumerProvider consumers, int light, int outlineColor) {
+                       VertexConsumerProvider consumers, int light) {
         MinecraftClient client = MinecraftClient.getInstance();
         matrices.push();
         matrices.translate(x, y, z);
         matrices.scale(scale, scale, scale);
-        boolean glowing = state.hasOutline;
-        float phase=state.age*0.075f,slow=(float)Math.sin(phase),side=(float)Math.cos(phase*0.7f);
-        float wave="wave".equals(animation)?1f:0f;
-        ACTIVE_NPC_POSE.set(new JointPose(0, (float)Math.toRadians(Math.sin(phase*0.55f)*2.5),
-                (float)Math.toRadians(Math.sin(phase*0.8f)*2.0),
-                (float)Math.toRadians(slow*1.8f), (float)Math.toRadians(side*1.2f), (float)Math.toRadians(2.0+slow*1.5f),
-                (float)Math.toRadians(-slow*1.8f-wave*165f), (float)Math.toRadians(-side*1.2f),
-                (float)Math.toRadians(-2.0-slow*1.5f-wave*8f)));
+        float phase=state.age*0.075f;
+        float armSwing=(float)Math.toRadians(Math.sin(phase)*2.5f);
+        ACTIVE_NPC_POSE.set(new JointPose(armSwing,0,0,-armSwing,0,0));
         try {
             state.hasOutline = false;
             client.getEntityRenderDispatcher().render(state, 0.0, 0.0, 0.0, matrices, consumers, light);
-            if (glowing) {
-                state.hasOutline = false;
-                var outline = client.getBufferBuilders().getOutlineVertexConsumers();
-                outline.setColor((outlineColor >> 16) & 255, (outlineColor >> 8) & 255,
-                        outlineColor & 255, 255);
-                client.getEntityRenderDispatcher().render(state, 0.0, 0.0, 0.0, matrices, outline, light);
-                outline.draw();
-            }
         } finally {
             ACTIVE_NPC_POSE.remove();
             state.hasOutline = false;
             matrices.pop();
         }
     }
-
     private static String key(String url, boolean slim) {
         return url + (slim ? "#slim" : "#wide");
     }
 
-    static PlayerEntityRenderState createState(Skin skin, float yaw, float headYaw, float pitch, float age, boolean glowing) {
+    static PlayerEntityRenderState createState(Skin skin, float yaw, float headYaw, float pitch, float age) {
         PlayerEntityRenderState state = new PlayerEntityRenderState();
         state.entityType = EntityType.PLAYER;
         state.width = 0.6f;
@@ -167,7 +153,6 @@ public final class MpsqNpcSkinRenderer {
         state.displayName = null;
         state.playerName = null;
         state.name = null;
-        state.hasOutline = glowing;
         return state;
     }
 
