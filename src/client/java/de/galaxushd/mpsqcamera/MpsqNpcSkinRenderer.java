@@ -109,12 +109,16 @@ public final class MpsqNpcSkinRenderer {
         try {
             int outlineColor = glowRgb(glowColor);
             matrices.scale(scale, scale, scale);
-            if (outlineColor != 0 && consumers instanceof VertexConsumerProvider.Immediate immediate) {
-                OutlineVertexConsumerProvider outlineConsumers = new OutlineVertexConsumerProvider(immediate);
+            if (outlineColor != 0) {
+                OutlineVertexConsumerProvider outlineConsumers = client.getBufferBuilders().getOutlineVertexConsumers();
                 outlineConsumers.setColor((outlineColor >> 16) & 255, (outlineColor >> 8) & 255, outlineColor & 255, 255);
                 state.hasOutline = true;
-                client.getEntityRenderDispatcher().render(state, 0.0, 0.0, 0.0, matrices, outlineConsumers, light);
-                outlineConsumers.draw();
+                try {
+                    client.getEntityRenderDispatcher().render(state, 0.0, 0.0, 0.0, matrices, outlineConsumers, light);
+                } finally {
+                    outlineConsumers.draw();
+                    outlineConsumers.setColor(255, 255, 255, 255);
+                }
             }
             state.hasOutline = false;
             client.getEntityRenderDispatcher().render(state, 0.0, 0.0, 0.0, matrices, consumers, light);
