@@ -30,7 +30,6 @@ public abstract class PlayerEntityModelMixin {
         de.galaxushd.mpsqcamera.MpsqNpcSkinRenderer.JointPose pose =
                 de.galaxushd.mpsqcamera.MpsqNpcSkinRenderer.activeNpcPose();
         if (pose != null) {
-            add(model.head, pose.headX(), pose.headY(), pose.headZ());
             add(model.leftArm, pose.leftArmX(), pose.leftArmY(), pose.leftArmZ());
             add(model.rightArm, pose.rightArmX(), pose.rightArmY(), pose.rightArmZ());
         }
