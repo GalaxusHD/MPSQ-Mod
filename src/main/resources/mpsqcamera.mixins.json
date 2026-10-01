@@ -1,6 +1,7 @@
 {
   "required": true,
   "package": "de.galaxushd.mpsqcamera.mixin.client",
+  "refmap": "mpsqcamera.refmap.json",
   "compatibilityLevel": "JAVA_21",
   "client": [
     "MouseMixin",
@@ -19,3 +20,4 @@
     "defaultRequire": 1
   }
 }
+
