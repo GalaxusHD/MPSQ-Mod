@@ -2,7 +2,6 @@
   "required": true,
   "package": "de.galaxushd.mpsqcamera.mixin.client",
   "compatibilityLevel": "JAVA_21",
-  "refmap": "mpsqcamera.refmap.json",
   "client": [
     "MouseMixin",
     "GameRendererMixin",
@@ -10,11 +9,11 @@
     "InGameHudMixin",
     "EntityRendererMixin",
     "PlayerEntityRendererMixin",
-    "PlayerEntityModelMixin",
     "PlayerListHudMixin",
     "ChatScreenMixin",
     "ChatInputSuggestorMixin",
-    "ItemModelManagerMixin"
+    "ItemModelManagerMixin",
+    "MpsqNpcGlowPostprocessorMixin"
   ],
   "injectors": {
     "defaultRequire": 1
