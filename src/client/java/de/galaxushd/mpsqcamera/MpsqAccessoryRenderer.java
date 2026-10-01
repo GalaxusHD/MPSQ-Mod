@@ -41,8 +41,8 @@ public final class MpsqAccessoryRenderer {
             JsonObject npc=element.getAsJsonObject();
             String task=npc.has("task_type")&&!npc.get("task_type").isJsonNull()?npc.get("task_type").getAsString():"none";
             boolean special=switch(task){case "accessories","quest","tutorial"->true;default->false;};
-            String configured=npc.has("glow_color")&&!npc.get("glow_color").isJsonNull()?npc.get("glow_color").getAsString():"none";
-            if(!special||!"none".equals(configured))return true;
+            String id=str(npc,"id","");
+            if(!MpsqNpcVisitStore.isGlowDisabled(id)&&(!special||!MpsqNpcVisitStore.hasVisited(task)))return true;
         }
         return false;
     }
@@ -159,15 +159,17 @@ public final class MpsqAccessoryRenderer {
                 if(animation.equals("wave"))pulse=1f+(float)Math.sin(phase*Math.PI*2)*0.035f;
                 String task=o.has("task_type")?o.get("task_type").getAsString():"none";
                 boolean hasSpecialRole=switch(task){case "accessories","quest","tutorial"->true;default->false;};
-                String configuredGlow=o.has("glow_color")?o.get("glow_color").getAsString():"none";
-                int glow=hasSpecialRole?glowColor(configuredGlow):0xFFEC2F53;
-                boolean glowing=!hasSpecialRole||!"none".equals(configuredGlow);
+                String configuredGlow=str(o,"glow_color",defaultGlowColor(task));
+                if("none".equalsIgnoreCase(configuredGlow))configuredGlow=defaultGlowColor(task);
+                int glow=glowColor(configuredGlow);
+                boolean glowDisabled=MpsqNpcVisitStore.isGlowDisabled(str(o,"id",""));
+                boolean glowing=!glowDisabled&&(!hasSpecialRole||!MpsqNpcVisitStore.hasVisited(task));
                 if(playerSkin){var state=MpsqNpcSkinRenderer.createState(skin,yaw,pitch,(System.currentTimeMillis()%100000L)/50.0f,glowing);int light=WorldRenderer.getLightmapCoordinates(client.world,net.minecraft.util.math.BlockPos.ofFloored(x,y,z));MpsqNpcSkinRenderer.render(state,x-camera.x,y+bob-camera.y,z-camera.z,size*pulse,matrices,consumers,light,glow);}
                 else {matrices.push();matrices.translate(x-camera.x,y+bob-camera.y,z-camera.z);matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(-yaw));matrices.multiply(RotationAxis.POSITIVE_X.rotationDegrees(pitch));matrices.scale(size/16f*pulse,size/16f*pulse,size/16f*pulse);drawBbModel(model,matrices,consumers,0xFFFFFFFF);
                     if(glowing){var outline=client.getBufferBuilders().getOutlineVertexConsumers();outline.setColor((glow>>16)&255,(glow>>8)&255,glow&255,255);drawBbModel(model,matrices,outline,0xFFFFFFFF);outline.draw();}
                     matrices.pop();}
                 boolean tutorialDone=o.has("tutorial_completed")&&o.get("tutorial_completed").getAsBoolean();
-                String tag=switch(task){case "accessories"->"accessories";case "quest"->"quests";case "tutorial"->tutorialDone?null:"tutorial";default->null;};
+                String tag=switch(task){case "accessories"->"accessories";case "quest"->"quests";case "tutorial"->"tutorial";default->null;};
                 if(tag!=null){
                     double towardX=camera.x-x,towardZ=camera.z-z,horizontalLength=Math.sqrt(towardX*towardX+towardZ*towardZ);
                     double tagX=x-camera.x,tagZ=z-camera.z;
@@ -175,7 +177,7 @@ public final class MpsqAccessoryRenderer {
                     float tagScale=size,tagHeight=0.20f*tagScale;
                     float aspect=switch(tag){case "accessories"->2624f/320f;case "quests"->1504f/320f;default->1952f/320f;};
                     drawBillboard(context,matrices,consumers,Identifier.of("mpsqcamera","textures/gui/npc_tags/"+tag+".png"),tagX,y+npcHeight+bob+0.12*tagScale-camera.y,tagZ,tagHeight*aspect,tagHeight);
-                    if("tutorial".equals(tag)){float hover=(float)Math.sin(System.currentTimeMillis()/360.0)*0.07f*tagScale;drawBillboard(context,matrices,consumers,Identifier.of("mpsqcamera","textures/gui/npc_tags/tutorial_exclamation.png"),tagX,y+npcHeight+bob+(0.48f*tagScale)+hover-camera.y,tagZ,0.42f*tagScale,0.42f*tagScale);}}
+                    if("tutorial".equals(tag)&&!tutorialDone){float hover=(float)Math.sin(System.currentTimeMillis()/360.0)*0.07f*tagScale;drawBillboard(context,matrices,consumers,Identifier.of("mpsqcamera","textures/gui/npc_tags/tutorial_exclamation.png"),tagX,y+npcHeight+bob+(0.48f*tagScale)+hover-camera.y,tagZ,0.42f*tagScale,0.42f*tagScale);}}
             }
         });
     }
@@ -221,7 +223,11 @@ public final class MpsqAccessoryRenderer {
     }
     private static JsonArray localNpcsSnapshot(){JsonArray resolved=new JsonArray();for(JsonElement value:MpsqLocalNpcStore.loadWorld(MpsqActionSync.world())){JsonObject row=value.getAsJsonObject().deepCopy();String id=row.has("asset_id")?row.get("asset_id").getAsString():"";String url=localAssetUrls.get(id);if(url==null)continue;row.addProperty("url",url);row.addProperty("asset_id",id);row.addProperty("category",localAssetCategories.getOrDefault(id,str(row,"category","npc_model")));resolved.add(row);}return resolved;}
     private static void loadNpcAsset(JsonObject npc,int epoch){if(!npc.has("url")||npc.get("url").isJsonNull())return;String url=npc.get("url").getAsString(),category=str(npc,"category","npc_model");if("npc_skin_normal".equals(category)||"npc_skin_slim".equals(category)){MpsqNpcSkinRenderer.load(url,epoch,"npc_skin_slim".equals(category));return;}if(!models.containsKey(url)&&models.size()+loading.size()<64)load(url,epoch);}
-    private static int glowColor(String color){return switch(color){case "white"->0xFFFFFFFF;case "orange"->0xFFFFAA33;case "magenta"->0xFFFF55FF;case "light_blue"->0xFF55AAFF;case "yellow"->0xFFFFFF55;case "lime"->0xFF55FF55;case "pink"->0xFFFF88BB;case "gray"->0xFF666666;case "light_gray"->0xFFBBBBBB;case "cyan"->0xFF55FFFF;case "purple"->0xFFAA55FF;case "blue"->0xFF5555FF;case "brown"->0xFF8B5A2B;case "green"->0xFF55AA33;case "red"->0xFFFF5555;case "black"->0xFF333333;default->0xFFFFFFFF;};}
+    private static String defaultGlowColor(String task){return switch(task){case "tutorial"->"#c3971f";case "accessories"->"#8027b0";case "quest"->"#2149c4";default->"#ec2f53";};}
+    private static int glowColor(String color){
+        if(color!=null&&color.matches("#[0-9a-fA-F]{6}"))return 0xFF000000|Integer.parseInt(color.substring(1),16);
+        return switch(String.valueOf(color).toLowerCase(Locale.ROOT)){case "white"->0xFFFFFFFF;case "orange"->0xFFFFAA33;case "magenta"->0xFFFF55FF;case "light_blue"->0xFF55AAFF;case "yellow"->0xFFFFFF55;case "lime"->0xFF55FF55;case "pink"->0xFFFF88BB;case "gray"->0xFF666666;case "light_gray"->0xFFBBBBBB;case "cyan"->0xFF55FFFF;case "purple"->0xFFAA55FF;case "blue"->0xFF5555FF;case "brown"->0xFF8B5A2B;case "green"->0xFF55AA33;case "red"->0xFFFF5555;case "black"->0xFF333333;default->0xFFEC2F53;};
+    }
     private static void drawBillboard(WorldRenderContext context,MatrixStack matrices,VertexConsumerProvider consumers,Identifier texture,double x,double y,double z,float width,float height){
         matrices.push();matrices.translate(x,y,z);matrices.multiply(context.camera().getRotation());var entry=matrices.peek();var buffer=consumers.getBuffer(RenderLayer.getEntityCutoutNoCull(texture));
         buffer.vertex(entry,-width/2,-height/2,0).color(255,255,255,255).texture(0,1).overlay(OverlayTexture.DEFAULT_UV).light(0xF000F0).normal(0,0,1);
