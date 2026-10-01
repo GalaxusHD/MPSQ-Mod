@@ -162,6 +162,34 @@ final class MpsqNpcSkinRenderer {
         return state;
     }
 
+    /** Compatibility overload used by the current NPC renderer: body yaw, head yaw, pitch and age. */
+    static PlayerEntityRenderState createState(Skin skin, float bodyYaw, float headYaw, float pitch, float age) {
+        PlayerEntityRenderState state = createState(skin, bodyYaw, pitch, age, false);
+        float relative = (headYaw - bodyYaw) % 360.0f;
+        if (relative >= 180.0f) relative -= 360.0f;
+        if (relative < -180.0f) relative += 360.0f;
+        state.relativeHeadYaw = relative;
+        return state;
+    }
+
+    /** Compatibility overload for NPC render calls that carry a named outline color. */
+    static void render(PlayerEntityRenderState state, double x, double y, double z, float scale,
+                       String glowColor, net.minecraft.client.util.math.MatrixStack matrices,
+                       VertexConsumerProvider consumers, int light) {
+        boolean glowing = glowColor != null && !glowColor.isBlank() && !"none".equalsIgnoreCase(glowColor);
+        state.hasOutline = glowing;
+        render(state, x, y, z, scale, matrices, consumers, light, parseGlowColor(glowColor));
+    }
+
+    private static int parseGlowColor(String color) {
+        return switch (String.valueOf(color).toLowerCase(java.util.Locale.ROOT)) {
+            case "yellow" -> 0xC3971F; case "violet" -> 0x8027B0; case "blue" -> 0x2149C4;
+            case "pink" -> 0xEC2F53; case "turquoise" -> 0x087078; case "gold" -> 0xC19701;
+            case "lilac", "lila" -> 0x9146FF; case "red" -> 0xCF2020; case "gray", "grey" -> 0x282323;
+            default -> 0xFFFFFF;
+        };
+    }
+
     static void clear(MinecraftClient client) {
         for (Skin skin : SKINS.values()) client.getTextureManager().destroyTexture(skin.texture());
         SKINS.clear();

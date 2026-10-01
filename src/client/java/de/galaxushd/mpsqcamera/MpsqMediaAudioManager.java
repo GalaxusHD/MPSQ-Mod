@@ -19,6 +19,7 @@ public final class MpsqMediaAudioManager {
     private static MCEFBrowser effectBrowser;
     private static long effectExpiresAt;
     private static long generation;
+    private static boolean active;
 
     private MpsqMediaAudioManager() { }
 
@@ -96,8 +97,10 @@ public final class MpsqMediaAudioManager {
         try {
             browser = MCEF.createBrowser(page, false);
             browser.resize(64, 64);
+            active = true;
         } catch (RuntimeException exception) {
             browser = null;
+            active = false;
             MpsqCameraClient.LOGGER.warn("MPSQ-Medienplayer konnte nicht gestartet werden", exception);
         }
     }
@@ -110,8 +113,11 @@ public final class MpsqMediaAudioManager {
         } catch (IllegalArgumentException exception) { return false; }
     }
 
+    public static boolean playing(){return active;}
+
     public static void stop() {
         generation++;
+        active = false;
         MCEFBrowser current = browser;
         browser = null;
         if (current != null) {
