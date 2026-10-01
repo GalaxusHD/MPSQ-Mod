@@ -46,6 +46,27 @@ public final class MpsqAccessoryRenderer {
     private MpsqAccessoryRenderer(){}
     public static void refresh(){generation++;polling=false;loading.clear();npcBodyYaws.clear();MpsqNpcSkinRenderer.clear(MinecraftClient.getInstance());clearModels(MinecraftClient.getInstance());localAssetUrls.clear();localAssetCategories.clear();localCatalogRequested=false;next=0;}
     public static void markTutorialCompleted(String npcId){if(npcId!=null&&!npcId.isBlank())completedTutorials.add(npcId);}
+    /** True when a nearby MPSQ skin NPC needs vanilla's outline post-processing pass. */
+    public static boolean hasGlowingNpcs(){
+        var client=MinecraftClient.getInstance();
+        if(client.world==null||client.gameRenderer==null)return false;
+        var camera=client.gameRenderer.getCamera();
+        if(camera==null)return false;
+        var pos=camera.getPos();
+        for(var value:npcs){
+            if(!value.isJsonObject())continue;
+            var o=value.getAsJsonObject();
+            if(!"minecraft:glowing".equals(str(o,"glow_color","none")))continue;
+            if(!o.has("url")||o.get("url").isJsonNull())continue;
+            String category=str(o,"category","");
+            if(!"npc_skin_normal".equals(category)&&!"npc_skin_slim".equals(category))continue;
+            double x=o.has("x")?o.get("x").getAsDouble()+0.5:(o.has("world_x")?o.get("world_x").getAsDouble():0);
+            double y=o.has("world_y")?o.get("world_y").getAsDouble():(o.has("y")?o.get("y").getAsDouble():0);
+            double z=o.has("z")?o.get("z").getAsDouble()+0.5:(o.has("world_z")?o.get("world_z").getAsDouble():0);
+            if(pos.squaredDistanceTo(x,y,z)<=4096)return true;
+        }
+        return false;
+    }
     static boolean isCurrentGeneration(int epoch){return epoch==generation;}
     public static JsonArray npcsSnapshot(){return npcs.deepCopy();}
     public static void initialize(){
@@ -137,21 +158,16 @@ public final class MpsqAccessoryRenderer {
         var client=MinecraftClient.getInstance();var matrices=context.matrixStack();var consumers=context.consumers();
         if(client.world==null||matrices==null||consumers==null||!TeamVisibilitySettings.visible())return;
         var camera=context.camera().getPos();
-        boolean hasGlowingNpc=false;
         for(var value:npcs){var o=value.getAsJsonObject();if(!o.has("url")||o.get("url").isJsonNull())continue;String category=str(o,"category","");if(!"npc_skin_normal".equals(category)&&!"npc_skin_slim".equals(category))continue;boolean slim="npc_skin_slim".equals(category);String url=o.get("url").getAsString();MpsqNpcSkinRenderer.Skin skin=MpsqNpcSkinRenderer.get(url,slim);if(skin==null)continue;
             double x=o.has("x")?o.get("x").getAsDouble()+0.5:(o.has("world_x")?o.get("world_x").getAsDouble():0),y=o.has("world_y")?o.get("world_y").getAsDouble():o.get("y").getAsDouble(),z=o.has("z")?o.get("z").getAsDouble()+0.5:(o.has("world_z")?o.get("world_z").getAsDouble():0);if(camera.squaredDistanceTo(x,y,z)>4096)continue;
             float size=o.has("scale")?o.get("scale").getAsFloat():1f;float yaw=o.has("yaw")?o.get("yaw").getAsFloat():0f,pitch=o.has("pitch")?o.get("pitch").getAsFloat():0f;float bodyYaw=yaw,headYaw=0;boolean face=o.has("face_player")&&o.get("face_player").getAsBoolean();float npcHeight=1.8f*size;String npcKey=str(o,"id",x+":"+y+":"+z);if(face)bodyYaw=npcBodyYaws.computeIfAbsent(npcKey,k->yaw);
             if(face&&client.player!=null&&client.player.squaredDistanceTo(x,y+npcHeight*0.5,z)<=900){double dx=client.player.getX()-x,dz=client.player.getZ()-z,lookFromY=y+1.62f*size,targetY=client.player.getEyeY(),dy=targetY-lookFromY;float targetYaw=(float)Math.toDegrees(Math.atan2(-dx,dz));float offset=wrapDegrees(targetYaw-bodyYaw);if(Math.abs(offset)>60f){float desired=targetYaw-Math.copySign(60f,offset);float turn=clamp(wrapDegrees(desired-bodyYaw),-2f,2f);bodyYaw=wrapDegrees(bodyYaw+turn);npcBodyYaws.put(npcKey,bodyYaw);}headYaw=clamp(wrapDegrees(targetYaw-bodyYaw),-60f,60f);pitch=clamp((float)-Math.toDegrees(Math.atan2(dy,Math.sqrt(dx*dx+dz*dz))),-35f,35f);}else if(!face){npcBodyYaws.remove(npcKey);}
             var state=MpsqNpcSkinRenderer.createState(skin,bodyYaw,headYaw,pitch,(System.currentTimeMillis()%100000L)/50.0f);int light=WorldRenderer.getLightmapCoordinates(client.world,net.minecraft.util.math.BlockPos.ofFloored(x,y,z));MpsqNpcSkinRenderer.render(state,x-camera.x,y-camera.y,z-camera.z,size,str(o,"glow_color","none"),matrices,consumers,light);
-            if("minecraft:glowing".equals(str(o,"glow_color","none")))hasGlowingNpc=true;
             String task=o.has("task_type")?o.get("task_type").getAsString():"none";boolean tutorialDone=(o.has("tutorial_completed")&&o.get("tutorial_completed").getAsBoolean())||completedTutorials.contains(str(o,"id",""));
             String tag=switch(task){case "accessories"->"accessories";case "quest"->"quests";case "tutorial"->tutorialDone?null:"tutorial";default->null;};
             if(tag!=null){double tagX=x-camera.x,tagZ=z-camera.z;float tagScale=size,tagHeight=0.20f*tagScale;float aspect=switch(tag){case "accessories"->2624f/320f;case "quests"->1504f/320f;default->1952f/320f;};double tagY=y+npcHeight+0.32*tagScale-camera.y;drawBillboard(context,matrices,consumers,Identifier.of("mpsqcamera","textures/gui/npc_tags/"+tag+".png"),tagX,tagY,tagZ,tagHeight*aspect,tagHeight);if("tutorial".equals(tag)){float hover=(float)Math.sin(System.currentTimeMillis()/360.0)*0.07f*tagScale;drawBillboard(context,matrices,consumers,Identifier.of("mpsqcamera","textures/gui/npc_tags/tutorial_exclamation.png"),tagX,tagY+0.48f*tagScale+hover,tagZ,0.42f*tagScale,0.42f*tagScale);}}
         }
-        if(hasGlowingNpc){
-            client.getBufferBuilders().getOutlineVertexConsumers().draw();
-        }
-    }
+}
     private static void mapCatalog(JsonArray values,String fallback){for(JsonElement value:values){if(!value.isJsonObject())continue;JsonObject asset=value.getAsJsonObject();if(asset.has("id")&&asset.has("url")){String id=asset.get("id").getAsString();localAssetUrls.put(id,asset.get("url").getAsString());localAssetCategories.put(id,str(asset,"category",fallback));}}}
     private static void applyLocalEquippedAccessory(JsonArray values){String id=MpsqLocalWorldStore.equipped();var player=MinecraftClient.getInstance().player;if(id==null||player==null)return;for(JsonElement e:values){if(!e.isJsonObject())continue;JsonObject row=e.getAsJsonObject();if(id.equals(str(row,"accessory_id",""))&&row.has("url")&&!row.get("url").isJsonNull()){wearers.put(player.getName().getString().toLowerCase(Locale.ROOT),row.get("url").getAsString());return;}}}
     public static void tryOn(String url){tryOnUrl=url;tryOnStart=MinecraftClient.getInstance().player==null?null:MinecraftClient.getInstance().player.getPos();pressedKeys.clear();if(url!=null&&MinecraftClient.getInstance().player!=null)MinecraftClient.getInstance().player.sendMessage(net.minecraft.text.Text.literal("Vorschau aktiv · Bewegung oder eine Taste beendet sie (F5 bleibt erlaubt)."),true);}
