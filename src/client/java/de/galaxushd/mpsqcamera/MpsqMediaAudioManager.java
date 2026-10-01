@@ -100,6 +100,7 @@ public final class MpsqMediaAudioManager {
             // The hidden audio browser must never capture Minecraft mouse or camera input.
             browser.setFocus(false);
             browser.resize(64, 64);
+            CinemaBrowserManager.restoreGameMouse();
             active = true;
         } catch (RuntimeException exception) {
             browser = null;

@@ -70,9 +70,28 @@ public final class ScreenSyncManager {
                 screens.add(new LocalScreenStore.LocalScreenData(id, p1, p2, row.get("name").getAsString(), new Vec3d(p1.getX(), p1.getY(), p1.getZ()), mode, row.get("cinema_url").getAsString(), firstCameraId, groupId));
             }
             MinecraftClient.getInstance().execute(() -> {
-                LocalScreenStore.replaceAll(screens);
+                // Redstone OPEN_LINK actions set their URL locally. The server's
+                // screen row can still have an empty cinema_url, so don't erase
+                // that active local URL during the periodic metadata refresh.
+                List<LocalScreenStore.LocalScreenData> mergedScreens = new ArrayList<>(screens.size());
+                for (LocalScreenStore.LocalScreenData screen : screens) {
+                    LocalScreenStore.LocalScreenData previous = LocalScreenStore.findById(screen.id()).orElse(null);
+                    String url = screen.url();
+                    CinemaPlaybackStore.PlaybackState incoming = playbackStates.get(screen.id());
+                    boolean stillPlaying = incoming == null
+                            ? CinemaPlaybackStore.get(screen.id()).playing()
+                            : incoming.playing();
+                    if (url.isBlank() && stillPlaying && previous != null && !previous.url().isBlank()) {
+                        url = previous.url();
+                    }
+                    mergedScreens.add(new LocalScreenStore.LocalScreenData(screen.id(), screen.pos1(), screen.pos2(),
+                            screen.name(), screen.createdFrom(), screen.inputType(), url, screen.cameraId(), screen.groupId()));
+                }
+                LocalScreenStore.replaceAll(mergedScreens);
                 ScreenAccessStore.replace(codes, groups, owned, triggerLinkedOnly);
-                CinemaPlaybackStore.replace(playbackStates);
+                // Older/API responses may omit playback_state. An omitted field
+                // is not a stop command and must not terminate a running player.
+                CinemaPlaybackStore.merge(playbackStates);
                 CinemaBrowserManager.synchronize();
             });
         });

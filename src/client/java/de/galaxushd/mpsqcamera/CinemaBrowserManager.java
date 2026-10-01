@@ -101,6 +101,7 @@ public final class CinemaBrowserManager {
                 browser.setFocus(false);
                 browser.resize(BROWSER_WIDTH, BROWSER_HEIGHT);
                 BROWSERS.put(screen.id(), new BrowserSession(playback.revision(), browser));
+                restoreGameMouse();
                 FAILED_BROWSERS.remove(screen.id());
             } catch (RuntimeException error) {
                 FAILED_BROWSERS.add(screen.id());
@@ -166,6 +167,12 @@ public final class CinemaBrowserManager {
         // cannot associate a stream with a screen. Once the last cinema browser
         // has closed, force-close the fallback source as well.
         if (BROWSERS.isEmpty()) CinemaAudioManager.stopAll();
+    }
+
+    /** MCEF can alter GLFW cursor capture while initializing a hidden browser. */
+    static void restoreGameMouse() {
+        MinecraftClient client = MinecraftClient.getInstance();
+        if (client.currentScreen == null && client.isWindowFocused()) client.mouse.lockCursor();
     }
 
     /** Converts common YouTube links to their player URL, including a synchronized start point. */

@@ -16,6 +16,11 @@ public final class CinemaPlaybackStore {
         STATES.putAll(states);
     }
 
+    /** Applies states present in a partial API response without stopping local redstone playback. */
+    public static void merge(Map<UUID, PlaybackState> states) {
+        STATES.putAll(states);
+    }
+
     public static PlaybackState get(UUID screenId) {
         return STATES.getOrDefault(screenId, STOPPED);
     }
