@@ -137,8 +137,10 @@ public final class MpsqAccessoryRenderer {
                 if(animation.equals("wave"))pulse=1f+(float)Math.sin(phase*Math.PI*2)*0.035f;
                 String task=o.has("task_type")?o.get("task_type").getAsString():"none";
                 int roleGlow=roleGlowColor(task);
+                String npcId=str(o,"id","");
+                boolean roleGlowActive=roleGlow>=0&&!MpsqNpcVisitStore.hasVisited(task)&&!MpsqNpcVisitStore.isGlowDisabled(npcId);
                 int glow=roleGlow>=0?roleGlow:glowColor(o.has("glow_color")?o.get("glow_color").getAsString():"none");
-                boolean glowing=roleGlow>=0||!"none".equals(o.has("glow_color")?o.get("glow_color").getAsString():"none");
+                boolean glowing=roleGlow>=0?roleGlowActive:!"none".equals(o.has("glow_color")?o.get("glow_color").getAsString():"none");
                 if(playerSkin){var state=MpsqNpcSkinRenderer.createState(skin,yaw,pitch,(System.currentTimeMillis()%100000L)/50.0f,glowing);int light=WorldRenderer.getLightmapCoordinates(client.world,net.minecraft.util.math.BlockPos.ofFloored(x,y,z));MpsqNpcSkinRenderer.render(state,x-camera.x,y+bob-camera.y,z-camera.z,size*pulse,matrices,consumers,light,glow);}
                 else {matrices.push();matrices.translate(x-camera.x,y+bob-camera.y,z-camera.z);matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(-yaw));matrices.multiply(RotationAxis.POSITIVE_X.rotationDegrees(pitch));matrices.scale(size/16f*pulse,size/16f*pulse,size/16f*pulse);drawBbModel(model,matrices,consumers,0xFFFFFFFF);
                     if(glowing){var outline=client.getBufferBuilders().getOutlineVertexConsumers();outline.setColor((glow>>16)&255,(glow>>8)&255,glow&255,255);drawBbModel(model,matrices,outline,0xFFFFFFFF);outline.draw();}

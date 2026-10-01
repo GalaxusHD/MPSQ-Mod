@@ -63,6 +63,7 @@ public final class MpsqNpcManager {
 
     private static void interact(JsonObject npc) {
         String task = npc.has("task_type") && !npc.get("task_type").isJsonNull() ? npc.get("task_type").getAsString() : "none";
+        if (MpsqNpcVisitStore.markVisited(task)) MpsqAccessoryRenderer.refresh();
         if ("accessories".equals(task)) {
             MinecraftClient.getInstance().setScreen(new MpsqAccessoriesScreen(null,true));
             return;
