@@ -23,13 +23,24 @@ public final class MpsqBossbarHud {
             int width = Math.min(BAR_WIDTH, client.getWindow().getScaledWidth() - 20);
             int left = (client.getWindow().getScaledWidth() - width) / 2;
             int barY = y + 10;
-            int filled = Math.max(0, Math.min(width, Math.round(width * state.value())));
+            float value=Math.max(0f,Math.min(1f,state.value()));
+            float preciseFilled=width*value;
+            int filled=(int)preciseFilled;
+            float fractionalPixel=preciseFilled-filled;
             Identifier background = barTexture(state.color(), "background");
             Identifier progress = barTexture(state.color(), "progress");
             context.drawGuiTexture(RenderPipelines.GUI_TEXTURED, background, left, barY, width, BAR_HEIGHT);
             if (filled > 0) {
                 context.drawGuiTexture(RenderPipelines.GUI_TEXTURED, progress, BAR_WIDTH, BAR_HEIGHT,
                         0, 0, left, barY, filled, BAR_HEIGHT);
+            }
+            if(fractionalPixel>0f&&filled<width){
+                context.getMatrices().push();
+                context.getMatrices().translate(left+filled,barY,0);
+                context.getMatrices().scale(fractionalPixel,1f,1f);
+                context.drawGuiTexture(RenderPipelines.GUI_TEXTURED,progress,BAR_WIDTH,BAR_HEIGHT,
+                        filled,0,0,0,1,BAR_HEIGHT);
+                context.getMatrices().pop();
             }
             context.drawCenteredTextWithShadow(client.textRenderer,
                     TeamChatText.fromAmpersandCodes(state.title(), Formatting.WHITE),
