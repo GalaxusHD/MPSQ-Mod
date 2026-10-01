@@ -23,6 +23,12 @@ public final class MpsqAccessoryRenderer {
     private record RenderFace(Identifier texture,float[][] vertices,float nx,float ny,float nz){}
     private record PreviewPoint(double x,double y,double z){}
     private record PreviewPolygon(double[][] points,int color,double depth){}
+    private static final class NpcRotation {
+        float yaw;
+        float pitch;
+        long updatedAt;
+        NpcRotation(float yaw,float pitch,long updatedAt){this.yaw=yaw;this.pitch=pitch;this.updatedAt=updatedAt;}
+    }
     private static final Map<String,Model> models=new HashMap<>();
     private static final Map<String,Identifier> previews=new HashMap<>();
     private static final Map<String,String> wearers=new HashMap<>();
@@ -31,6 +37,7 @@ public final class MpsqAccessoryRenderer {
     private static final Set<String> loading=new HashSet<>();
     private static final Map<String,String> localAssetUrls=new HashMap<>();
     private static final Map<String,String> localAssetCategories=new HashMap<>();
+    private static final Map<String,NpcRotation> npcRotations=new HashMap<>();
     private static boolean localCatalogRequested;
     private static boolean localAccessoryCatalogRequested;
     private static String tryOnUrl;
@@ -42,7 +49,7 @@ public final class MpsqAccessoryRenderer {
     private static int generation;
     private static String scope="";
     private MpsqAccessoryRenderer(){}
-    public static void refresh(){generation++;polling=false;loading.clear();MpsqNpcSkinRenderer.clear(MinecraftClient.getInstance());clearModels(MinecraftClient.getInstance());localAssetUrls.clear();localAssetCategories.clear();localCatalogRequested=false;next=0;}
+    public static void refresh(){generation++;polling=false;loading.clear();npcRotations.clear();MpsqNpcSkinRenderer.clear(MinecraftClient.getInstance());clearModels(MinecraftClient.getInstance());localAssetUrls.clear();localAssetCategories.clear();localCatalogRequested=false;next=0;}
     static boolean isCurrentGeneration(int epoch){return epoch==generation;}
     public static JsonArray npcsSnapshot(){return npcs.deepCopy();}
     public static void initialize(){
@@ -53,7 +60,7 @@ public final class MpsqAccessoryRenderer {
                 else {long window=client.getWindow().getHandle();for(int key=1;key<=org.lwjgl.glfw.GLFW.GLFW_KEY_LAST;key++){boolean down=org.lwjgl.glfw.GLFW.glfwGetKey(window,key)==org.lwjgl.glfw.GLFW.GLFW_PRESS;if(down&&!pressedKeys.get(key)&&key!=org.lwjgl.glfw.GLFW.GLFW_KEY_F5){clearTryOn();break;}if(down)pressedKeys.set(key);else pressedKeys.clear(key);}}
             }
             String current=MpsqActionSync.server()+"|"+MpsqActionSync.world();
-            if(!scope.equals(current)){scope=current;generation++;polling=false;wearers.clear();objects=new JsonArray();npcs=new JsonArray();loading.clear();MpsqNpcSkinRenderer.clear(client);clearModels(client);localAssetUrls.clear();localAssetCategories.clear();localCatalogRequested=false;localAccessoryCatalogRequested=false;next=0;}
+            if(!scope.equals(current)){scope=current;generation++;polling=false;wearers.clear();objects=new JsonArray();npcs=new JsonArray();loading.clear();npcRotations.clear();MpsqNpcSkinRenderer.clear(client);clearModels(client);localAssetUrls.clear();localAssetCategories.clear();localCatalogRequested=false;localAccessoryCatalogRequested=false;next=0;}
             boolean localWorld=MpsqActionSync.server().isBlank()&&client.getServer()!=null;
             if(client.world==null||!TeamVisibilitySettings.visible()||(!MpsqActionSync.server().isBlank()&&!MpsqActionSync.isMpsqServer())||(!localWorld&&!MpsqApiClient.isReady())||polling||System.currentTimeMillis()<next)return;
             polling=true;next=System.currentTimeMillis()+15000;int epoch=generation;
@@ -129,24 +136,23 @@ public final class MpsqAccessoryRenderer {
                 double x=o.has("world_x")?o.get("world_x").getAsDouble():o.get("x").getAsDouble()+0.5,y=o.has("world_y")?o.get("world_y").getAsDouble():o.get("y").getAsDouble(),z=o.has("world_z")?o.get("world_z").getAsDouble():o.get("z").getAsDouble()+0.5;if(camera.squaredDistanceTo(x,y,z)>4096)continue;
                 float size=o.has("scale")?o.get("scale").getAsFloat():1f;String animation=o.has("animation")?o.get("animation").getAsString():"none";float phase=(System.currentTimeMillis()%4000L)/1000f;float bob=animation.equals("bob")?(float)Math.sin(phase*Math.PI*2)*0.08f:0;float pulse=animation.equals("pulse")?1f+(float)Math.sin(phase*Math.PI*2)*0.08f:1f;float yaw=o.has("yaw")?o.get("yaw").getAsFloat():0f,pitch=o.has("pitch")?o.get("pitch").getAsFloat():0f;boolean face=o.has("face_player")&&o.get("face_player").getAsBoolean();float npcHeight=playerSkin?1.8f*size:size;
                 if(face&&client.player!=null&&client.player.squaredDistanceTo(x,y+npcHeight*0.5,z)<=900){double dx=client.player.getX()-x,dz=client.player.getZ()-z,lookFromY=y+npcHeight*0.85,targetY=client.player.getY()+0.9,dy=targetY-lookFromY;yaw=(float)Math.toDegrees(Math.atan2(-dx,dz));pitch=(float)-Math.toDegrees(Math.atan2(dy,Math.sqrt(dx*dx+dz*dz)));}
+                String rotationKey=o.has("id")?o.get("id").getAsString():x+":"+y+":"+z;
+                if(face){float[] smoothed=smoothNpcYaw(rotationKey,yaw,pitch);yaw=smoothed[0];pitch=smoothed[1];}
+                else npcRotations.remove(rotationKey);
                 if(animation.equals("turn"))yaw+=phase*90f;
                 if(animation.equals("nod"))pitch+=(float)Math.sin(phase*Math.PI*2)*12f;
                 if(animation.equals("tilt"))yaw+=(float)Math.sin(phase*Math.PI*2)*14f;
                 if(animation.equals("look_around"))yaw+=(float)Math.sin(phase*Math.PI)*28f;
                 if(animation.equals("shake"))yaw+=(float)Math.sin(phase*Math.PI*8)*5f;
                 if(animation.equals("wave"))pulse=1f+(float)Math.sin(phase*Math.PI*2)*0.035f;
-                String task=o.has("task_type")?o.get("task_type").getAsString():"none";
-                int roleGlow=roleGlowColor(task);
-                String npcId=str(o,"id","");
-                boolean roleGlowActive=roleGlow>=0&&!MpsqNpcVisitStore.hasVisited(task)&&!MpsqNpcVisitStore.isGlowDisabled(npcId);
-                int glow=roleGlow>=0?roleGlow:glowColor(o.has("glow_color")?o.get("glow_color").getAsString():"none");
-                boolean glowing=roleGlow>=0?roleGlowActive:!"none".equals(o.has("glow_color")?o.get("glow_color").getAsString():"none");
+                int glow=glowColor(o.has("glow_color")?o.get("glow_color").getAsString():"none");
+                boolean glowing= !"none".equals(o.has("glow_color")?o.get("glow_color").getAsString():"none");
                 if(playerSkin){var state=MpsqNpcSkinRenderer.createState(skin,yaw,pitch,(System.currentTimeMillis()%100000L)/50.0f,glowing);int light=WorldRenderer.getLightmapCoordinates(client.world,net.minecraft.util.math.BlockPos.ofFloored(x,y,z));MpsqNpcSkinRenderer.render(state,x-camera.x,y+bob-camera.y,z-camera.z,size*pulse,matrices,consumers,light,glow);}
                 else {matrices.push();matrices.translate(x-camera.x,y+bob-camera.y,z-camera.z);matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(-yaw));matrices.multiply(RotationAxis.POSITIVE_X.rotationDegrees(pitch));matrices.scale(size/16f*pulse,size/16f*pulse,size/16f*pulse);drawBbModel(model,matrices,consumers,0xFFFFFFFF);
                     if(glowing){var outline=client.getBufferBuilders().getOutlineVertexConsumers();outline.setColor((glow>>16)&255,(glow>>8)&255,glow&255,255);drawBbModel(model,matrices,outline,0xFFFFFFFF);outline.draw();}
                     matrices.pop();}
-                boolean tutorialDone=o.has("tutorial_completed")&&o.get("tutorial_completed").getAsBoolean();
-                String tag=switch(task){case "accessories"->"accessories";case "quest"->"quests";case "tutorial"->"tutorial";default->null;};
+                String task=o.has("task_type")?o.get("task_type").getAsString():"none";boolean tutorialDone=o.has("tutorial_completed")&&o.get("tutorial_completed").getAsBoolean();
+                String tag=switch(task){case "accessories"->"accessories";case "quest"->"quests";case "tutorial"->tutorialDone?null:"tutorial";default->null;};
                 if(tag!=null){
                     double towardX=camera.x-x,towardZ=camera.z-z,horizontalLength=Math.sqrt(towardX*towardX+towardZ*towardZ);
                     double tagX=x-camera.x,tagZ=z-camera.z;
@@ -154,10 +160,24 @@ public final class MpsqAccessoryRenderer {
                     float tagScale=size,tagHeight=0.20f*tagScale;
                     float aspect=switch(tag){case "accessories"->2624f/320f;case "quests"->1504f/320f;default->1952f/320f;};
                     drawBillboard(context,matrices,consumers,Identifier.of("mpsqcamera","textures/gui/npc_tags/"+tag+".png"),tagX,y+npcHeight+bob+0.12*tagScale-camera.y,tagZ,tagHeight*aspect,tagHeight);
-                    if("tutorial".equals(tag)&&!tutorialDone){float hover=(float)Math.sin(System.currentTimeMillis()/360.0)*0.07f*tagScale;drawBillboard(context,matrices,consumers,Identifier.of("mpsqcamera","textures/gui/npc_tags/tutorial_exclamation.png"),tagX,y+npcHeight+bob+(0.48f*tagScale)+hover-camera.y,tagZ,0.42f*tagScale,0.42f*tagScale);}}
+                    if("tutorial".equals(tag)){float hover=(float)Math.sin(System.currentTimeMillis()/360.0)*0.07f*tagScale;drawBillboard(context,matrices,consumers,Identifier.of("mpsqcamera","textures/gui/npc_tags/tutorial_exclamation.png"),tagX,y+npcHeight+bob+(0.48f*tagScale)+hover-camera.y,tagZ,0.42f*tagScale,0.42f*tagScale);}}
             }
         });
     }
+    private static float[] smoothNpcYaw(String key,float targetYaw,float targetPitch){
+        long now=System.nanoTime();
+        NpcRotation rotation=npcRotations.get(key);
+        if(rotation==null){npcRotations.put(key,new NpcRotation(targetYaw,targetPitch,now));return new float[]{targetYaw,targetPitch};}
+        float deltaSeconds=Math.max(0f,Math.min(0.1f,(now-rotation.updatedAt)/1_000_000_000f));
+        // A ~140 ms response gives head/body turns a continuous ease while still tracking promptly.
+        float amount=1f-(float)Math.exp(-deltaSeconds/0.14f);
+        rotation.yaw=wrapDegrees(rotation.yaw+wrapDegrees(targetYaw-rotation.yaw)*amount);
+        rotation.pitch+= (targetPitch-rotation.pitch)*amount;
+        rotation.updatedAt=now;
+        if(npcRotations.size()>512)npcRotations.entrySet().removeIf(entry->now-entry.getValue().updatedAt>60_000_000_000L);
+        return new float[]{rotation.yaw,rotation.pitch};
+    }
+    private static float wrapDegrees(float degrees){degrees%=360f;if(degrees>=180f)degrees-=360f;if(degrees< -180f)degrees+=360f;return degrees;}
     private static void mapCatalog(JsonArray values,String fallback){for(JsonElement value:values){if(!value.isJsonObject())continue;JsonObject asset=value.getAsJsonObject();if(asset.has("id")&&asset.has("url")){String id=asset.get("id").getAsString();localAssetUrls.put(id,asset.get("url").getAsString());localAssetCategories.put(id,str(asset,"category",fallback));}}}
     private static void applyLocalEquippedAccessory(JsonArray values){String id=MpsqLocalWorldStore.equipped();var player=MinecraftClient.getInstance().player;if(id==null||player==null)return;for(JsonElement e:values){if(!e.isJsonObject())continue;JsonObject row=e.getAsJsonObject();if(id.equals(str(row,"accessory_id",""))&&row.has("url")&&!row.get("url").isJsonNull()){wearers.put(player.getName().getString().toLowerCase(Locale.ROOT),row.get("url").getAsString());return;}}}
     public static void tryOn(String url){tryOnUrl=url;tryOnStart=MinecraftClient.getInstance().player==null?null:MinecraftClient.getInstance().player.getPos();pressedKeys.clear();if(url!=null&&MinecraftClient.getInstance().player!=null)MinecraftClient.getInstance().player.sendMessage(net.minecraft.text.Text.literal("Vorschau aktiv · Bewegung oder eine Taste beendet sie (F5 bleibt erlaubt)."),true);}
@@ -187,7 +207,6 @@ public final class MpsqAccessoryRenderer {
     private static JsonArray localNpcsSnapshot(){JsonArray resolved=new JsonArray();for(JsonElement value:MpsqLocalNpcStore.loadWorld(MpsqActionSync.world())){JsonObject row=value.getAsJsonObject().deepCopy();String id=row.has("asset_id")?row.get("asset_id").getAsString():"";String url=localAssetUrls.get(id);if(url==null)continue;row.addProperty("url",url);row.addProperty("asset_id",id);row.addProperty("category",localAssetCategories.getOrDefault(id,str(row,"category","npc_model")));resolved.add(row);}return resolved;}
     private static void loadNpcAsset(JsonObject npc,int epoch){if(!npc.has("url")||npc.get("url").isJsonNull())return;String url=npc.get("url").getAsString(),category=str(npc,"category","npc_model");if("npc_skin_normal".equals(category)||"npc_skin_slim".equals(category)){MpsqNpcSkinRenderer.load(url,epoch,"npc_skin_slim".equals(category));return;}if(!models.containsKey(url)&&models.size()+loading.size()<64)load(url,epoch);}
     private static int glowColor(String color){return switch(color){case "white"->0xFFFFFFFF;case "orange"->0xFFFFAA33;case "magenta"->0xFFFF55FF;case "light_blue"->0xFF55AAFF;case "yellow"->0xFFFFFF55;case "lime"->0xFF55FF55;case "pink"->0xFFFF88BB;case "gray"->0xFF666666;case "light_gray"->0xFFBBBBBB;case "cyan"->0xFF55FFFF;case "purple"->0xFFAA55FF;case "blue"->0xFF5555FF;case "brown"->0xFF8B5A2B;case "green"->0xFF55AA33;case "red"->0xFFFF5555;case "black"->0xFF333333;default->0xFFFFFFFF;};}
-    private static int roleGlowColor(String task){return switch(task){case "tutorial"->0xFFC3971F;case "accessories"->0xFF8027B0;case "quest"->0xFF2149C4;default->-1;};}
     private static void drawBillboard(WorldRenderContext context,MatrixStack matrices,VertexConsumerProvider consumers,Identifier texture,double x,double y,double z,float width,float height){
         matrices.push();matrices.translate(x,y,z);matrices.multiply(context.camera().getRotation());var entry=matrices.peek();var buffer=consumers.getBuffer(RenderLayer.getEntityCutoutNoCull(texture));
         buffer.vertex(entry,-width/2,-height/2,0).color(255,255,255,255).texture(0,1).overlay(OverlayTexture.DEFAULT_UV).light(0xF000F0).normal(0,0,1);
