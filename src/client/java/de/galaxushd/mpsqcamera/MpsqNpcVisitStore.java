@@ -33,14 +33,30 @@ public final class MpsqNpcVisitStore {
         return contains(scopeData(readRoot(),false).getAsJsonArray("disabled_npcs"),npcId);
     }
 
-    public static synchronized void setGlowEnabled(String npcId,boolean enabled){
-        if(npcId==null||npcId.isBlank())return;
-        JsonObject root=readRoot(),scope=scopeData(root,true);JsonArray disabled=scope.getAsJsonArray("disabled_npcs"),next=new JsonArray();
-        boolean found=false;
-        for(JsonElement item:disabled){if(item.isJsonPrimitive()&&npcId.equals(item.getAsString()))found=true;else next.add(item.deepCopy());}
-        if(!enabled&&!found)next.add(npcId);
-        scope.add("disabled_npcs",next);saveRoot(root);
+    /** Returns the saved glow choice, falling back to the role-specific default. */
+    public static synchronized boolean isGlowEnabled(String npcId,boolean defaultEnabled){
+        if(npcId==null||npcId.isBlank())return defaultEnabled;
+        JsonObject scope=scopeData(readRoot(),false);
+        if(contains(scope.getAsJsonArray("enabled_npcs"),npcId))return true;
+        if(contains(scope.getAsJsonArray("disabled_npcs"),npcId))return false;
+        return defaultEnabled;
     }
+
+    public static synchronized void setGlowEnabled(String npcId,boolean enabled){
+        setGlowEnabled(npcId,enabled,true);
+    }
+
+    /** Stores only deviations from the default, while retaining older disabled_npcs data. */
+    public static synchronized void setGlowEnabled(String npcId,boolean enabled,boolean defaultEnabled){
+        if(npcId==null||npcId.isBlank())return;
+        JsonObject root=readRoot(),scope=scopeData(root,true);
+        remove(scope.getAsJsonArray("disabled_npcs"),npcId);
+        remove(scope.getAsJsonArray("enabled_npcs"),npcId);
+        if(enabled!=defaultEnabled)scope.getAsJsonArray(enabled?"enabled_npcs":"disabled_npcs").add(npcId);
+        saveRoot(root);
+    }
+
+    private static void remove(JsonArray array,String value){for(int i=array.size()-1;i>=0;i--){JsonElement item=array.get(i);if(item.isJsonPrimitive()&&value.equals(item.getAsString()))array.remove(i);}}
 
     private static boolean isTask(String task){return "tutorial".equals(task)||"accessories".equals(task)||"quest".equals(task);}
     private static boolean contains(JsonArray array,String value){if(array==null)return false;for(JsonElement e:array)if(e.isJsonPrimitive()&&value.equals(e.getAsString()))return true;return false;}
@@ -52,6 +68,7 @@ public final class MpsqNpcVisitStore {
         if(scope==null){scope=new JsonObject();scope.add("visited_tasks",new JsonArray());scope.add("disabled_npcs",new JsonArray());if(create)scopes.add(scopeKey(),scope);}
         if(!scope.has("visited_tasks")||!scope.get("visited_tasks").isJsonArray())scope.add("visited_tasks",new JsonArray());
         if(!scope.has("disabled_npcs")||!scope.get("disabled_npcs").isJsonArray())scope.add("disabled_npcs",new JsonArray());
+        if(!scope.has("enabled_npcs")||!scope.get("enabled_npcs").isJsonArray())scope.add("enabled_npcs",new JsonArray());
         return scope;
     }
 
