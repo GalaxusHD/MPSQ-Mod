@@ -171,9 +171,10 @@ public final class MpsqAccessoryRenderer {
                 boolean tutorialDone=o.has("tutorial_completed")&&o.get("tutorial_completed").getAsBoolean();
                 String tag=switch(task){case "accessories"->"accessories";case "quest"->"quests";case "tutorial"->tutorialDone?null:"tutorial";default->null;};
                 if(tag!=null){
-                    double towardX=camera.x-x,towardZ=camera.z-z,horizontalLength=Math.sqrt(towardX*towardX+towardZ*towardZ);
+                    // Keep the tag's world position fixed above the NPC. Only the
+                    // billboard itself faces the camera; translating it toward the
+                    // camera makes it orbit around the NPC as the viewer moves.
                     double tagX=x-camera.x,tagZ=z-camera.z;
-                    if(horizontalLength>1.0e-4){tagX+=(towardX/horizontalLength)*0.30*size;tagZ+=(towardZ/horizontalLength)*0.30*size;}
                     float tagScale=size,tagHeight=0.20f*tagScale;
                     // Vanilla player nameplates use a 0.5-block offset above the head;
                     // keep NPC role tags at two thirds of that distance, scaled with the NPC.
