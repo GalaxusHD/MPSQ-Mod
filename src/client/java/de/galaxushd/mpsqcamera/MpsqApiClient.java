@@ -77,7 +77,7 @@ public final class MpsqApiClient {
                 JsonObject row = value.getAsJsonObject();
                 result.add(new MpsqTrigger(UUID.fromString(row.get("id").getAsString()), row.get("world_id").getAsString(),
                         new BlockPos(row.get("pos_x").getAsInt(), row.get("pos_y").getAsInt(), row.get("pos_z").getAsInt()),
-                        row.get("block_id").getAsString(), row.has("object_type") ? row.get("object_type").getAsString() : "FULL_BLOCK",
+                        row.get("block_id").getAsString(), row.has("object_type") ? row.get("object_type").getAsString() : "TRIGGER",
                         row.get("action_type").getAsString(), Map.of()));
             }
             return result;
@@ -85,7 +85,17 @@ public final class MpsqApiClient {
     }
 
     public static CompletableFuture<JsonElement> fireTrigger(UUID triggerId) {
-        JsonObject body = new JsonObject(); body.addProperty("serverId", MpsqActionSync.server()); body.addProperty("worldId", MpsqActionSync.world()); return post("/triggers/" + triggerId + "/fire", body);
+        return fireTrigger(triggerId, null, false);
+    }
+
+    public static CompletableFuture<JsonElement> fireTrigger(UUID triggerId, Boolean powered) {
+        return fireTrigger(triggerId, powered, false);
+    }
+
+    public static CompletableFuture<JsonElement> fireTrigger(UUID triggerId, Boolean powered, boolean pulse) {
+        JsonObject body = new JsonObject(); body.addProperty("serverId", MpsqActionSync.server()); body.addProperty("worldId", MpsqActionSync.world());
+        if (powered != null) { body.addProperty("powered", powered); body.addProperty("pulse", pulse); }
+        return post("/triggers/" + triggerId + "/fire", body);
     }
 
     public static CompletableFuture<JsonElement> redeemCode(String code) {

@@ -29,13 +29,13 @@ public final class MpsqActionSetupScreen extends Screen {
     private String status="";
 
     public MpsqActionSetupScreen(BlockPos pos,String block,String blockName,MpsqTriggerBlockPolicy.Kind blockKind,String properties) {
-        super(Text.literal("MPSQ-Knopf einrichten"));
+        super(Text.literal("MPSQ-Redstone einrichten"));
         this.pos=pos.toImmutable(); this.block=block;
         this.blockName=blockName; this.blockKind=blockKind; this.properties=properties;
         this.actions=block.isEmpty()?QUICK_ACTIONS:BLOCK_ACTIONS;
         server=MpsqActionSync.server(); world=MpsqActionSync.world();
     }
-    public MpsqActionSetupScreen(BlockPos pos,String block) { this(pos,block,block,MpsqTriggerBlockPolicy.Kind.FULL_BLOCK,""); }
+    public MpsqActionSetupScreen(BlockPos pos,String block) { this(pos,block,block,MpsqTriggerBlockPolicy.Kind.NONE,""); }
     public MpsqActionSetupScreen() { this(BlockPos.ORIGIN, "","",MpsqTriggerBlockPolicy.Kind.NONE,""); }
 
     @Override protected void init() {
@@ -78,7 +78,7 @@ public final class MpsqActionSetupScreen extends Screen {
             if(client.world==null||!client.world.isChunkLoaded(pos)) { status="Der ausgewählte Block ist nicht mehr verfügbar."; return; }
             var currentState=client.world.getBlockState(pos);
             String currentBlock=net.minecraft.registry.Registries.BLOCK.getId(currentState.getBlock()).toString();
-            if(!block.equals(currentBlock)||MpsqTriggerBlockPolicy.classify(currentState,client.world,pos)!=blockKind){status="Der Block wurde seit der Auswahl verändert. Bitte erneut mit /mpsq-knopf auswählen.";return;}
+            if(!block.equals(currentBlock)||MpsqTriggerBlockPolicy.classify(currentState,client.world,pos)!=blockKind){status="Der Block wurde seit der Auswahl verändert. Bitte erneut mit /mpsq-redstone auswählen.";return;}
         }
         JsonObject data=new JsonObject(),body=new JsonObject(),position=new JsonObject();
         switch(actions[action]) {
@@ -135,7 +135,7 @@ public final class MpsqActionSetupScreen extends Screen {
         if(!block.isEmpty())c.drawTextWithShadow(textRenderer,activationHint(),width/2-130,238,0xFFBBBBBB);
         c.drawCenteredTextWithShadow(textRenderer,Text.literal(status),width/2,height-24,0xFFFFFFFF);
     }
-    private String activationHint(){return blockKind.usesPowerEdge()?"Löst einmal beim Einschalten aus; erneutes Einschalten nach Aus geht wieder": "Rechtsklick auf den vollen Block löst aus";}
+    private String activationHint(){return blockKind.followsPowerState()?"Ein = Aktion an, Aus = Aktion aus": "Löst bei Aktivierung aus";}
     private static String actionLabel(String action){return switch(action){
         case "TOGGLE_AUDIO"->"Musik / Ton umschalten";case "TOGGLE_COUNTDOWN"->"Countdown umschalten";
         case "TOGGLE_BOSSBAR"->"Bossbar umschalten";

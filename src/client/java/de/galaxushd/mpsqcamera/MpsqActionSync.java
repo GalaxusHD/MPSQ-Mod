@@ -39,14 +39,14 @@ public final class MpsqActionSync {
                     }))));
 
         net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback.EVENT.register((dispatcher,access)->dispatcher.register(
-            net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.literal("mpsq-knopf").executes(context->{
+            net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.literal("mpsq-redstone").executes(context->{
                 var client=MinecraftClient.getInstance();
                 if(client.crosshairTarget instanceof net.minecraft.util.hit.BlockHitResult hit && client.world!=null){
                     var position=hit.getBlockPos();
                     var state=client.world.getBlockState(position);
                     var kind=MpsqTriggerBlockPolicy.classify(state,client.world,position);
                     if(kind==MpsqTriggerBlockPolicy.Kind.NONE){
-                        context.getSource().sendError(Text.literal("Dieser Block ist kein MPSQ-Auslöser. Erlaubt sind Knöpfe, Hebel, Druckplatten und volle Blöcke."));
+                        context.getSource().sendError(Text.literal("Dieser Block ist kein MPSQ-Redstone-Auslöser. Erlaubt sind Knöpfe, Hebel, Druckplatten, Sculk-Sensoren und Stolperdrähte."));
                     } else {
                         String block=net.minecraft.registry.Registries.BLOCK.getId(state.getBlock()).toString();
                         String properties=MpsqTriggerBlockPolicy.describeProperties(state);
@@ -83,13 +83,19 @@ public final class MpsqActionSync {
     }
     public static void dispatch(JsonObject event) {
         JsonObject data=event.getAsJsonObject("action_data");
-        switch(event.get("action_type").getAsString()) {
+        String actionType=event.get("action_type").getAsString();
+        boolean stateDriven=data.has("redstone_powered")&&!(data.has("redstone_pulse")&&data.get("redstone_pulse").getAsBoolean());
+        boolean powered=stateDriven&&data.get("redstone_powered").getAsBoolean();
+        if(stateDriven&&!powered&&!java.util.Set.of("TOGGLE_AUDIO","TOGGLE_COUNTDOWN","TOGGLE_BOSSBAR").contains(actionType))return;
+        switch(actionType) {
             case "TOGGLE_AUDIO" -> {
-                if(MpsqAudioManager.playing()||MpsqMediaAudioManager.playing()){MpsqAudioManager.stop();MpsqMediaAudioManager.stop();}
-                else {String source=data.has("sourceType")?data.get("sourceType").getAsString():"minecraft";String sound=data.has("sound")?data.get("sound").getAsString():"";if(source.equals("mp3")||source.equals("mp4")){MpsqAudioManager.stop();MpsqMediaAudioManager.play(source,java.util.List.of(sound));}else{MpsqMediaAudioManager.stop();MpsqAudioManager.startPlaylist("MPSQ",java.util.List.of(sound));}}
+                boolean playing=MpsqAudioManager.playing()||MpsqMediaAudioManager.playing();
+                if(stateDriven){if(powered&&!playing)startTriggerAudio(data);else if(!powered&&playing){MpsqAudioManager.stop();MpsqMediaAudioManager.stop();}}
+                else if(playing){MpsqAudioManager.stop();MpsqMediaAudioManager.stop();}
+                else startTriggerAudio(data);
             }
-            case "TOGGLE_BOSSBAR" -> {if(MpsqBossbarManager.get("event")!=null)MpsqBossbarManager.remove("event");else MpsqBossbarManager.apply(new MpsqBossbarState("event",data.get("title").getAsString(),"purple",1,true));}
-            case "TOGGLE_COUNTDOWN" -> {if(MpsqBossbarManager.countdownRunning())MpsqBossbarManager.stopCountdown();else MpsqBossbarManager.startCountdown(data.get("title").getAsString(),data.get("duration").getAsInt(),event.get("created_at").getAsString());}
+            case "TOGGLE_BOSSBAR" -> {boolean shown=MpsqBossbarManager.get("event")!=null;if(stateDriven){if(powered&&!shown)MpsqBossbarManager.apply(new MpsqBossbarState("event",data.get("title").getAsString(),"purple",1,true));else if(!powered&&shown)MpsqBossbarManager.remove("event");}else if(shown)MpsqBossbarManager.remove("event");else MpsqBossbarManager.apply(new MpsqBossbarState("event",data.get("title").getAsString(),"purple",1,true));}
+            case "TOGGLE_COUNTDOWN" -> {boolean running=MpsqBossbarManager.countdownRunning();if(stateDriven){if(powered&&!running)MpsqBossbarManager.startCountdown(data.get("title").getAsString(),data.get("duration").getAsInt(),event.get("created_at").getAsString());else if(!powered&&running)MpsqBossbarManager.stopCountdown();}else if(running)MpsqBossbarManager.stopCountdown();else MpsqBossbarManager.startCountdown(data.get("title").getAsString(),data.get("duration").getAsInt(),event.get("created_at").getAsString());}
             case "PLAY_AUDIO", "START_PLAYLIST" -> {
                 var tracks=new ArrayList<String>();
                 if(data.has("tracks")) for(JsonElement track:data.getAsJsonArray("tracks")) tracks.add(track.getAsString());
@@ -108,6 +114,7 @@ public final class MpsqActionSync {
             default -> { }
         }
     }
+    private static void startTriggerAudio(JsonObject data){String source=data.has("sourceType")?data.get("sourceType").getAsString():"minecraft";String sound=data.has("sound")?data.get("sound").getAsString():"";if(source.equals("mp3")||source.equals("mp4")){MpsqAudioManager.stop();MpsqMediaAudioManager.play(source,java.util.List.of(sound));}else{MpsqMediaAudioManager.stop();MpsqAudioManager.startPlaylist("MPSQ",java.util.List.of(sound));}}
     private static void openLinkOnScreen(JsonObject data) {
         try {
             var screenId=java.util.UUID.fromString(data.get("screenId").getAsString());

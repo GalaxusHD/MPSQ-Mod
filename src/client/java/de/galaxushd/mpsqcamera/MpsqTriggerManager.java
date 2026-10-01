@@ -5,7 +5,6 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.registry.Registries;
 import net.minecraft.text.Text;
-import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
 
 import java.net.URLEncoder;
@@ -23,7 +22,6 @@ public final class MpsqTriggerManager {
     private static final List<MpsqTrigger> TRIGGERS = new CopyOnWriteArrayList<>();
     private static final Map<BlockPos, Boolean> POWERED = new HashMap<>();
     private static final Set<UUID> DELETING = new HashSet<>();
-    private static BlockPos lastClick;
     private static long nextPoll;
     private static String scope = "";
     private static boolean pending;
@@ -59,12 +57,10 @@ public final class MpsqTriggerManager {
             TRIGGERS.clear();
             POWERED.clear();
             DELETING.clear();
-            lastClick = null;
             nextPoll = 0;
         }
         if (client.world == null || client.player == null || !TeamVisibilitySettings.visible()
                 || (!MpsqActionSync.server().isBlank() && !MpsqActionSync.isMpsqServer())) {
-            lastClick = null;
             return;
         }
 
@@ -106,17 +102,10 @@ public final class MpsqTriggerManager {
                 continue;
             }
             if (kind.usesPowerEdge()) {
-                if (rose(pos, MpsqTriggerBlockPolicy.isPowered(state))) dispatchLocal(row);
+                Boolean changedTo = stateTransition(pos, MpsqTriggerBlockPolicy.isActivated(state, kind));
+                if (changedTo != null && (kind.followsPowerState() || changedTo)) dispatchLocal(row, kind, changedTo);
             }
         }
-        fireClickedFullBlock(client, pos -> {
-            JsonObject row = MpsqLocalActionStore.find(pos);
-            if (row == null) return;
-            var state = client.world.getBlockState(pos);
-            var kind = MpsqTriggerBlockPolicy.classify(state, client.world, pos);
-            if (kind == MpsqTriggerBlockPolicy.Kind.FULL_BLOCK
-                    && row.get("blockId").getAsString().equals(Registries.BLOCK.getId(state.getBlock()).toString())) dispatchLocal(row);
-        });
     }
 
     private static void tickOnline(MinecraftClient client) {
@@ -133,42 +122,42 @@ public final class MpsqTriggerManager {
                 disableStale(trigger);
                 continue;
             }
-            if (kind.usesPowerEdge() && rose(trigger.position(), MpsqTriggerBlockPolicy.isPowered(state))) fire(trigger.id());
+            if (kind.usesPowerEdge()) {
+                Boolean changedTo = stateTransition(trigger.position(), MpsqTriggerBlockPolicy.isActivated(state, kind));
+                if (changedTo != null && (kind.followsPowerState() || changedTo)) {
+                    if (kind.followsPowerState()) fire(trigger.id(), changedTo, false);
+                    else fire(trigger.id(), true, true);
+                }
+            }
         }
-        fireClickedFullBlock(client, pos -> TRIGGERS.stream()
-                .filter(trigger -> trigger.worldId().equals(worldId) && trigger.position().equals(pos)
-                        && ("FULL_BLOCK".equals(trigger.objectType()) || "TRIGGER".equals(trigger.objectType())))
-                .findFirst().ifPresent(trigger -> fire(trigger.id())));
     }
 
-    private static boolean rose(BlockPos pos, boolean powered) {
+    private static Boolean stateTransition(BlockPos pos, boolean powered) {
         Boolean previous = POWERED.put(pos.toImmutable(), powered);
-        // The first observed state seeds the edge detector. Joining while a
-        // lever is already on must not accidentally fire its saved action.
-        return Boolean.FALSE.equals(previous) && powered;
+        // Seed without emitting an event on join; report subsequent state changes.
+        return previous == null || previous == powered ? null : powered;
     }
 
-    private static void fireClickedFullBlock(MinecraftClient client, java.util.function.Consumer<BlockPos> fire) {
-        if (!(client.crosshairTarget instanceof BlockHitResult hit) || !client.options.useKey.isPressed() || client.currentScreen != null) {
-            lastClick = null;
-            return;
-        }
-        BlockPos pos = hit.getBlockPos();
-        if (lastClick != null && lastClick.equals(pos)) return;
-        lastClick = pos;
-        fire.accept(pos);
-    }
-
-    private static void dispatchLocal(JsonObject row) {
+    private static void dispatchLocal(JsonObject row, MpsqTriggerBlockPolicy.Kind kind, boolean powered) {
         JsonObject event = new JsonObject();
         event.addProperty("action_type", row.get("actionType").getAsString());
-        event.add("action_data", row.getAsJsonObject("actionData"));
+        JsonObject data = row.getAsJsonObject("actionData").deepCopy();
+        if (kind.followsPowerState()) data.addProperty("redstone_powered", powered);
+        event.add("action_data", data);
         event.addProperty("created_at", java.time.Instant.now().toString());
         MpsqActionSync.dispatch(event);
     }
 
     private static void fire(UUID id) {
-        MpsqApiClient.fireTrigger(id).exceptionally(error -> {
+        fire(id, null, false);
+    }
+
+    private static void fire(UUID id, Boolean powered) {
+        fire(id, powered, false);
+    }
+
+    private static void fire(UUID id, Boolean powered, boolean pulse) {
+        MpsqApiClient.fireTrigger(id, powered, pulse).exceptionally(error -> {
             MpsqCameraClient.LOGGER.warn("MPSQ-Auslöser konnte nicht aktiviert werden", error);
             MinecraftClient client = MinecraftClient.getInstance();
             client.execute(() -> {
