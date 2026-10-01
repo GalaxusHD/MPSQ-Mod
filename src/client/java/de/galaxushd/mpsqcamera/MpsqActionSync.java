@@ -117,6 +117,13 @@ public final class MpsqActionSync {
     private static void startTriggerAudio(JsonObject data){String source=data.has("sourceType")?data.get("sourceType").getAsString():"minecraft";String sound=data.has("sound")?data.get("sound").getAsString():"";if(source.equals("mp3")||source.equals("mp4")){MpsqAudioManager.stop();MpsqMediaAudioManager.play(source,java.util.List.of(sound));}else{MpsqMediaAudioManager.stop();MpsqAudioManager.startPlaylist("MPSQ",java.util.List.of(sound));}}
     private static void openLinkOnScreen(JsonObject data) {
         try {
+            // On the MPSQ server the trigger endpoint has already updated the
+            // shared screen state. Replaying the event here would start the
+            // video a second time and undo a stop/toggle from another button.
+            if (isMpsqServer()) {
+                ScreenSyncManager.refresh();
+                return;
+            }
             var screenId=java.util.UUID.fromString(data.get("screenId").getAsString());
             var screen=LocalScreenStore.findById(screenId).orElse(null);
             String url=data.get("url").getAsString();
@@ -124,9 +131,18 @@ public final class MpsqActionSync {
             if(screen==null||screen.inputType()!=LocalScreenStore.ScreenInputType.LINK
                     ||!"https".equalsIgnoreCase(uri.getScheme())||uri.getHost()==null
                     ||uri.getUserInfo()!=null||url.length()>2048)return;
-            LocalScreenStore.updateConfig(screenId,LocalScreenStore.ScreenInputType.LINK,url,null);
             var old=CinemaPlaybackStore.get(screenId);
-            CinemaPlaybackStore.set(screenId,new CinemaPlaybackStore.PlaybackState(true,0L,old.revision()+1L,System.currentTimeMillis()));
+            long now=System.currentTimeMillis();
+            boolean sameVideo=url.equals(screen.url());
+            if (sameVideo && old.playing()) {
+                long position=old.positionMs();
+                if (old.updatedAtMs()>0L) position+=Math.max(0L,now-old.updatedAtMs());
+                CinemaPlaybackStore.set(screenId,new CinemaPlaybackStore.PlaybackState(false,position,old.revision()+1L,now));
+            } else {
+                LocalScreenStore.updateConfig(screenId,LocalScreenStore.ScreenInputType.LINK,url,null);
+                long position=sameVideo?old.positionMs():0L;
+                CinemaPlaybackStore.set(screenId,new CinemaPlaybackStore.PlaybackState(true,position,old.revision()+1L,now));
+            }
             CinemaBrowserManager.synchronize();
         } catch(RuntimeException ignored) { }
     }
