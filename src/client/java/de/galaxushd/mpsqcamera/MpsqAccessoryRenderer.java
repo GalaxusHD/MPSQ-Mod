@@ -149,7 +149,7 @@ public final class MpsqAccessoryRenderer {
                 float size=o.has("scale")?o.get("scale").getAsFloat():1f;String animation=o.has("animation")?o.get("animation").getAsString():"none";float phase=(System.currentTimeMillis()%4000L)/1000f;float bob=animation.equals("bob")?(float)Math.sin(phase*Math.PI*2)*0.08f:0;float pulse=animation.equals("pulse")?1f+(float)Math.sin(phase*Math.PI*2)*0.08f:1f;float yaw=o.has("yaw")?o.get("yaw").getAsFloat():0f,pitch=o.has("pitch")?o.get("pitch").getAsFloat():0f;boolean face=o.has("face_player")&&o.get("face_player").getAsBoolean();float npcHeight=playerSkin?1.8f*size:size;
                 String rotationKey=o.has("id")?o.get("id").getAsString():x+":"+y+":"+z;
                 float headYaw=0f;
-                if(face&&client.player!=null&&client.player.squaredDistanceTo(x,y+npcHeight*0.5,z)<=900){double dx=client.player.getX()-x,dz=client.player.getZ()-z,lookFromY=y+npcHeight*0.85,targetY=client.player.getY()+0.9,dy=targetY-lookFromY;float targetYaw=(float)Math.toDegrees(Math.atan2(-dx,dz));float targetPitch=(float)-Math.toDegrees(Math.atan2(dy,Math.sqrt(dx*dx+dz*dz)));float[] facing=smoothNpcFacing(rotationKey,yaw,targetYaw,targetPitch);yaw=facing[0];headYaw=facing[1];pitch=facing[2];}
+                if(face&&client.player!=null&&client.player.squaredDistanceTo(x,y+npcHeight*0.5,z)<=900){double dx=client.player.getX()-x,dz=client.player.getZ()-z,lookFromY=y+npcHeight*0.85,targetY=client.player.getEyeY(),dy=targetY-lookFromY;float targetYaw=(float)Math.toDegrees(Math.atan2(-dx,dz));float targetPitch=(float)-Math.toDegrees(Math.atan2(dy,Math.sqrt(dx*dx+dz*dz)));float[] facing=smoothNpcFacing(rotationKey,yaw,targetYaw,targetPitch);yaw=facing[0];headYaw=facing[1];pitch=facing[2];}
                 if(!face)npcRotations.remove(rotationKey);
                 if(animation.equals("turn"))yaw+=phase*90f;
                 if(animation.equals("nod"))pitch+=(float)Math.sin(phase*Math.PI*2)*12f;
@@ -171,11 +171,13 @@ public final class MpsqAccessoryRenderer {
                 boolean tutorialDone=o.has("tutorial_completed")&&o.get("tutorial_completed").getAsBoolean();
                 String tag=switch(task){case "accessories"->"accessories";case "quest"->"quests";case "tutorial"->"tutorial";default->null;};
                 if(tag!=null){
+                    double towardX=camera.x-x,towardZ=camera.z-z,horizontalLength=Math.sqrt(towardX*towardX+towardZ*towardZ);
                     double tagX=x-camera.x,tagZ=z-camera.z;
+                    if(horizontalLength>1.0e-4){double push=0.20*size;tagX+=(towardX/horizontalLength)*push;tagZ+=(towardZ/horizontalLength)*push;}
                     float tagScale=size,tagHeight=0.20f*tagScale;
                     float aspect=switch(tag){case "accessories"->2624f/320f;case "quests"->1504f/320f;default->1952f/320f;};
-                    // Keep the tag centered over the NPC, with a scale-proportional gap that preserves the agreed 2/3 spacing.
-                    drawBillboard(context,matrices,consumers,Identifier.of("mpsqcamera","textures/gui/npc_tags/"+tag+".png"),tagX,y+npcHeight+bob+0.20*tagScale-camera.y,tagZ,tagHeight*aspect,tagHeight);
+                    // Push the centered billboard toward the camera by 2/3 of the former 0.30× scale offset.
+                    drawBillboard(context,matrices,consumers,Identifier.of("mpsqcamera","textures/gui/npc_tags/"+tag+".png"),tagX,y+npcHeight+bob+0.12*tagScale-camera.y,tagZ,tagHeight*aspect,tagHeight);
                     if("tutorial".equals(tag)&&!tutorialDone){float hover=(float)Math.sin(System.currentTimeMillis()/360.0)*0.07f*tagScale;drawBillboard(context,matrices,consumers,Identifier.of("mpsqcamera","textures/gui/npc_tags/tutorial_exclamation.png"),tagX,y+npcHeight+bob+(0.48f*tagScale)+hover-camera.y,tagZ,0.42f*tagScale,0.42f*tagScale);}}
             }
         });
