@@ -24,10 +24,10 @@ public final class MpsqAccessoryRenderer {
     private record PreviewPoint(double x,double y,double z){}
     private record PreviewPolygon(double[][] points,int color,double depth){}
     private static final class NpcRotation {
-        float yaw;
+        float bodyYaw;
         float pitch;
         long updatedAt;
-        NpcRotation(float yaw,float pitch,long updatedAt){this.yaw=yaw;this.pitch=pitch;this.updatedAt=updatedAt;}
+        NpcRotation(float bodyYaw,float pitch,long updatedAt){this.bodyYaw=bodyYaw;this.pitch=pitch;this.updatedAt=updatedAt;}
     }
     private static final Map<String,Model> models=new HashMap<>();
     private static final Map<String,Identifier> previews=new HashMap<>();
@@ -147,10 +147,10 @@ public final class MpsqAccessoryRenderer {
             for(var value:npcs){var o=value.getAsJsonObject();if(!o.has("url")||o.get("url").isJsonNull())continue;String category=str(o,"category","npc_model");boolean playerSkin="npc_skin_normal".equals(category)||"npc_skin_slim".equals(category);boolean slim="npc_skin_slim".equals(category);String url=o.get("url").getAsString();Model model=playerSkin?null:models.get(url);MpsqNpcSkinRenderer.Skin skin=playerSkin?MpsqNpcSkinRenderer.get(url,slim):null;if(playerSkin?skin==null:model==null)continue;
                 double x=o.has("world_x")?o.get("world_x").getAsDouble():o.get("x").getAsDouble()+0.5,y=o.has("world_y")?o.get("world_y").getAsDouble():o.get("y").getAsDouble(),z=o.has("world_z")?o.get("world_z").getAsDouble():o.get("z").getAsDouble()+0.5;if(camera.squaredDistanceTo(x,y,z)>4096)continue;
                 float size=o.has("scale")?o.get("scale").getAsFloat():1f;String animation=o.has("animation")?o.get("animation").getAsString():"none";float phase=(System.currentTimeMillis()%4000L)/1000f;float bob=animation.equals("bob")?(float)Math.sin(phase*Math.PI*2)*0.08f:0;float pulse=animation.equals("pulse")?1f+(float)Math.sin(phase*Math.PI*2)*0.08f:1f;float yaw=o.has("yaw")?o.get("yaw").getAsFloat():0f,pitch=o.has("pitch")?o.get("pitch").getAsFloat():0f;boolean face=o.has("face_player")&&o.get("face_player").getAsBoolean();float npcHeight=playerSkin?1.8f*size:size;
-                if(face&&client.player!=null&&client.player.squaredDistanceTo(x,y+npcHeight*0.5,z)<=900){double dx=client.player.getX()-x,dz=client.player.getZ()-z,lookFromY=y+npcHeight*0.85,targetY=client.player.getY()+0.9,dy=targetY-lookFromY;yaw=(float)Math.toDegrees(Math.atan2(-dx,dz));pitch=(float)-Math.toDegrees(Math.atan2(dy,Math.sqrt(dx*dx+dz*dz)));}
+                float headYaw=0f;
+                if(face&&client.player!=null&&client.player.squaredDistanceTo(x,y+npcHeight*0.5,z)<=900){double dx=client.player.getX()-x,dz=client.player.getZ()-z,lookFromY=y+npcHeight*0.85,targetY=client.player.getY()+0.9,dy=targetY-lookFromY;float targetYaw=(float)Math.toDegrees(Math.atan2(-dx,dz));float targetPitch=(float)-Math.toDegrees(Math.atan2(dy,Math.sqrt(dx*dx+dz*dz)));float[] facing=smoothNpcFacing(rotationKey,yaw,targetYaw,targetPitch);yaw=facing[0];headYaw=facing[1];pitch=facing[2];}
                 String rotationKey=o.has("id")?o.get("id").getAsString():x+":"+y+":"+z;
-                if(face){float[] smoothed=smoothNpcYaw(rotationKey,yaw,pitch);yaw=smoothed[0];pitch=smoothed[1];}
-                else npcRotations.remove(rotationKey);
+                if(!face)npcRotations.remove(rotationKey);
                 if(animation.equals("turn"))yaw+=phase*90f;
                 if(animation.equals("nod"))pitch+=(float)Math.sin(phase*Math.PI*2)*12f;
                 if(animation.equals("tilt"))yaw+=(float)Math.sin(phase*Math.PI*2)*14f;
@@ -164,7 +164,7 @@ public final class MpsqAccessoryRenderer {
                 int glow=glowColor(configuredGlow);
                 boolean glowDisabled=MpsqNpcVisitStore.isGlowDisabled(str(o,"id",""));
                 boolean glowing=!glowDisabled&&(!hasSpecialRole||!MpsqNpcVisitStore.hasVisited(task));
-                if(playerSkin){var state=MpsqNpcSkinRenderer.createState(skin,yaw,pitch,(System.currentTimeMillis()%100000L)/50.0f,glowing);int light=WorldRenderer.getLightmapCoordinates(client.world,net.minecraft.util.math.BlockPos.ofFloored(x,y,z));MpsqNpcSkinRenderer.render(state,x-camera.x,y+bob-camera.y,z-camera.z,size*pulse,matrices,consumers,light,glow);}
+                if(playerSkin){var state=MpsqNpcSkinRenderer.createState(skin,yaw,headYaw,pitch,(System.currentTimeMillis()%100000L)/50.0f,glowing);int light=WorldRenderer.getLightmapCoordinates(client.world,net.minecraft.util.math.BlockPos.ofFloored(x,y,z));MpsqNpcSkinRenderer.render(state,x-camera.x,y+bob-camera.y,z-camera.z,size*pulse,matrices,consumers,light,glow);}
                 else {matrices.push();matrices.translate(x-camera.x,y+bob-camera.y,z-camera.z);matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(-yaw));matrices.multiply(RotationAxis.POSITIVE_X.rotationDegrees(pitch));matrices.scale(size/16f*pulse,size/16f*pulse,size/16f*pulse);drawBbModel(model,matrices,consumers,0xFFFFFFFF);
                     if(glowing){var outline=client.getBufferBuilders().getOutlineVertexConsumers();outline.setColor((glow>>16)&255,(glow>>8)&255,glow&255,255);drawBbModel(model,matrices,outline,0xFFFFFFFF);outline.draw();}
                     matrices.pop();}
@@ -181,18 +181,21 @@ public final class MpsqAccessoryRenderer {
             }
         });
     }
-    private static float[] smoothNpcYaw(String key,float targetYaw,float targetPitch){
+    private static float[] smoothNpcFacing(String key,float initialBodyYaw,float targetYaw,float targetPitch){
         long now=System.nanoTime();
         NpcRotation rotation=npcRotations.get(key);
-        if(rotation==null){npcRotations.put(key,new NpcRotation(targetYaw,targetPitch,now));return new float[]{targetYaw,targetPitch};}
+        if(rotation==null){rotation=new NpcRotation(initialBodyYaw,targetPitch,now);npcRotations.put(key,rotation);}
         float deltaSeconds=Math.max(0f,Math.min(0.1f,(now-rotation.updatedAt)/1_000_000_000f));
-        // A ~140 ms response gives head/body turns a continuous ease while still tracking promptly.
-        float amount=1f-(float)Math.exp(-deltaSeconds/0.14f);
-        rotation.yaw=wrapDegrees(rotation.yaw+wrapDegrees(targetYaw-rotation.yaw)*amount);
-        rotation.pitch+= (targetPitch-rotation.pitch)*amount;
+        // Keep the head centered until it reaches ±60°; only then smoothly turn the body underneath it.
+        float offset=wrapDegrees(targetYaw-rotation.bodyYaw);
+        if(Math.abs(offset)>60f){float desiredBodyYaw=targetYaw-Math.copySign(60f,offset);float amount=1f-(float)Math.exp(-deltaSeconds/0.22f);rotation.bodyYaw=wrapDegrees(rotation.bodyYaw+wrapDegrees(desiredBodyYaw-rotation.bodyYaw)*amount);}
+        float relativeHeadYaw=Math.max(-60f,Math.min(60f,wrapDegrees(targetYaw-rotation.bodyYaw)));
+        float pitch=Math.max(-35f,Math.min(35f,targetPitch));
+        float pitchAmount=1f-(float)Math.exp(-deltaSeconds/0.14f);
+        rotation.pitch+=(pitch-rotation.pitch)*pitchAmount;
         rotation.updatedAt=now;
         if(npcRotations.size()>512)npcRotations.entrySet().removeIf(entry->now-entry.getValue().updatedAt>60_000_000_000L);
-        return new float[]{rotation.yaw,rotation.pitch};
+        return new float[]{rotation.bodyYaw,relativeHeadYaw,rotation.pitch};
     }
     private static float wrapDegrees(float degrees){degrees%=360f;if(degrees>=180f)degrees-=360f;if(degrees< -180f)degrees+=360f;return degrees;}
     private static void mapCatalog(JsonArray values,String fallback){for(JsonElement value:values){if(!value.isJsonObject())continue;JsonObject asset=value.getAsJsonObject();if(asset.has("id")&&asset.has("url")){String id=asset.get("id").getAsString();localAssetUrls.put(id,asset.get("url").getAsString());localAssetCategories.put(id,str(asset,"category",fallback));}}}

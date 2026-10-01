@@ -177,6 +177,13 @@ final class MpsqNpcSkinRenderer {
         return state;
     }
 
+    /** Creates a state with separate body and relative head yaw while retaining the colored outline. */
+    static PlayerEntityRenderState createState(Skin skin, float bodyYaw, float relativeHeadYaw, float pitch, float age, boolean glowing) {
+        PlayerEntityRenderState state = createState(skin, bodyYaw, pitch, age, glowing);
+        state.relativeHeadYaw = relativeHeadYaw;
+        return state;
+    }
+
     /** Compatibility overload retaining the head-yaw input used by NPC render callers. */
     static PlayerEntityRenderState createState(Skin skin, float yaw, float headYaw, float pitch, float age) {
         PlayerEntityRenderState state = createState(skin, yaw, pitch, age, false);
