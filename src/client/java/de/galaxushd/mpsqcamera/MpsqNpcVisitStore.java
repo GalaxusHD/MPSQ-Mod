@@ -21,11 +21,24 @@ public final class MpsqNpcVisitStore {
         return contains(scopeData(readRoot(),false).getAsJsonArray("visited_tasks"),task);
     }
 
+    /** Whether this specific NPC has been opened for the given role. */
+    public static synchronized boolean hasVisited(String task,String npcId){
+        if(!isTask(task)||npcId==null||npcId.isBlank())return false;
+        return contains(scopeData(readRoot(),false).getAsJsonArray("visited_npcs"),visitKey(task,npcId));
+    }
+
     public static synchronized boolean markVisited(String task){
         if(!isTask(task))return false;
         JsonObject root=readRoot(),scope=scopeData(root,true);JsonArray visited=scope.getAsJsonArray("visited_tasks");
         if(contains(visited,task))return false;
         visited.add(task);scope.add("visited_tasks",visited);saveRoot(root);return true;
+    }
+
+    public static synchronized boolean markVisited(String task,String npcId){
+        if(!isTask(task)||npcId==null||npcId.isBlank())return false;
+        JsonObject root=readRoot(),scope=scopeData(root,true);JsonArray visited=scope.getAsJsonArray("visited_npcs");String key=visitKey(task,npcId);
+        if(contains(visited,key))return false;
+        visited.add(key);scope.add("visited_npcs",visited);saveRoot(root);return true;
     }
 
     public static synchronized boolean isGlowDisabled(String npcId){
@@ -59,6 +72,7 @@ public final class MpsqNpcVisitStore {
     private static void remove(JsonArray array,String value){for(int i=array.size()-1;i>=0;i--){JsonElement item=array.get(i);if(item.isJsonPrimitive()&&value.equals(item.getAsString()))array.remove(i);}}
 
     private static boolean isTask(String task){return "tutorial".equals(task)||"accessories".equals(task)||"quest".equals(task);}
+    private static String visitKey(String task,String npcId){return task+"|"+npcId;}
     private static boolean contains(JsonArray array,String value){if(array==null)return false;for(JsonElement e:array)if(e.isJsonPrimitive()&&value.equals(e.getAsString()))return true;return false;}
 
     private static JsonObject scopeData(JsonObject root,boolean create){
@@ -67,6 +81,7 @@ public final class MpsqNpcVisitStore {
         JsonObject scope=scopes.has(scopeKey())&&scopes.get(scopeKey()).isJsonObject()?scopes.getAsJsonObject(scopeKey()):null;
         if(scope==null){scope=new JsonObject();scope.add("visited_tasks",new JsonArray());scope.add("disabled_npcs",new JsonArray());if(create)scopes.add(scopeKey(),scope);}
         if(!scope.has("visited_tasks")||!scope.get("visited_tasks").isJsonArray())scope.add("visited_tasks",new JsonArray());
+        if(!scope.has("visited_npcs")||!scope.get("visited_npcs").isJsonArray())scope.add("visited_npcs",new JsonArray());
         if(!scope.has("disabled_npcs")||!scope.get("disabled_npcs").isJsonArray())scope.add("disabled_npcs",new JsonArray());
         if(!scope.has("enabled_npcs")||!scope.get("enabled_npcs").isJsonArray())scope.add("enabled_npcs",new JsonArray());
         return scope;

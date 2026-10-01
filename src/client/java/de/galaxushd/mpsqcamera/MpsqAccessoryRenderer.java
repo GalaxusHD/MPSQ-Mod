@@ -42,7 +42,7 @@ public final class MpsqAccessoryRenderer {
             String task=npc.has("task_type")&&!npc.get("task_type").isJsonNull()?npc.get("task_type").getAsString():"none";
             boolean special=switch(task){case "accessories","quest","tutorial"->true;default->false;};
             String id=str(npc,"id","");
-            if(MpsqNpcVisitStore.isGlowEnabled(id,special)&&(!special||!MpsqNpcVisitStore.hasVisited(task)))return true;
+            if(MpsqNpcVisitStore.isGlowEnabled(id,special)&&(!special||!MpsqNpcVisitStore.hasVisited(task,id)))return true;
         }
         return false;
     }
@@ -164,7 +164,7 @@ public final class MpsqAccessoryRenderer {
                 if("none".equalsIgnoreCase(configuredGlow))configuredGlow=defaultGlowColor(task);
                 int glow=glowColor(configuredGlow);
                 String npcId=str(o,"id","");
-                boolean roleGlowExpired=hasSpecialRole&&MpsqNpcVisitStore.hasVisited(task);
+                boolean roleGlowExpired=hasSpecialRole&&MpsqNpcVisitStore.hasVisited(task,npcId);
                 boolean glowing=MpsqNpcVisitStore.isGlowEnabled(npcId,hasSpecialRole)&&!roleGlowExpired;
                 if(playerSkin){var state=MpsqNpcSkinRenderer.createState(skin,yaw,pitch,(System.currentTimeMillis()%100000L)/50.0f,glowing);int light=WorldRenderer.getLightmapCoordinates(client.world,net.minecraft.util.math.BlockPos.ofFloored(x,y,z));MpsqNpcSkinRenderer.render(state,x-camera.x,y+bob-camera.y,z-camera.z,size*pulse,matrices,consumers,light,glow);}
                 else {matrices.push();matrices.translate(x-camera.x,y+bob-camera.y,z-camera.z);matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(-yaw));matrices.multiply(RotationAxis.POSITIVE_X.rotationDegrees(pitch));matrices.scale(size/16f*pulse,size/16f*pulse,size/16f*pulse);drawBbModel(model,matrices,consumers,0xFFFFFFFF);
