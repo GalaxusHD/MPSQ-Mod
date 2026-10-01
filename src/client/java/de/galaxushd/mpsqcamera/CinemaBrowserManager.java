@@ -38,7 +38,10 @@ public final class CinemaBrowserManager {
 
     public static void initialize() {
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
-            if (mouseRestoreDelayTicks > 0 && --mouseRestoreDelayTicks == 0) restoreGameMouse();
+            if (mouseRestoreDelayTicks > 0) {
+                if ((mouseRestoreDelayTicks & 1) == 0) restoreGameMouse();
+                mouseRestoreDelayTicks--;
+            }
             if (client.world == null) {
                 clear();
                 return;
@@ -143,6 +146,7 @@ public final class CinemaBrowserManager {
                 return false;
             }
             CinemaAudioManager.initialize();
+            requestGameMouseRestore();
             return true;
         } catch (RuntimeException exception) {
             MpsqCameraClient.LOGGER.warn("MCEF konnte nicht initialisiert werden; Kino-Bildschirme bleiben offline.", exception);
@@ -166,8 +170,8 @@ public final class CinemaBrowserManager {
     private static void close(UUID screenId) {
         BrowserSession session = BROWSERS.remove(screenId);
         if (session != null) {
-            session.browser().close();
-            requestGameMouseRestore();
+            try { session.browser().close(); }
+            finally { requestGameMouseRestore(); }
         }
         // Some MCEF versions report browser=null in their audio callbacks, so we
         // cannot associate a stream with a screen. Once the last cinema browser
@@ -181,9 +185,13 @@ public final class CinemaBrowserManager {
         if (client.currentScreen == null && client.isWindowFocused()) client.mouse.lockCursor();
     }
 
-    /** MCEF may release GLFW cursor capture asynchronously after browser creation or close. */
-    private static void requestGameMouseRestore() {
-        mouseRestoreDelayTicks = Math.max(mouseRestoreDelayTicks, 2);
+    /** MCEF can change GLFW cursor capture after a browser operation has returned. */
+    static void requestGameMouseRestore() {
+        MinecraftClient client = MinecraftClient.getInstance();
+        if (client.currentScreen == null && client.isWindowFocused()) {
+            restoreGameMouse();
+            mouseRestoreDelayTicks = Math.max(mouseRestoreDelayTicks, 8);
+        }
     }
 
     /** Converts common YouTube links to their player URL, including a synchronized start point. */

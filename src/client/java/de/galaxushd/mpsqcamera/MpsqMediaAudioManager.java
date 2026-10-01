@@ -78,6 +78,7 @@ public final class MpsqMediaAudioManager {
             effectBrowser=MCEF.createBrowser(page,false);
             effectBrowser.setFocus(false);
             effectBrowser.resize(64,64);
+            CinemaBrowserManager.requestGameMouseRestore();
             effectExpiresAt=System.currentTimeMillis()+8_000L;
         } catch(Exception exception) {
             closeEffectBrowser();
@@ -100,11 +101,12 @@ public final class MpsqMediaAudioManager {
             // The hidden audio browser must never capture Minecraft mouse or camera input.
             browser.setFocus(false);
             browser.resize(64, 64);
-            CinemaBrowserManager.restoreGameMouse();
+            CinemaBrowserManager.requestGameMouseRestore();
             active = true;
         } catch (RuntimeException exception) {
             browser = null;
             active = false;
+            CinemaBrowserManager.requestGameMouseRestore();
             MpsqCameraClient.LOGGER.warn("MPSQ-Medienplayer konnte nicht gestartet werden", exception);
         }
     }
@@ -127,12 +129,13 @@ public final class MpsqMediaAudioManager {
         if (current != null) {
             try { current.close(); }
             catch (RuntimeException exception) { MpsqCameraClient.LOGGER.debug("MPSQ-Medienbrowser ließ sich nicht schließen", exception); }
+            finally { CinemaBrowserManager.requestGameMouseRestore(); }
         }
     }
 
     private static void closeEffectBrowser() {
         MCEFBrowser current=effectBrowser;
         effectBrowser=null;effectExpiresAt=0L;
-        if(current!=null)try{current.close();}catch(RuntimeException exception){MpsqCameraClient.LOGGER.debug("MPSQ-Effektbrowser ließ sich nicht schließen",exception);}
+        if(current!=null)try{current.close();}catch(RuntimeException exception){MpsqCameraClient.LOGGER.debug("MPSQ-Effektbrowser ließ sich nicht schließen",exception);}finally{CinemaBrowserManager.requestGameMouseRestore();}
     }
 }
