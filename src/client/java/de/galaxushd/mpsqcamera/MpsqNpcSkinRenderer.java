@@ -121,6 +121,20 @@ final class MpsqNpcSkinRenderer {
         matrices.pop();
     }
 
+    /** Compatibility overload for callers using the previous color-string API. */
+    static void render(PlayerEntityRenderState state, double x, double y, double z, float scale,
+                       String glowColor, net.minecraft.client.util.math.MatrixStack matrices,
+                       VertexConsumerProvider consumers, int light) {
+        boolean glowing = "minecraft:glowing".equals(glowColor)
+                || (glowColor != null && glowColor.matches("#[0-9a-fA-F]{6}"));
+        int outlineColor = 0xFFFFFF;
+        if (glowColor != null && glowColor.matches("#[0-9a-fA-F]{6}")) {
+            outlineColor = Integer.parseInt(glowColor.substring(1), 16);
+        }
+        state.hasOutline = glowing;
+        render(state, x, y, z, scale, matrices, consumers, light, outlineColor);
+    }
+
     private static String key(String url, boolean slim) {
         return url + (slim ? "#slim" : "#wide");
     }
@@ -160,6 +174,13 @@ final class MpsqNpcSkinRenderer {
         state.playerName = null;
         state.name = null;
         state.hasOutline = glowing;
+        return state;
+    }
+
+    /** Compatibility overload retaining the head-yaw input used by NPC render callers. */
+    static PlayerEntityRenderState createState(Skin skin, float yaw, float headYaw, float pitch, float age) {
+        PlayerEntityRenderState state = createState(skin, yaw, pitch, age, false);
+        state.relativeHeadYaw = headYaw;
         return state;
     }
 
