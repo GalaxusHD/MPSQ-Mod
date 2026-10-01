@@ -129,8 +129,9 @@ public final class MpsqAccessoryRenderer {
                 matrices.pop();
             }
         });
-        // NPC outlines must be submitted before vanilla flushes and composites its entity-outline pass.
-        WorldRenderEvents.BEFORE_ENTITIES.register(MpsqAccessoryRenderer::renderNpcs);
+        // Submit NPC silhouettes after vanilla entities have rendered. The outline framebuffer is
+        // composited at this point; doing it before entities can blit its solid mask over the scene.
+        WorldRenderEvents.AFTER_ENTITIES.register(MpsqAccessoryRenderer::renderNpcs);
     }
     private static void renderNpcs(WorldRenderContext context){
         var client=MinecraftClient.getInstance();var matrices=context.matrixStack();var consumers=context.consumers();
@@ -149,7 +150,6 @@ public final class MpsqAccessoryRenderer {
         }
         if(hasGlowingNpc){
             client.getBufferBuilders().getOutlineVertexConsumers().draw();
-            client.worldRenderer.drawEntityOutlinesFramebuffer();
         }
     }
     private static void mapCatalog(JsonArray values,String fallback){for(JsonElement value:values){if(!value.isJsonObject())continue;JsonObject asset=value.getAsJsonObject();if(asset.has("id")&&asset.has("url")){String id=asset.get("id").getAsString();localAssetUrls.put(id,asset.get("url").getAsString());localAssetCategories.put(id,str(asset,"category",fallback));}}}
