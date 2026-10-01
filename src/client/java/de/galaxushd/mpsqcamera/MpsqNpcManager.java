@@ -37,10 +37,9 @@ public final class MpsqNpcManager {
             JsonObject npc = element.getAsJsonObject();
             if(!npc.has("x")||!npc.has("y")||!npc.has("z"))continue;int x=npc.get("x").getAsInt(),y=npc.get("y").getAsInt(),z=npc.get("z").getAsInt();
             double size=npc.has("scale")?npc.get("scale").getAsDouble():1;
-            String category=npc.has("category")?npc.get("category").getAsString():"";
-            if(!"npc_skin_normal".equals(category)&&!"npc_skin_slim".equals(category))continue;
-            double height=1.8*size;
-            Box hitbox=new Box(x+.5-size*.45,y,z+.5-size*.45,x+.5+size*.45,y+height,z+.5+size*.45);
+            // Uploaded NPC models use a 16-unit canvas, rendered at scale / 16,
+            // so the visible model is approximately `scale` blocks tall.
+            Box hitbox=new Box(x+.5-size*.45,y,z+.5-size*.45,x+.5+size*.45,y+size,z+.5+size*.45);
             var hit=hitbox.raycast(eye,eye.add(look.multiply(6.0)));
             if(hit.isPresent()){
                 double distance=eye.squaredDistanceTo(hit.get());
@@ -81,7 +80,6 @@ public final class MpsqNpcManager {
                     boolean saved = MpsqLocalNpcStore.update(MpsqActionSync.world(), id, patch);
                     if (saved) {
                         MpsqAccessoryRenderer.markTutorialCompleted(id);
-                        MpsqAccessoryRenderer.refresh();
                         if (MinecraftClient.getInstance().player != null) MinecraftClient.getInstance().player.sendMessage(net.minecraft.text.Text.literal("Tutorial abgeschlossen und in dieser Welt gespeichert."), false);
                     } else if (MinecraftClient.getInstance().player != null) {
                         MinecraftClient.getInstance().player.sendMessage(net.minecraft.text.Text.literal("Tutorial-Abschluss konnte lokal nicht gespeichert werden."), false);
@@ -92,7 +90,6 @@ public final class MpsqNpcManager {
                 MpsqApiClient.post("/npcs/" + id + "/tutorial-complete", body).whenComplete((result, error) -> MinecraftClient.getInstance().execute(() -> {
                     if (error == null) {
                         MpsqAccessoryRenderer.markTutorialCompleted(id);
-                        MpsqAccessoryRenderer.refresh();
                         if (MinecraftClient.getInstance().player != null) MinecraftClient.getInstance().player.sendMessage(net.minecraft.text.Text.literal("Tutorial abgeschlossen und gespeichert."), false);
                     } else if (MinecraftClient.getInstance().player != null) MinecraftClient.getInstance().player.sendMessage(net.minecraft.text.Text.literal("Tutorial-Abschluss fehlgeschlagen: " + error.getMessage()), false);
                 }));

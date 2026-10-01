@@ -92,8 +92,8 @@ public final class MpsqMediaAudioManager {
         urls.forEach(json::add);
         // A tiny off-screen Chromium page owns the HTML audio element; PCM is
         // routed back into Minecraft by the existing MCEF/OpenAL bridge.
-        String html = "<!doctype html><meta charset=utf-8><audio id=a autoplay></audio><script>const q=" + json
-                + ";let i=0,a=document.getElementById('a');a.volume="+Math.max(0.0f,Math.min(1.0f,volume))+";a.onended=()=>{i++;if(i<q.length){a.src=q[i];a.play()}};a.onerror=()=>{i++;if(i<q.length){a.src=q[i];a.play()}};a.src=q[0];a.play().catch(()=>{});</script>";
+        String html = "<!doctype html><meta charset=utf-8><audio id=a preload=auto></audio><script>const q=" + json
+                + ";let i=0,a=document.getElementById('a');a.preload='auto';a.volume="+Math.max(0.0f,Math.min(1.0f,volume))+";const next=()=>{i++;if(i<q.length){a.src=q[i];a.load()}};a.onended=next;a.onerror=next;a.oncanplay=()=>a.play().catch(()=>{});a.src=q[0];a.load();</script>";
         String page = "data:text/html;base64," + Base64.getEncoder().encodeToString(html.getBytes(StandardCharsets.UTF_8));
         try {
             browser = MCEF.createBrowser(page, false);
