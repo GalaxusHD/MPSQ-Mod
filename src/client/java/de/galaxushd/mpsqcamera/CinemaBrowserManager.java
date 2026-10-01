@@ -30,6 +30,7 @@ public final class CinemaBrowserManager {
     private static final Map<UUID, BrowserSession> BROWSERS = new HashMap<>();
     private static final Set<UUID> FAILED_BROWSERS = new HashSet<>();
     private static int ticks;
+    private static int mouseRestoreDelayTicks;
     private static volatile boolean refreshInProgress;
     private static boolean initializationAttempted;
 
@@ -37,6 +38,7 @@ public final class CinemaBrowserManager {
 
     public static void initialize() {
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
+            if (mouseRestoreDelayTicks > 0 && --mouseRestoreDelayTicks == 0) restoreGameMouse();
             if (client.world == null) {
                 clear();
                 return;
@@ -101,10 +103,11 @@ public final class CinemaBrowserManager {
                 browser.setFocus(false);
                 browser.resize(BROWSER_WIDTH, BROWSER_HEIGHT);
                 BROWSERS.put(screen.id(), new BrowserSession(playback.revision(), browser));
-                restoreGameMouse();
+                requestGameMouseRestore();
                 FAILED_BROWSERS.remove(screen.id());
             } catch (RuntimeException error) {
                 FAILED_BROWSERS.add(screen.id());
+                requestGameMouseRestore();
                 MpsqCameraClient.LOGGER.warn("Kino-Browser für Bildschirm {} konnte nicht erstellt werden", screen.id(), error);
             }
         }
@@ -162,7 +165,10 @@ public final class CinemaBrowserManager {
 
     private static void close(UUID screenId) {
         BrowserSession session = BROWSERS.remove(screenId);
-        if (session != null) session.browser().close();
+        if (session != null) {
+            session.browser().close();
+            requestGameMouseRestore();
+        }
         // Some MCEF versions report browser=null in their audio callbacks, so we
         // cannot associate a stream with a screen. Once the last cinema browser
         // has closed, force-close the fallback source as well.
@@ -173,6 +179,11 @@ public final class CinemaBrowserManager {
     static void restoreGameMouse() {
         MinecraftClient client = MinecraftClient.getInstance();
         if (client.currentScreen == null && client.isWindowFocused()) client.mouse.lockCursor();
+    }
+
+    /** MCEF may release GLFW cursor capture asynchronously after browser creation or close. */
+    private static void requestGameMouseRestore() {
+        mouseRestoreDelayTicks = Math.max(mouseRestoreDelayTicks, 2);
     }
 
     /** Converts common YouTube links to their player URL, including a synchronized start point. */

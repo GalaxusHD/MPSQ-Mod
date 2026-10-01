@@ -18,7 +18,12 @@ public final class CinemaPlaybackStore {
 
     /** Applies states present in a partial API response without stopping local redstone playback. */
     public static void merge(Map<UUID, PlaybackState> states) {
-        STATES.putAll(states);
+        states.forEach((screenId, incoming) -> {
+            PlaybackState current = STATES.get(screenId);
+            if (current == null || incoming.revision() >= current.revision()) {
+                STATES.put(screenId, incoming);
+            }
+        });
     }
 
     public static PlaybackState get(UUID screenId) {
