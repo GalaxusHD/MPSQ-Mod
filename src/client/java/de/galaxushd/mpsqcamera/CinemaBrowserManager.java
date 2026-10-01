@@ -96,6 +96,9 @@ public final class CinemaBrowserManager {
             close(screen.id());
             try {
                 MCEFBrowser browser = MCEF.createBrowser(url, false);
+                // This browser is a texture source only. Never let its Chromium
+                // view take focus from Minecraft's mouse and camera controls.
+                browser.setFocus(false);
                 browser.resize(BROWSER_WIDTH, BROWSER_HEIGHT);
                 BROWSERS.put(screen.id(), new BrowserSession(playback.revision(), browser));
                 FAILED_BROWSERS.remove(screen.id());
