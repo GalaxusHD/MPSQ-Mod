@@ -43,8 +43,15 @@ public final class MpsqActionSync {
                 var client=MinecraftClient.getInstance();
                 if(client.crosshairTarget instanceof net.minecraft.util.hit.BlockHitResult hit && client.world!=null){
                     var position=hit.getBlockPos();
-                    String block=net.minecraft.registry.Registries.BLOCK.getId(client.world.getBlockState(position).getBlock()).toString();
-                    client.send(()->client.setScreen(new MpsqActionSetupScreen(position,block)));
+                    var state=client.world.getBlockState(position);
+                    var kind=MpsqTriggerBlockPolicy.classify(state,client.world,position);
+                    if(kind==MpsqTriggerBlockPolicy.Kind.NONE){
+                        context.getSource().sendError(Text.literal("Dieser Block ist kein MPSQ-Auslöser. Erlaubt sind Knöpfe, Hebel, Druckplatten und volle Blöcke."));
+                    } else {
+                        String block=net.minecraft.registry.Registries.BLOCK.getId(state.getBlock()).toString();
+                        String properties=MpsqTriggerBlockPolicy.describeProperties(state);
+                        client.send(()->client.setScreen(new MpsqActionSetupScreen(position,block,state.getBlock().getName().getString(),kind,properties)));
+                    }
                 } else context.getSource().sendError(Text.literal("Bitte einen Block anschauen."));
                 return 1;
             })));

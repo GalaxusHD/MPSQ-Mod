@@ -15,6 +15,8 @@ import java.util.List;
 public final class MpsqActionSetupScreen extends Screen {
     private final BlockPos pos;
     private final String block, server, world;
+    private final String blockName, properties;
+    private final MpsqTriggerBlockPolicy.Kind blockKind;
     private TextFieldWidget value, duration;
     private ButtonWidget soundTypeButton, linkScreenButton;
     private static final String[] SOUND_TYPES={"minecraft","mp3","mp4"};
@@ -26,16 +28,18 @@ public final class MpsqActionSetupScreen extends Screen {
     private int action, soundType, linkScreenIndex;
     private String status="";
 
-    public MpsqActionSetupScreen(BlockPos pos,String block) {
+    public MpsqActionSetupScreen(BlockPos pos,String block,String blockName,MpsqTriggerBlockPolicy.Kind blockKind,String properties) {
         super(Text.literal("MPSQ-Knopf einrichten"));
         this.pos=pos.toImmutable(); this.block=block;
+        this.blockName=blockName; this.blockKind=blockKind; this.properties=properties;
         this.actions=block.isEmpty()?QUICK_ACTIONS:BLOCK_ACTIONS;
         server=MpsqActionSync.server(); world=MpsqActionSync.world();
     }
-    public MpsqActionSetupScreen() { this(BlockPos.ORIGIN, ""); }
+    public MpsqActionSetupScreen(BlockPos pos,String block) { this(pos,block,block,MpsqTriggerBlockPolicy.Kind.FULL_BLOCK,""); }
+    public MpsqActionSetupScreen() { this(BlockPos.ORIGIN, "","",MpsqTriggerBlockPolicy.Kind.NONE,""); }
 
     @Override protected void init() {
-        int x=width/2-130,y=60;
+        int x=width/2-130,y=96;
         linkScreens=LocalScreenStore.getAllScreens().stream()
                 .filter(s->s.inputType()==LocalScreenStore.ScreenInputType.LINK).toList();
         addDrawableChild(ButtonWidget.builder(Text.literal(actionLabel(actions[action])),b->{
@@ -70,6 +74,12 @@ public final class MpsqActionSetupScreen extends Screen {
     }
 
     private void save() {
+        if(!block.isEmpty()){
+            if(client.world==null||!client.world.isChunkLoaded(pos)) { status="Der ausgewählte Block ist nicht mehr verfügbar."; return; }
+            var currentState=client.world.getBlockState(pos);
+            String currentBlock=net.minecraft.registry.Registries.BLOCK.getId(currentState.getBlock()).toString();
+            if(!block.equals(currentBlock)||MpsqTriggerBlockPolicy.classify(currentState,client.world,pos)!=blockKind){status="Der Block wurde seit der Auswahl verändert. Bitte erneut mit /mpsq-knopf auswählen.";return;}
+        }
         JsonObject data=new JsonObject(),body=new JsonObject(),position=new JsonObject();
         switch(actions[action]) {
             case "TOGGLE_AUDIO" -> {
@@ -94,16 +104,16 @@ public final class MpsqActionSetupScreen extends Screen {
         }
         position.addProperty("x",pos.getX());position.addProperty("y",pos.getY());position.addProperty("z",pos.getZ());
         body.add("position",position);body.addProperty("serverId",server);body.addProperty("worldId",world);
-        body.addProperty("blockId",block);body.addProperty("actionType",actions[action]);body.add("actionData",data);
+        body.addProperty("blockId",block);body.addProperty("objectType",blockKind.name());body.addProperty("actionType",actions[action]);body.add("actionData",data);
         body.addProperty("minimumRank","OPEN_LINK".equals(actions[action])?"vip":"offizier");
         if(MpsqActionSync.server().isBlank()&&client.getServer()!=null){
-            boolean saved=MpsqLocalActionStore.set(pos,block,actions[action],data);
+            boolean saved=MpsqLocalActionStore.set(pos,block,blockKind.name(),actions[action],data);
             status=saved?"Aktion in dieser Einzelspielerwelt gespeichert.":"Lokale Aktion konnte nicht gespeichert werden.";return;
         }
         if(!MpsqActionSync.isMpsqServer()){status="Online-Aktionen sind nur auf mixelpixel.net verfügbar.";return;}
         status="Wird gespeichert…";
         MpsqApiClient.post(block.isEmpty()?"/actions":"/triggers",body).whenComplete((r,e)->client.execute(()->{
-            status=e==null?(block.isEmpty()?"Aktion gesendet.":"Gespeichert. Rechtsklick löst die Aktion aus."):"Speichern fehlgeschlagen: "+e.getMessage();
+            status=e==null?(block.isEmpty()?"Aktion gesendet.":"Gespeichert. "+activationHint()+"."):"Speichern fehlgeschlagen: "+e.getMessage();
             if(e==null)MpsqTriggerManager.refresh();
         }));
     }
@@ -111,14 +121,21 @@ public final class MpsqActionSetupScreen extends Screen {
     @Override public void render(DrawContext c,int x,int y,float d){
         super.render(c,x,y,d);
         c.drawCenteredTextWithShadow(textRenderer,title,width/2,24,MpsqTheme.TEXT_TITEL);
+        if(!block.isEmpty()){
+            c.drawCenteredTextWithShadow(textRenderer,Text.literal(textRenderer.trimToWidth(blockName+" · "+blockKind.label(),260)),width/2,45,0xFFFFFFFF);
+            c.drawCenteredTextWithShadow(textRenderer,Text.literal(textRenderer.trimToWidth(block,260)),width/2,59,0xFF55AAFF);
+            c.drawCenteredTextWithShadow(textRenderer,Text.literal(textRenderer.trimToWidth(properties,260)),width/2,73,0xFFBBBBBB);
+        }
         String selected=actions[action];
         String hint="OPEN_LINK".equals(selected)?"HTTPS-Link auf dem ausgewählten MPSQ-Bildschirm":
                 "SHOW_DIALOGUE".equals(selected)?"Textseiten mit || trennen":
                 "TOGGLE_AUDIO".equals(selected)?(soundType==0?"Minecraft-Sound-ID, z. B. minecraft:music.menu":"Sound-Datei-ID aus dem MPSQ-Upload"):
                 "TOGGLE_COUNTDOWN".equals(selected)?"Countdown-Dauer in Sekunden":"&0–&f Farben: &chellrot, &egelb, &r zurücksetzen";
-        c.drawTextWithShadow(textRenderer,hint,width/2-130,132,0xFFFFFFFF);
+        c.drawTextWithShadow(textRenderer,hint,width/2-130,224,0xFFFFFFFF);
+        if(!block.isEmpty())c.drawTextWithShadow(textRenderer,activationHint(),width/2-130,238,0xFFBBBBBB);
         c.drawCenteredTextWithShadow(textRenderer,Text.literal(status),width/2,height-24,0xFFFFFFFF);
     }
+    private String activationHint(){return blockKind.usesPowerEdge()?"Löst einmal beim Einschalten aus; erneutes Einschalten nach Aus geht wieder": "Rechtsklick auf den vollen Block löst aus";}
     private static String actionLabel(String action){return switch(action){
         case "TOGGLE_AUDIO"->"Musik / Ton umschalten";case "TOGGLE_COUNTDOWN"->"Countdown umschalten";
         case "TOGGLE_BOSSBAR"->"Bossbar umschalten";
