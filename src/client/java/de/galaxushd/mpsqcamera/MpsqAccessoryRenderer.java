@@ -159,9 +159,7 @@ public final class MpsqAccessoryRenderer {
                 if(animation.equals("wave"))pulse=1f+(float)Math.sin(phase*Math.PI*2)*0.035f;
                 String task=o.has("task_type")?o.get("task_type").getAsString():"none";
                 boolean hasSpecialRole=switch(task){case "accessories","quest","tutorial"->true;default->false;};
-                String configuredGlow=str(o,"glow_color",defaultGlowColor(task));
-                if("none".equalsIgnoreCase(configuredGlow))configuredGlow=defaultGlowColor(task);
-                int glow=glowColor(configuredGlow);
+                int glow=glowColor(defaultGlowColor(task));
                 boolean glowDisabled=MpsqNpcVisitStore.isGlowDisabled(str(o,"id",""));
                 boolean glowing=!glowDisabled&&(!hasSpecialRole||!MpsqNpcVisitStore.hasVisited(task));
                 if(playerSkin){var state=MpsqNpcSkinRenderer.createState(skin,yaw,headYaw,pitch,(System.currentTimeMillis()%100000L)/50.0f,glowing);int light=WorldRenderer.getLightmapCoordinates(client.world,net.minecraft.util.math.BlockPos.ofFloored(x,y,z));MpsqNpcSkinRenderer.render(state,x-camera.x,y+bob-camera.y,z-camera.z,size*pulse,matrices,consumers,light,glow);}
