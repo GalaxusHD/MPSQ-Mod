@@ -105,9 +105,10 @@ final class MpsqNpcSkinRenderer {
         state.hasOutline = false;
         client.getEntityRenderDispatcher().render(state, 0.0, 0.0, 0.0, matrices, consumers, light);
         if (glowing) {
-            // The outline consumer creates the silhouette. Keep vanilla's entity outline
-            // flag off here, otherwise the player renderer may route/tint the body itself.
-            state.hasOutline = false;
+            // Let the player renderer select its outline-capable render layers. The
+            // OutlineVertexConsumerProvider records the mask; Minecraft composites it
+            // later as a rim, while the regular pass above keeps the skin unchanged.
+            state.hasOutline = true;
             var outline = client.getBufferBuilders().getOutlineVertexConsumers();
             outline.setColor((outlineColor >> 16) & 255, (outlineColor >> 8) & 255,
                     outlineColor & 255, 255);
@@ -160,34 +161,6 @@ final class MpsqNpcSkinRenderer {
         state.name = null;
         state.hasOutline = glowing;
         return state;
-    }
-
-    /** Compatibility overload used by the current NPC renderer: body yaw, head yaw, pitch and age. */
-    static PlayerEntityRenderState createState(Skin skin, float bodyYaw, float headYaw, float pitch, float age) {
-        PlayerEntityRenderState state = createState(skin, bodyYaw, pitch, age, false);
-        float relative = (headYaw - bodyYaw) % 360.0f;
-        if (relative >= 180.0f) relative -= 360.0f;
-        if (relative < -180.0f) relative += 360.0f;
-        state.relativeHeadYaw = relative;
-        return state;
-    }
-
-    /** Compatibility overload for NPC render calls that carry a named outline color. */
-    static void render(PlayerEntityRenderState state, double x, double y, double z, float scale,
-                       String glowColor, net.minecraft.client.util.math.MatrixStack matrices,
-                       VertexConsumerProvider consumers, int light) {
-        boolean glowing = glowColor != null && !glowColor.isBlank() && !"none".equalsIgnoreCase(glowColor);
-        state.hasOutline = glowing;
-        render(state, x, y, z, scale, matrices, consumers, light, parseGlowColor(glowColor));
-    }
-
-    private static int parseGlowColor(String color) {
-        return switch (String.valueOf(color).toLowerCase(java.util.Locale.ROOT)) {
-            case "yellow" -> 0xC3971F; case "violet" -> 0x8027B0; case "blue" -> 0x2149C4;
-            case "pink" -> 0xEC2F53; case "turquoise" -> 0x087078; case "gold" -> 0xC19701;
-            case "lilac", "lila" -> 0x9146FF; case "red" -> 0xCF2020; case "gray", "grey" -> 0x282323;
-            default -> 0xFFFFFF;
-        };
     }
 
     static void clear(MinecraftClient client) {
