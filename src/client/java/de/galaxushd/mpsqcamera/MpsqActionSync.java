@@ -11,6 +11,7 @@ import net.minecraft.text.Text;
 public final class MpsqActionSync {
     private static String scope = "", cursor;
     private static boolean pending;
+    private static boolean wasVisible=true;
     private static long next;
     private static int generation;
     private MpsqActionSync() {}
@@ -27,24 +28,15 @@ public final class MpsqActionSync {
     public static void initialize() {
         ClientTickEvents.END_CLIENT_TICK.register(client -> tick(client));
         net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback.EVENT.register((dispatcher,access)->dispatcher.register(
-            net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.literal("mpsq-objekte").executes(context->{
-                var client=MinecraftClient.getInstance();client.send(()->client.setScreen(new MpsqCreateMenuScreen()));return 1;
-            })));
-        net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback.EVENT.register((dispatcher,access)->dispatcher.register(
-            net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.literal("mpsq-objekt").executes(context->{
-                var client=MinecraftClient.getInstance();
-                if(client.crosshairTarget instanceof net.minecraft.util.hit.BlockHitResult hit && client.world!=null)client.send(()->client.setScreen(new MpsqObjectScreen(hit.getBlockPos())));
-                else context.getSource().sendError(Text.literal("Bitte den Bodenblock unter dem Objekt anschauen."));
-                return 1;
-            })));
-
-        net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback.EVENT.register((dispatcher,access)->dispatcher.register(
-            net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.literal("mpsq-npc").executes(context->{
-                var client=MinecraftClient.getInstance();
-                if(client.player!=null&&client.world!=null)client.send(()->client.setScreen(MpsqNpcPlacementScreen.atPlayer(null,client.player)));
-                else context.getSource().sendError(Text.literal("Du musst einer Welt beitreten."));
-                return 1;
-            })));
+            net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.literal("mpsq-points")
+                .then(net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.argument("amount",com.mojang.brigadier.arguments.IntegerArgumentType.integer(1,10000))
+                    .executes(context->{int amount=com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(context,"amount");
+                        var profile=TeamStateStore.self().orElse(null);
+                        if(profile==null||profile.permissionRank().level()<TeamRank.OFFICER.level()){context.getSource().sendError(Text.literal("Dafür brauchst du den Rang Offizier oder höher."));return 0;}
+                        if(server().isBlank()&&MpsqLocalWorldStore.available()){boolean saved=MpsqLocalWorldStore.addPoints(amount);context.getSource().sendFeedback(Text.literal(saved?amount+" lokale Punkte für diese Welt gutgeschrieben.":"Lokale Punkte konnten nicht gespeichert werden."));return saved?1:0;}
+                        JsonObject body=new JsonObject();body.addProperty("amount",amount);
+                        MpsqApiClient.post("/me/points/grant",body).whenComplete((data,error)->MinecraftClient.getInstance().execute(()->context.getSource().sendFeedback(Text.literal(error==null?"Punkte gutgeschrieben.":"Punkte konnten nicht vergeben werden: "+error.getMessage()))));return 1;
+                    }))));
 
         net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback.EVENT.register((dispatcher,access)->dispatcher.register(
             net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.literal("mpsq-knopf").executes(context->{
@@ -58,6 +50,7 @@ public final class MpsqActionSync {
             })));
     }
     private static void tick(MinecraftClient client) {
+        if(!TeamVisibilitySettings.visible()){if(wasVisible){MpsqAudioManager.stop();MpsqMediaAudioManager.stop();MpsqBossbarManager.clear();}wasVisible=false;return;}wasVisible=true;
         String current = server() + "|" + world();
         if (!current.equals(scope)) {
             scope=current; cursor=null; pending=false; generation++; next=0;
@@ -65,7 +58,7 @@ public final class MpsqActionSync {
             MpsqMediaAudioManager.stop();
             MpsqBossbarManager.clear();
         }
-        if (client.world == null || server().isBlank() || !MpsqApiClient.isReady() || pending || System.currentTimeMillis()<next) return;
+        if (client.world == null || !isMpsqServer() || !MpsqApiClient.isReady() || pending || System.currentTimeMillis()<next) return;
         int requestGeneration=generation;
         pending=true;
         String path="/action-events?server="+encode(server())+"&world="+encode(world())+(cursor==null?"":"&after="+cursor);
@@ -84,6 +77,12 @@ public final class MpsqActionSync {
     public static void dispatch(JsonObject event) {
         JsonObject data=event.getAsJsonObject("action_data");
         switch(event.get("action_type").getAsString()) {
+            case "TOGGLE_AUDIO" -> {
+                if(MpsqAudioManager.playing()||MpsqMediaAudioManager.playing()){MpsqAudioManager.stop();MpsqMediaAudioManager.stop();}
+                else {String source=data.has("sourceType")?data.get("sourceType").getAsString():"minecraft";String sound=data.has("sound")?data.get("sound").getAsString():"";if(source.equals("mp3")||source.equals("mp4")){MpsqAudioManager.stop();MpsqMediaAudioManager.play(source,java.util.List.of(sound));}else{MpsqMediaAudioManager.stop();MpsqAudioManager.startPlaylist("MPSQ",java.util.List.of(sound));}}
+            }
+            case "TOGGLE_BOSSBAR" -> {if(MpsqBossbarManager.get("event")!=null)MpsqBossbarManager.remove("event");else MpsqBossbarManager.apply(new MpsqBossbarState("event",data.get("title").getAsString(),"purple",1,true));}
+            case "TOGGLE_COUNTDOWN" -> {if(MpsqBossbarManager.countdownRunning())MpsqBossbarManager.stopCountdown();else MpsqBossbarManager.startCountdown(data.get("title").getAsString(),data.get("duration").getAsInt(),event.get("created_at").getAsString());}
             case "PLAY_AUDIO", "START_PLAYLIST" -> {
                 var tracks=new ArrayList<String>();
                 if(data.has("tracks")) for(JsonElement track:data.getAsJsonArray("tracks")) tracks.add(track.getAsString());
@@ -94,35 +93,32 @@ public final class MpsqActionSync {
             }
             case "STOP_AUDIO" -> {MpsqAudioManager.stop();MpsqMediaAudioManager.stop();}
             case "SHOW_DIALOGUE" -> MpsqDialogueManager.start(data);
-            case "KICK_ANIMATION" -> {
-                MpsqKickAnimationManager.start(data.get("targetName").getAsString());
-                MpsqMediaAudioManager.playBundledMp3("/assets/mpsqcamera/sounds/kick.mp3",0.28f);
-            }
+            case "KICK_ANIMATION" -> { MpsqKickAnimationManager.start(data.get("targetName").getAsString()); MpsqMediaAudioManager.playBundledMp3("/assets/mpsqcamera/sounds/kick.mp3",0.28f); }
             case "START_COUNTDOWN" -> MpsqBossbarManager.startCountdown(data.get("title").getAsString(), data.get("duration").getAsInt(), event.get("created_at").getAsString());
             case "SHOW_BOSSBAR" -> MpsqBossbarManager.apply(new MpsqBossbarState("event",data.get("title").getAsString(),"purple",1,true));
             case "HIDE_BOSSBAR" -> MpsqBossbarManager.remove("event");
             case "OPEN_LINK" -> openLinkOnScreen(data);
+            case "SEND_ANNOUNCEMENT" -> {
+                var client=MinecraftClient.getInstance();
+                client.inGameHud.getChatHud().addMessage(TeamChatText.fromAmpersandCodes(data.get("text").getAsString(),net.minecraft.util.Formatting.WHITE));
+                if(data.has("sound")) MpsqAudioManager.startPlaylist("Ansage",java.util.List.of(data.get("sound").getAsString()));
+            }
             default -> { }
         }
     }
     private static void openLinkOnScreen(JsonObject data) {
-        var client=MinecraftClient.getInstance();
         try {
             var screenId=java.util.UUID.fromString(data.get("screenId").getAsString());
             var screen=LocalScreenStore.findById(screenId).orElse(null);
-            if(screen==null||screen.inputType()!=LocalScreenStore.ScreenInputType.LINK)return;
-            String platform=data.get("platform").getAsString();
-            String url=switch(platform){
-                case "youtube" -> "https://www.youtube.com/@mixelpixelsquidgame5684";
-                case "twitch" -> "https://www.twitch.tv/mixelpixelofficial";
-                default -> null;
-            };
-            if(url==null)return;
+            String url=data.get("url").getAsString();
+            java.net.URI uri=java.net.URI.create(url);
+            if(screen==null||screen.inputType()!=LocalScreenStore.ScreenInputType.LINK
+                    ||!"https".equalsIgnoreCase(uri.getScheme())||uri.getHost()==null
+                    ||uri.getUserInfo()!=null||url.length()>2048)return;
             LocalScreenStore.updateConfig(screenId,LocalScreenStore.ScreenInputType.LINK,url,null);
             var old=CinemaPlaybackStore.get(screenId);
             CinemaPlaybackStore.set(screenId,new CinemaPlaybackStore.PlaybackState(true,0L,old.revision()+1L,System.currentTimeMillis()));
             CinemaBrowserManager.synchronize();
-            if(client.player!=null)client.player.sendMessage(Text.literal("MPSQ-Bildschirm startet "+(platform.equals("twitch")?"Twitch":"YouTube")+"."),false);
         } catch(RuntimeException ignored) { }
     }
 }

@@ -22,7 +22,13 @@ public final class MpsqBossbarManager {
         if(countdownEnd>0) {
             long remaining=Math.max(0,countdownEnd-System.currentTimeMillis());
             if(remaining==0){countdownEnd=0;STATES.remove("countdown");}
-            else apply(new MpsqBossbarState("countdown",countdownTitle,"purple",(float)remaining/(countdownDuration*1000),true,(int)((remaining+999)/1000)));
+            else {
+                long seconds=(remaining+999)/1000;
+                String title=countdownTitle==null?"":countdownTitle;
+                String separator=title.isBlank()?"":" &7· ";
+                String timerColor=seconds>10?"&e":"&c";
+                apply(new MpsqBossbarState("countdown",title+separator+timerColor+seconds+" s","purple",(float)remaining/(countdownDuration*1000),true));
+            }
         }
         return java.util.List.copyOf(STATES.values());
     }
