@@ -18,6 +18,7 @@ public final class MpsqActionSync {
         var entry = MinecraftClient.getInstance().getCurrentServerEntry();
         return entry == null ? "" : entry.address.toLowerCase(java.util.Locale.ROOT);
     }
+    public static boolean isMpsqServer(){String host=server().replaceFirst(":\\d+$","");return host.equals("mixelpixel.net")||host.equals("play.mixelpixel.net");}
     public static String world() {
         var world = MinecraftClient.getInstance().world;
         return world == null ? "" : world.getRegistryKey().getValue().toString();
@@ -93,7 +94,10 @@ public final class MpsqActionSync {
             }
             case "STOP_AUDIO" -> {MpsqAudioManager.stop();MpsqMediaAudioManager.stop();}
             case "SHOW_DIALOGUE" -> MpsqDialogueManager.start(data);
-            case "KICK_ANIMATION" -> MpsqKickAnimationManager.start(data.get("targetName").getAsString());
+            case "KICK_ANIMATION" -> {
+                MpsqKickAnimationManager.start(data.get("targetName").getAsString());
+                MpsqMediaAudioManager.playBundledMp3("/assets/mpsqcamera/sounds/kick.mp3",0.28f);
+            }
             case "START_COUNTDOWN" -> MpsqBossbarManager.startCountdown(data.get("title").getAsString(), data.get("duration").getAsInt(), event.get("created_at").getAsString());
             case "SHOW_BOSSBAR" -> MpsqBossbarManager.apply(new MpsqBossbarState("event",data.get("title").getAsString(),"purple",1,true));
             case "HIDE_BOSSBAR" -> MpsqBossbarManager.remove("event");
