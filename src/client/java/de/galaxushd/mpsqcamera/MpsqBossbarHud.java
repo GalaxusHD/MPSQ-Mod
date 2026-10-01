@@ -2,10 +2,15 @@ package de.galaxushd.mpsqcamera;
 
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.gl.RenderPipelines;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.util.Identifier;
+import net.minecraft.util.Formatting;
 
 /** Renders active server-controlled MPSQ bossbars above the vanilla HUD. */
 public final class MpsqBossbarHud {
+    private static final int BAR_WIDTH = 182;
+    private static final int BAR_HEIGHT = 5;
     private MpsqBossbarHud() { }
     public static void initialize() {
         HudRenderCallback.EVENT.register((context, tickDelta) -> render(context));
@@ -15,21 +20,28 @@ public final class MpsqBossbarHud {
         int y = 12;
         for (MpsqBossbarState state : MpsqBossbarManager.all()) {
             if (!state.visible()) continue;
-            int width = Math.min(320, client.getWindow().getScaledWidth() - 40);
+            int width = Math.min(BAR_WIDTH, client.getWindow().getScaledWidth() - 20);
             int left = (client.getWindow().getScaledWidth() - width) / 2;
+            int barY = y + 10;
             int filled = Math.max(0, Math.min(width, Math.round(width * state.value())));
-            context.fill(left, y, left + width, y + 8, 0xAA222222);
-            context.fill(left, y, left + filled, y + 8, color(state.color()));
+            Identifier background = barTexture(state.color(), "background");
+            Identifier progress = barTexture(state.color(), "progress");
+            context.drawGuiTexture(RenderPipelines.GUI_TEXTURED, background, left, barY, width, BAR_HEIGHT);
+            if (filled > 0) {
+                context.drawGuiTexture(RenderPipelines.GUI_TEXTURED, progress, BAR_WIDTH, BAR_HEIGHT,
+                        0, 0, left, barY, filled, BAR_HEIGHT);
+            }
             context.drawCenteredTextWithShadow(client.textRenderer,
-                    TeamChatText.fromAmpersandCodes(state.title(), net.minecraft.util.Formatting.WHITE),
-                    client.getWindow().getScaledWidth() / 2, y - 12, 0xFFFFFFFF);
+                    TeamChatText.fromAmpersandCodes(state.title(), Formatting.WHITE),
+                    client.getWindow().getScaledWidth() / 2, y, 0xFFFFFFFF);
             y += 28;
         }
     }
-    private static int color(String value) {
-        return switch (String.valueOf(value).toLowerCase()) {
-            case "red" -> 0xFFCC3333; case "blue" -> 0xFF3366CC; case "green" -> 0xFF33AA55;
-            case "yellow" -> 0xFFE0B52A; default -> 0xFF9933CC;
+    private static Identifier barTexture(String color, String part) {
+        String safeColor = switch (String.valueOf(color).toLowerCase()) {
+            case "blue", "green", "pink", "purple", "red", "white", "yellow" -> color.toLowerCase();
+            default -> "purple";
         };
+        return Identifier.ofVanilla("boss_bar/" + safeColor + "_" + part);
     }
 }

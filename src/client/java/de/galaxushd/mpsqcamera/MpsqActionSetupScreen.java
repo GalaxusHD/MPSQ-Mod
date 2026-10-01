@@ -19,8 +19,8 @@ public final class MpsqActionSetupScreen extends Screen {
     private ButtonWidget soundTypeButton, linkScreenButton;
     private static final String[] SOUND_TYPES={"minecraft","mp3","mp4"};
     private static final String[] SOUND_TYPE_LABELS={"Minecraft-ID","MP3-Datei-ID","MP4-Datei-ID"};
-    private static final String[] QUICK_ACTIONS={"TOGGLE_AUDIO","TOGGLE_COUNTDOWN","TOGGLE_BOSSBAR","SEND_ANNOUNCEMENT"};
-    private static final String[] BLOCK_ACTIONS={"TOGGLE_AUDIO","TOGGLE_COUNTDOWN","TOGGLE_BOSSBAR","SEND_ANNOUNCEMENT","SHOW_DIALOGUE","OPEN_REDEEM","OPEN_LINK"};
+    private static final String[] QUICK_ACTIONS={"TOGGLE_AUDIO","TOGGLE_COUNTDOWN","TOGGLE_BOSSBAR"};
+    private static final String[] BLOCK_ACTIONS={"TOGGLE_AUDIO","TOGGLE_COUNTDOWN","TOGGLE_BOSSBAR","SHOW_DIALOGUE","OPEN_LINK"};
     private final String[] actions;
     private List<LocalScreenStore.LocalScreenData> linkScreens=List.of();
     private int action, soundType, linkScreenIndex;
@@ -90,14 +90,12 @@ public final class MpsqActionSetupScreen extends Screen {
                 if(linkScreens.isEmpty()){status="Es wurde kein MPSQ-Kinobildschirm geladen.";return;}
                 data.addProperty("url",url);data.addProperty("screenId",linkScreens.get(linkScreenIndex).id().toString());
             }
-            case "SEND_ANNOUNCEMENT" -> data.addProperty("text",value.getText());
             case "SHOW_DIALOGUE" -> {JsonArray pages=new JsonArray();for(String line:value.getText().split("\\|\\|",-1)){line=line.trim();if(line.isEmpty()||line.length()>240||pages.size()>=12){status="1–12 Textseiten mit höchstens 240 Zeichen, getrennt mit ||";return;}pages.add(line);}data.add("pages",pages);}
-            case "OPEN_REDEEM" -> { }
         }
         position.addProperty("x",pos.getX());position.addProperty("y",pos.getY());position.addProperty("z",pos.getZ());
         body.add("position",position);body.addProperty("serverId",server);body.addProperty("worldId",world);
         body.addProperty("blockId",block);body.addProperty("actionType",actions[action]);body.add("actionData",data);
-        body.addProperty("minimumRank","OPEN_REDEEM".equals(actions[action])||"OPEN_LINK".equals(actions[action])?"vip":"offizier");
+        body.addProperty("minimumRank","OPEN_LINK".equals(actions[action])?"vip":"offizier");
         if(MpsqActionSync.server().isBlank()&&client.getServer()!=null){
             boolean saved=MpsqLocalActionStore.set(pos,block,actions[action],data);
             status=saved?"Aktion in dieser Einzelspielerwelt gespeichert.":"Lokale Aktion konnte nicht gespeichert werden.";return;
@@ -123,7 +121,7 @@ public final class MpsqActionSetupScreen extends Screen {
     }
     private static String actionLabel(String action){return switch(action){
         case "TOGGLE_AUDIO"->"Musik / Ton umschalten";case "TOGGLE_COUNTDOWN"->"Countdown umschalten";
-        case "TOGGLE_BOSSBAR"->"Bossbar umschalten";case "SEND_ANNOUNCEMENT"->"Ansage senden";
-        case "SHOW_DIALOGUE"->"Dialog (F zum Weitergehen)";case "OPEN_REDEEM"->"Redeem öffnen";case "OPEN_LINK"->"Link öffnen";default->action;};}
+        case "TOGGLE_BOSSBAR"->"Bossbar umschalten";
+        case "SHOW_DIALOGUE"->"Dialog (F zum Weitergehen)";case "OPEN_LINK"->"Link öffnen";default->action;};}
     @Override public boolean shouldPause(){return false;}
 }

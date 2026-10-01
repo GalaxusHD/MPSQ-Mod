@@ -59,10 +59,7 @@ public final class MpsqTriggerManager {
         }
         String worldId = client.world.getRegistryKey().getValue().toString();
         TRIGGERS.stream().filter(trigger -> trigger.worldId().equals(worldId) && trigger.position().equals(pos) && net.minecraft.registry.Registries.BLOCK.getId(client.world.getBlockState(pos).getBlock()).toString().equals(trigger.blockId())).findFirst()
-                .ifPresent(trigger -> MpsqApiClient.fireTrigger(trigger.id()).thenAccept(result -> {
-                    if (!result.getAsJsonObject().has("cooldown") && "OPEN_REDEEM".equalsIgnoreCase(trigger.actionType()))
-                        client.execute(() -> client.setScreen(new MpsqRedeemScreen()));
-                }).exceptionally(error -> {
+                .ifPresent(trigger -> MpsqApiClient.fireTrigger(trigger.id()).exceptionally(error -> {
                     MpsqCameraClient.LOGGER.warn("MPSQ-Knopf konnte nicht ausgelöst werden", error);
                     client.execute(() -> {
                         if(client.player!=null) client.player.sendMessage(net.minecraft.text.Text.literal(

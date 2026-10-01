@@ -98,11 +98,6 @@ public final class MpsqActionSync {
             case "SHOW_BOSSBAR" -> MpsqBossbarManager.apply(new MpsqBossbarState("event",data.get("title").getAsString(),"purple",1,true));
             case "HIDE_BOSSBAR" -> MpsqBossbarManager.remove("event");
             case "OPEN_LINK" -> openLinkOnScreen(data);
-            case "SEND_ANNOUNCEMENT" -> {
-                var client=MinecraftClient.getInstance();
-                client.inGameHud.getChatHud().addMessage(TeamChatText.fromAmpersandCodes(data.get("text").getAsString(),net.minecraft.util.Formatting.WHITE));
-                if(data.has("sound")) MpsqAudioManager.startPlaylist("Ansage",java.util.List.of(data.get("sound").getAsString()));
-            }
             default -> { }
         }
     }
