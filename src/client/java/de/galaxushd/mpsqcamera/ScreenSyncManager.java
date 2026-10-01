@@ -14,19 +14,24 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.time.Instant;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CompletableFuture;
 
 /** Fetches screens and their server-only metadata in one request. */
 public final class ScreenSyncManager {
     private ScreenSyncManager() { }
     public static CompletableFuture<Void> refresh() {
-        return MpsqApiClient.get("/screens").thenAccept(json -> {
-            List<LocalScreenStore.LocalScreenData> screens = new ArrayList<>(); Map<UUID, String> codes = new HashMap<>(); Map<UUID, LocalScreenStore.LocalGroupData> groups = new HashMap<>(); Set<UUID> owned = new HashSet<>(); Map<UUID, CinemaPlaybackStore.PlaybackState> playbackStates = new HashMap<>();
+        String server=MpsqActionSync.server(),world=MpsqActionSync.world();
+        String path="/screens?server="+URLEncoder.encode(server,StandardCharsets.UTF_8)+"&world="+URLEncoder.encode(world,StandardCharsets.UTF_8);
+        return MpsqApiClient.get(path).thenAccept(json -> {
+            List<LocalScreenStore.LocalScreenData> screens = new ArrayList<>(); Map<UUID, String> codes = new HashMap<>(); Map<UUID, LocalScreenStore.LocalGroupData> groups = new HashMap<>(); Set<UUID> owned = new HashSet<>(),triggerLinkedOnly=new HashSet<>(); Map<UUID, CinemaPlaybackStore.PlaybackState> playbackStates = new HashMap<>();
             for (JsonElement item : json.getAsJsonArray()) {
                 JsonObject row = item.getAsJsonObject(); UUID id = UUID.fromString(row.get("id").getAsString());
                 BlockPos p1 = new BlockPos(row.get("pos1_x").getAsInt(), row.get("pos1_y").getAsInt(), row.get("pos1_z").getAsInt()); BlockPos p2 = new BlockPos(row.get("pos2_x").getAsInt(), row.get("pos2_y").getAsInt(), row.get("pos2_z").getAsInt());
                 UUID groupId = row.has("group_id") && !row.get("group_id").isJsonNull() ? UUID.fromString(row.get("group_id").getAsString()) : null;
-                codes.put(id, row.get("activation_code").getAsString()); if (row.has("is_owner") && row.get("is_owner").getAsBoolean()) owned.add(id);
+                codes.put(id, row.has("activation_code")&&!row.get("activation_code").isJsonNull()?row.get("activation_code").getAsString():"------"); if (row.has("is_owner") && row.get("is_owner").getAsBoolean()) owned.add(id);
+                if(row.has("is_trigger_linked_only")&&row.get("is_trigger_linked_only").getAsBoolean())triggerLinkedOnly.add(id);
                 if (row.has("front") && !row.get("front").isJsonNull()) ScreenAccessStore.setFront(id, row.get("front").getAsString());
                 if (groupId != null && row.has("mpsq_screen_groups") && row.get("mpsq_screen_groups").isJsonObject()) { JsonObject group = row.getAsJsonObject("mpsq_screen_groups"); groups.put(id, new LocalScreenStore.LocalGroupData(groupId, group.get("activation_code").getAsString())); }
                 LocalScreenStore.ScreenInputType mode = "CAMERA".equals(row.get("mode").getAsString()) ? LocalScreenStore.ScreenInputType.CAMERA : LocalScreenStore.ScreenInputType.LINK;
@@ -66,7 +71,7 @@ public final class ScreenSyncManager {
             }
             MinecraftClient.getInstance().execute(() -> {
                 LocalScreenStore.replaceAll(screens);
-                ScreenAccessStore.replace(codes, groups, owned);
+                ScreenAccessStore.replace(codes, groups, owned, triggerLinkedOnly);
                 CinemaPlaybackStore.replace(playbackStates);
                 CinemaBrowserManager.synchronize();
             });
