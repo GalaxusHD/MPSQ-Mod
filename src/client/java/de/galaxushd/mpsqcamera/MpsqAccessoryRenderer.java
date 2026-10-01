@@ -145,13 +145,16 @@ public final class MpsqAccessoryRenderer {
                 if(animation.equals("look_around"))yaw+=(float)Math.sin(phase*Math.PI)*28f;
                 if(animation.equals("shake"))yaw+=(float)Math.sin(phase*Math.PI*8)*5f;
                 if(animation.equals("wave"))pulse=1f+(float)Math.sin(phase*Math.PI*2)*0.035f;
-                int glow=glowColor(o.has("glow_color")?o.get("glow_color").getAsString():"none");
-                boolean glowing= !"none".equals(o.has("glow_color")?o.get("glow_color").getAsString():"none");
+                String task=o.has("task_type")?o.get("task_type").getAsString():"none";
+                boolean hasSpecialRole=switch(task){case "accessories","quest","tutorial"->true;default->false;};
+                String configuredGlow=o.has("glow_color")?o.get("glow_color").getAsString():"none";
+                int glow=hasSpecialRole?glowColor(configuredGlow):0xFFEC2F53;
+                boolean glowing=!hasSpecialRole||!"none".equals(configuredGlow);
                 if(playerSkin){var state=MpsqNpcSkinRenderer.createState(skin,yaw,pitch,(System.currentTimeMillis()%100000L)/50.0f,glowing);int light=WorldRenderer.getLightmapCoordinates(client.world,net.minecraft.util.math.BlockPos.ofFloored(x,y,z));MpsqNpcSkinRenderer.render(state,x-camera.x,y+bob-camera.y,z-camera.z,size*pulse,matrices,consumers,light,glow);}
                 else {matrices.push();matrices.translate(x-camera.x,y+bob-camera.y,z-camera.z);matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(-yaw));matrices.multiply(RotationAxis.POSITIVE_X.rotationDegrees(pitch));matrices.scale(size/16f*pulse,size/16f*pulse,size/16f*pulse);drawBbModel(model,matrices,consumers,0xFFFFFFFF);
                     if(glowing){var outline=client.getBufferBuilders().getOutlineVertexConsumers();outline.setColor((glow>>16)&255,(glow>>8)&255,glow&255,255);drawBbModel(model,matrices,outline,0xFFFFFFFF);outline.draw();}
                     matrices.pop();}
-                String task=o.has("task_type")?o.get("task_type").getAsString():"none";boolean tutorialDone=o.has("tutorial_completed")&&o.get("tutorial_completed").getAsBoolean();
+                boolean tutorialDone=o.has("tutorial_completed")&&o.get("tutorial_completed").getAsBoolean();
                 String tag=switch(task){case "accessories"->"accessories";case "quest"->"quests";case "tutorial"->tutorialDone?null:"tutorial";default->null;};
                 if(tag!=null){
                     double towardX=camera.x-x,towardZ=camera.z-z,horizontalLength=Math.sqrt(towardX*towardX+towardZ*towardZ);
