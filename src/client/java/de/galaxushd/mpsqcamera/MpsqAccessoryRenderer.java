@@ -24,11 +24,10 @@ public final class MpsqAccessoryRenderer {
     private record PreviewPoint(double x,double y,double z){}
     private record PreviewPolygon(double[][] points,int color,double depth){}
     private static final class NpcRotation {
-        float bodyYaw;
-        float relativeHeadYaw;
+        float yaw;
         float pitch;
         long updatedAt;
-        NpcRotation(float bodyYaw,float relativeHeadYaw,float pitch,long updatedAt){this.bodyYaw=bodyYaw;this.relativeHeadYaw=relativeHeadYaw;this.pitch=pitch;this.updatedAt=updatedAt;}
+        NpcRotation(float yaw,float pitch,long updatedAt){this.yaw=yaw;this.pitch=pitch;this.updatedAt=updatedAt;}
     }
     private static final Map<String,Model> models=new HashMap<>();
     private static final Map<String,Identifier> previews=new HashMap<>();
@@ -42,8 +41,9 @@ public final class MpsqAccessoryRenderer {
             JsonObject npc=element.getAsJsonObject();
             String task=npc.has("task_type")&&!npc.get("task_type").isJsonNull()?npc.get("task_type").getAsString():"none";
             boolean special=switch(task){case "accessories","quest","tutorial"->true;default->false;};
+            if(!special)return true;
             String id=str(npc,"id","");
-            if(MpsqNpcVisitStore.isGlowEnabled(id,special)&&(!special||!MpsqNpcVisitStore.hasVisited(task,id)))return true;
+            if(!MpsqNpcVisitStore.hasVisited(task)&&!MpsqNpcVisitStore.isGlowDisabled(id))return true;
         }
         return false;
     }
@@ -62,8 +62,7 @@ public final class MpsqAccessoryRenderer {
     private static int generation;
     private static String scope="";
     private MpsqAccessoryRenderer(){}
-    /** Requests fresh NPC metadata without discarding the textures/models currently on screen. */
-    public static void refresh(){next=0;}
+    public static void refresh(){generation++;polling=false;loading.clear();npcRotations.clear();MpsqNpcSkinRenderer.clear(MinecraftClient.getInstance());clearModels(MinecraftClient.getInstance());localAssetUrls.clear();localAssetCategories.clear();localCatalogRequested=false;next=0;}
     static boolean isCurrentGeneration(int epoch){return epoch==generation;}
     public static JsonArray npcsSnapshot(){return npcs.deepCopy();}
     public static void initialize(){
@@ -148,32 +147,29 @@ public final class MpsqAccessoryRenderer {
             }
             for(var value:npcs){var o=value.getAsJsonObject();if(!o.has("url")||o.get("url").isJsonNull())continue;String category=str(o,"category","npc_model");boolean playerSkin="npc_skin_normal".equals(category)||"npc_skin_slim".equals(category);boolean slim="npc_skin_slim".equals(category);String url=o.get("url").getAsString();Model model=playerSkin?null:models.get(url);MpsqNpcSkinRenderer.Skin skin=playerSkin?MpsqNpcSkinRenderer.get(url,slim):null;if(playerSkin?skin==null:model==null)continue;
                 double x=o.has("world_x")?o.get("world_x").getAsDouble():o.get("x").getAsDouble()+0.5,y=o.has("world_y")?o.get("world_y").getAsDouble():o.get("y").getAsDouble(),z=o.has("world_z")?o.get("world_z").getAsDouble():o.get("z").getAsDouble()+0.5;if(camera.squaredDistanceTo(x,y,z)>4096)continue;
-                float size=o.has("scale")?o.get("scale").getAsFloat():1f;String animation=o.has("animation")?o.get("animation").getAsString():"none";float phase=(System.currentTimeMillis()%4000L)/1000f;float bob=animation.equals("bob")?(float)Math.sin(phase*Math.PI*2)*0.08f:0;float pulse=animation.equals("pulse")?1f+(float)Math.sin(phase*Math.PI*2)*0.08f:1f;float bodyYaw=o.has("yaw")?o.get("yaw").getAsFloat():0f,pitch=o.has("pitch")?o.get("pitch").getAsFloat():0f,relativeHeadYaw=0f;boolean face=o.has("face_player")&&o.get("face_player").getAsBoolean();float npcHeight=playerSkin?1.8f*size:size;
-                float targetYaw=bodyYaw;
-                if(face&&client.player!=null&&client.player.squaredDistanceTo(x,y+npcHeight*0.5,z)<=900){double dx=client.player.getX()-x,dz=client.player.getZ()-z,lookFromY=y+npcHeight*0.85,targetY=client.player.getEyeY(),dy=targetY-lookFromY;targetYaw=(float)Math.toDegrees(Math.atan2(-dx,dz));pitch=(float)-Math.toDegrees(Math.atan2(dy,Math.sqrt(dx*dx+dz*dz)));}
+                float size=o.has("scale")?o.get("scale").getAsFloat():1f;String animation=o.has("animation")?o.get("animation").getAsString():"none";float phase=(System.currentTimeMillis()%4000L)/1000f;float bob=animation.equals("bob")?(float)Math.sin(phase*Math.PI*2)*0.08f:0;float pulse=animation.equals("pulse")?1f+(float)Math.sin(phase*Math.PI*2)*0.08f:1f;float yaw=o.has("yaw")?o.get("yaw").getAsFloat():0f,pitch=o.has("pitch")?o.get("pitch").getAsFloat():0f;boolean face=o.has("face_player")&&o.get("face_player").getAsBoolean();float npcHeight=playerSkin?1.8f*size:size;
+                if(face&&client.player!=null&&client.player.squaredDistanceTo(x,y+npcHeight*0.5,z)<=900){double dx=client.player.getX()-x,dz=client.player.getZ()-z,lookFromY=y+npcHeight*0.85,targetY=client.player.getY()+0.9,dy=targetY-lookFromY;yaw=(float)Math.toDegrees(Math.atan2(-dx,dz));pitch=(float)-Math.toDegrees(Math.atan2(dy,Math.sqrt(dx*dx+dz*dz)));}
                 String rotationKey=o.has("id")?o.get("id").getAsString():x+":"+y+":"+z;
-                if(face&&client.player!=null&&client.player.squaredDistanceTo(x,y+npcHeight*0.5,z)<=900){float[] smoothed=smoothNpcRotation(rotationKey,bodyYaw,targetYaw,pitch);bodyYaw=smoothed[0];relativeHeadYaw=smoothed[1];pitch=smoothed[2];}
+                if(face){float[] smoothed=smoothNpcYaw(rotationKey,yaw,pitch);yaw=smoothed[0];pitch=smoothed[1];}
                 else npcRotations.remove(rotationKey);
-                if(animation.equals("turn"))bodyYaw+=phase*90f;
+                if(animation.equals("turn"))yaw+=phase*90f;
                 if(animation.equals("nod"))pitch+=(float)Math.sin(phase*Math.PI*2)*12f;
-                if(animation.equals("tilt"))bodyYaw+=(float)Math.sin(phase*Math.PI*2)*14f;
-                if(animation.equals("look_around"))bodyYaw+=(float)Math.sin(phase*Math.PI)*28f;
-                if(animation.equals("shake"))bodyYaw+=(float)Math.sin(phase*Math.PI*8)*5f;
+                if(animation.equals("tilt"))yaw+=(float)Math.sin(phase*Math.PI*2)*14f;
+                if(animation.equals("look_around"))yaw+=(float)Math.sin(phase*Math.PI)*28f;
+                if(animation.equals("shake"))yaw+=(float)Math.sin(phase*Math.PI*8)*5f;
                 if(animation.equals("wave"))pulse=1f+(float)Math.sin(phase*Math.PI*2)*0.035f;
                 String task=o.has("task_type")?o.get("task_type").getAsString():"none";
                 boolean hasSpecialRole=switch(task){case "accessories","quest","tutorial"->true;default->false;};
                 String configuredGlow=str(o,"glow_color",defaultGlowColor(task));
                 if("none".equalsIgnoreCase(configuredGlow))configuredGlow=defaultGlowColor(task);
                 int glow=glowColor(configuredGlow);
-                String npcId=str(o,"id","");
-                boolean roleGlowExpired=hasSpecialRole&&MpsqNpcVisitStore.hasVisited(task,npcId);
-                boolean glowing=MpsqNpcVisitStore.isGlowEnabled(npcId,hasSpecialRole)&&!roleGlowExpired;
-                if(playerSkin){var state=MpsqNpcSkinRenderer.createState(skin,bodyYaw,relativeHeadYaw,pitch,(System.currentTimeMillis()%100000L)/50.0f,glowing);int light=WorldRenderer.getLightmapCoordinates(client.world,net.minecraft.util.math.BlockPos.ofFloored(x,y,z));MpsqNpcSkinRenderer.render(state,x-camera.x,y+bob-camera.y,z-camera.z,size*pulse,matrices,consumers,light,glow);}
-                else {matrices.push();matrices.translate(x-camera.x,y+bob-camera.y,z-camera.z);matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(-bodyYaw));matrices.multiply(RotationAxis.POSITIVE_X.rotationDegrees(pitch));matrices.scale(size/16f*pulse,size/16f*pulse,size/16f*pulse);drawBbModel(model,matrices,consumers,0xFFFFFFFF);
+                boolean glowing=!hasSpecialRole||(!MpsqNpcVisitStore.hasVisited(task)&&!MpsqNpcVisitStore.isGlowDisabled(str(o,"id","")));
+                if(playerSkin){var state=MpsqNpcSkinRenderer.createState(skin,yaw,pitch,(System.currentTimeMillis()%100000L)/50.0f,glowing);int light=WorldRenderer.getLightmapCoordinates(client.world,net.minecraft.util.math.BlockPos.ofFloored(x,y,z));MpsqNpcSkinRenderer.render(state,x-camera.x,y+bob-camera.y,z-camera.z,size*pulse,matrices,consumers,light,glow);}
+                else {matrices.push();matrices.translate(x-camera.x,y+bob-camera.y,z-camera.z);matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(-yaw));matrices.multiply(RotationAxis.POSITIVE_X.rotationDegrees(pitch));matrices.scale(size/16f*pulse,size/16f*pulse,size/16f*pulse);drawBbModel(model,matrices,consumers,0xFFFFFFFF);
                     if(glowing){var outline=client.getBufferBuilders().getOutlineVertexConsumers();outline.setColor((glow>>16)&255,(glow>>8)&255,glow&255,255);drawBbModel(model,matrices,outline,0xFFFFFFFF);outline.draw();}
                     matrices.pop();}
                 boolean tutorialDone=o.has("tutorial_completed")&&o.get("tutorial_completed").getAsBoolean();
-                String tag=switch(task){case "accessories"->"accessories";case "quest"->"quests";case "tutorial"->tutorialDone?null:"tutorial";default->null;};
+                String tag=switch(task){case "accessories"->"accessories";case "quest"->"quests";case "tutorial"->"tutorial";default->null;};
                 if(tag!=null){
                     // Keep the tag's world position fixed above the NPC. Only the
                     // billboard itself faces the camera; translating it toward the
@@ -185,26 +181,22 @@ public final class MpsqAccessoryRenderer {
                     float tagVerticalOffset=0.5f*(2f/3f)*tagScale;
                     float aspect=switch(tag){case "accessories"->2624f/320f;case "quests"->1504f/320f;default->1952f/320f;};
                     drawBillboard(context,matrices,consumers,Identifier.of("mpsqcamera","textures/gui/npc_tags/"+tag+".png"),tagX,y+npcHeight+bob+tagVerticalOffset-camera.y,tagZ,tagHeight*aspect,tagHeight);
-                    if("tutorial".equals(tag)){float hover=(float)Math.sin(System.currentTimeMillis()/360.0)*0.07f*tagScale;float iconOffset=tagVerticalOffset+0.36f*tagScale;drawBillboard(context,matrices,consumers,Identifier.of("mpsqcamera","textures/gui/npc_tags/tutorial_exclamation.png"),tagX,y+npcHeight+bob+iconOffset+hover-camera.y,tagZ,0.42f*tagScale,0.42f*tagScale);}}
+                    if("tutorial".equals(tag)&&!tutorialDone){float hover=(float)Math.sin(System.currentTimeMillis()/360.0)*0.07f*tagScale;float iconOffset=tagVerticalOffset+0.36f*tagScale;drawBillboard(context,matrices,consumers,Identifier.of("mpsqcamera","textures/gui/npc_tags/tutorial_exclamation.png"),tagX,y+npcHeight+bob+iconOffset+hover-camera.y,tagZ,0.42f*tagScale,0.42f*tagScale);}}
             }
         });
     }
-    private static float[] smoothNpcRotation(String key,float initialBodyYaw,float targetYaw,float targetPitch){
+    private static float[] smoothNpcYaw(String key,float targetYaw,float targetPitch){
         long now=System.nanoTime();
         NpcRotation rotation=npcRotations.get(key);
-        final float headLimit=75f;
-        if(rotation==null){float relative=wrapDegrees(targetYaw-initialBodyYaw);float body=initialBodyYaw;if(Math.abs(relative)>headLimit)body=wrapDegrees(targetYaw-Math.copySign(headLimit,relative));float head=Math.max(-headLimit,Math.min(headLimit,wrapDegrees(targetYaw-body)));npcRotations.put(key,new NpcRotation(body,head,targetPitch,now));return new float[]{body,head,targetPitch};}
+        if(rotation==null){npcRotations.put(key,new NpcRotation(targetYaw,targetPitch,now));return new float[]{targetYaw,targetPitch};}
         float deltaSeconds=Math.max(0f,Math.min(0.1f,(now-rotation.updatedAt)/1_000_000_000f));
-        // Let the head reach its yaw limit before smoothly turning the body underneath it.
+        // A ~140 ms response gives head/body turns a continuous ease while still tracking promptly.
         float amount=1f-(float)Math.exp(-deltaSeconds/0.14f);
-        float targetRelative=wrapDegrees(targetYaw-rotation.bodyYaw);
-        if(Math.abs(targetRelative)>headLimit){float bodyTarget=wrapDegrees(targetYaw-Math.copySign(headLimit,targetRelative));rotation.bodyYaw=wrapDegrees(rotation.bodyYaw+wrapDegrees(bodyTarget-rotation.bodyYaw)*amount);}
-        float headTarget=Math.max(-headLimit,Math.min(headLimit,wrapDegrees(targetYaw-rotation.bodyYaw)));
-        rotation.relativeHeadYaw+=wrapDegrees(headTarget-rotation.relativeHeadYaw)*amount;
+        rotation.yaw=wrapDegrees(rotation.yaw+wrapDegrees(targetYaw-rotation.yaw)*amount);
         rotation.pitch+= (targetPitch-rotation.pitch)*amount;
         rotation.updatedAt=now;
         if(npcRotations.size()>512)npcRotations.entrySet().removeIf(entry->now-entry.getValue().updatedAt>60_000_000_000L);
-        return new float[]{rotation.bodyYaw,rotation.relativeHeadYaw,rotation.pitch};
+        return new float[]{rotation.yaw,rotation.pitch};
     }
     private static float wrapDegrees(float degrees){degrees%=360f;if(degrees>=180f)degrees-=360f;if(degrees< -180f)degrees+=360f;return degrees;}
     private static void mapCatalog(JsonArray values,String fallback){for(JsonElement value:values){if(!value.isJsonObject())continue;JsonObject asset=value.getAsJsonObject();if(asset.has("id")&&asset.has("url")){String id=asset.get("id").getAsString();localAssetUrls.put(id,asset.get("url").getAsString());localAssetCategories.put(id,str(asset,"category",fallback));}}}
