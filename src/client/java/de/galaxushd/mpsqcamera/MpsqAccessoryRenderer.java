@@ -34,6 +34,18 @@ public final class MpsqAccessoryRenderer {
     private static final Map<String,String> wearers=new HashMap<>();
     private static JsonArray objects=new JsonArray();
     private static JsonArray npcs=new JsonArray();
+    /** True when at least one currently loaded NPC needs the vanilla entity-outline post pass. */
+    public static boolean hasGlowingNpcs(){
+        for(JsonElement element:npcs){
+            if(!element.isJsonObject())continue;
+            JsonObject npc=element.getAsJsonObject();
+            String task=npc.has("task_type")&&!npc.get("task_type").isJsonNull()?npc.get("task_type").getAsString():"none";
+            boolean special=switch(task){case "accessories","quest","tutorial"->true;default->false;};
+            String configured=npc.has("glow_color")&&!npc.get("glow_color").isJsonNull()?npc.get("glow_color").getAsString():"none";
+            if(!special||!"none".equals(configured))return true;
+        }
+        return false;
+    }
     private static final Set<String> loading=new HashSet<>();
     private static final Map<String,String> localAssetUrls=new HashMap<>();
     private static final Map<String,String> localAssetCategories=new HashMap<>();

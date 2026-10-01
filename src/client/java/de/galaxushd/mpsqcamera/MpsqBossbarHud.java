@@ -35,12 +35,12 @@ public final class MpsqBossbarHud {
                         0, 0, left, barY, filled, BAR_HEIGHT);
             }
             if(fractionalPixel>0f&&filled<width){
-                context.getMatrices().push();
-                context.getMatrices().translate(left+filled,barY,0);
-                context.getMatrices().scale(fractionalPixel,1f,1f);
+                context.getMatrices().pushMatrix();
+                context.getMatrices().translate(left+filled,barY);
+                context.getMatrices().scale(fractionalPixel,1f);
                 context.drawGuiTexture(RenderPipelines.GUI_TEXTURED,progress,BAR_WIDTH,BAR_HEIGHT,
                         filled,0,0,0,1,BAR_HEIGHT);
-                context.getMatrices().pop();
+                context.getMatrices().popMatrix();
             }
             context.drawCenteredTextWithShadow(client.textRenderer,
                     TeamChatText.fromAmpersandCodes(state.title(), Formatting.WHITE),
