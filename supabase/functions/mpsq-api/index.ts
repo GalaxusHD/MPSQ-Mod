@@ -195,10 +195,9 @@ function validAction(type:string,data:any):boolean {
   case "SHOW_BOSSBAR":return typeof data.title==="string"&&data.title.length<=256;
   case "TOGGLE_BOSSBAR":return typeof data.title==="string"&&data.title.length<=256;
   case "TOGGLE_AUDIO":return validSoundSource(data);
-  case "SEND_ANNOUNCEMENT":return typeof data.text==="string"&&data.text.length<=512&&(!data.sound||sound(data.sound));
   case "SHOW_DIALOGUE":return Array.isArray(data.pages)&&data.pages.length>0&&data.pages.length<=12&&data.pages.every((p:any)=>typeof p==="string"&&p.trim().length>0&&p.length<=240);
   case "OPEN_LINK":try{const u=new URL(data.url);return u.protocol==="https:"&&!u.username&&!u.password&&u.href.length<=2048&&typeof data.screenId==="string"&&/^[0-9a-f-]{36}$/i.test(data.screenId);}catch{return false;}
-  case "OPEN_REDEEM":case "STOP_AUDIO":case "HIDE_BOSSBAR":return true;
+  case "STOP_AUDIO":case "HIDE_BOSSBAR":return true;
   default:return false;
  }
 }
@@ -547,11 +546,10 @@ serve(async req => {
       const self=await teamProfile(clientId); if(!canEditEvent(self))return out({error:"Keine Berechtigung"},403);
       const body=await json(req), type=String(body.actionType??""), data=body.actionData??{};
       if(!validAction(type,data))return out({error:"Ungültige Aktionsdaten"},400);
-      const supported=["PLAY_AUDIO","START_PLAYLIST","STOP_AUDIO","SHOW_BOSSBAR","START_COUNTDOWN","HIDE_BOSSBAR","TOGGLE_AUDIO","TOGGLE_COUNTDOWN","TOGGLE_BOSSBAR","SEND_ANNOUNCEMENT","SHOW_DIALOGUE"];
+      const supported=["PLAY_AUDIO","START_PLAYLIST","STOP_AUDIO","SHOW_BOSSBAR","START_COUNTDOWN","HIDE_BOSSBAR","TOGGLE_AUDIO","TOGGLE_COUNTDOWN","TOGGLE_BOSSBAR","SHOW_DIALOGUE"];
       if(!supported.includes(type)||!body.serverId||!body.worldId||JSON.stringify(data).length>8192)return out({error:"Ungültige Aktion"},400);
       if(type==="START_COUNTDOWN"&&(!Number.isInteger(data.duration)||data.duration<1||data.duration>7200))return out({error:"Ungültige Dauer"},400);
       if(["START_COUNTDOWN","SHOW_BOSSBAR"].includes(type)&&typeof data.title!=="string")return out({error:"Titel fehlt"},400);
-      if(type==="SEND_ANNOUNCEMENT"&&typeof data.text!=="string")return out({error:"Text fehlt"},400);
       if(type==="PLAY_AUDIO"&&typeof data.sound!=="string")return out({error:"Sound fehlt"},400);
       if(type==="START_PLAYLIST"&&(!Array.isArray(data.tracks)||data.tracks.length>100||data.tracks.some((x:any)=>typeof x!=="string")))return out({error:"Playlist ungültig"},400);
       const r=await rest("/rpc/mpsq_publish_action",{method:"POST",body:JSON.stringify({p_actor:clientId,p_server:String(body.serverId).toLowerCase(),p_world:String(body.worldId),p_type:type,p_data:data})});
@@ -641,7 +639,7 @@ serve(async req => {
       const actionType = String(body.actionType ?? "").trim().toUpperCase(); const blockId = String(body.blockId ?? "").trim();
       const pos = body.position ?? {};
       if(!validAction(actionType,body.actionData??{}))return out({error:"Ungültige Aktionsdaten"},400);
-      const supported = ["PLAY_AUDIO","START_PLAYLIST","STOP_AUDIO","SHOW_BOSSBAR","START_COUNTDOWN","HIDE_BOSSBAR","TOGGLE_AUDIO","TOGGLE_COUNTDOWN","TOGGLE_BOSSBAR","SEND_ANNOUNCEMENT","SHOW_DIALOGUE","OPEN_REDEEM","OPEN_LINK"];
+      const supported = ["PLAY_AUDIO","START_PLAYLIST","STOP_AUDIO","SHOW_BOSSBAR","START_COUNTDOWN","HIDE_BOSSBAR","TOGGLE_AUDIO","TOGGLE_COUNTDOWN","TOGGLE_BOSSBAR","SHOW_DIALOGUE","OPEN_LINK"];
       if (!supported.includes(actionType) || !String(body.serverId ?? "").trim()) return out({error:"Aktion oder Server ungültig"},400);
       if (!validRank(String(body.minimumRank ?? "offizier"))) return out({error:"Ungültiger Mindestrang"},400);
       if (JSON.stringify(body.actionData ?? {}).length > 8192) return out({error:"Aktionsdaten zu groß"},400);
@@ -660,7 +658,35 @@ serve(async req => {
       const result = await rest("/rpc/mpsq_fire_action", { method: "POST", body: JSON.stringify({
         p_trigger: trigger.id, p_actor: clientId, p_server: String(body.serverId ?? "").toLowerCase(), p_world: String(body.worldId ?? "")
       }) });
-      return out(await result.json(), result.status);
+      const fired = await result.json();
+      if (!result.ok) return out(fired, result.status);
+      // OPEN_LINK changes shared screen state as well as emitting the action
+      // event. Without this write, the next /screens refresh replaces the
+      // client's temporary URL with the previously saved empty value.
+      if (trigger.action_type === "OPEN_LINK" && !fired?.cooldown) {
+        const actionData = trigger.action_data ?? {};
+        const screenId = String(actionData.screenId ?? "");
+        const screenResponse = await rest(`/mpsq_screens?id=eq.${encodeURIComponent(screenId)}&select=id,mode,playback_state`);
+        const screens = await screenResponse.json();
+        const screen = Array.isArray(screens) ? screens[0] : null;
+        const videoUrl = String(actionData.url ?? "");
+        if (!screen || screen.mode !== "KINO" || !validAction("OPEN_LINK", actionData)) {
+          return out({ error: "Der verknüpfte Kinobildschirm ist nicht verfügbar." }, 404);
+        }
+        const oldState = screen.playback_state && typeof screen.playback_state === "object"
+          ? screen.playback_state : {};
+        const revision = Number.isSafeInteger(oldState.revision) ? oldState.revision : 0;
+        const update = await rest(`/mpsq_screens?id=eq.${encodeURIComponent(screenId)}`, {
+          method: "PATCH",
+          headers: { Prefer: "return=representation" },
+          body: JSON.stringify({
+            cinema_url: videoUrl,
+            playback_state: { playing: true, positionMs: 0, revision: revision + 1 }
+          })
+        });
+        if (!update.ok) return out({ error: "Bildschirm konnte nicht gestartet werden." }, update.status);
+      }
+      return out(fired, result.status);
     }
 
     // MPSQ Team: public rank display plus private staff tools. All permission
