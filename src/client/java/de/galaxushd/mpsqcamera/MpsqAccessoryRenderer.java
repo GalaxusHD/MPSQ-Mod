@@ -41,9 +41,8 @@ public final class MpsqAccessoryRenderer {
             JsonObject npc=element.getAsJsonObject();
             String task=npc.has("task_type")&&!npc.get("task_type").isJsonNull()?npc.get("task_type").getAsString():"none";
             boolean special=switch(task){case "accessories","quest","tutorial"->true;default->false;};
-            if(!special)return true;
             String id=str(npc,"id","");
-            if(!MpsqNpcVisitStore.hasVisited(task)&&!MpsqNpcVisitStore.isGlowDisabled(id))return true;
+            if(!MpsqNpcVisitStore.isGlowDisabled(id)&&(!special||!MpsqNpcVisitStore.hasVisited(task)))return true;
         }
         return false;
     }
@@ -163,7 +162,10 @@ public final class MpsqAccessoryRenderer {
                 String configuredGlow=str(o,"glow_color",defaultGlowColor(task));
                 if("none".equalsIgnoreCase(configuredGlow))configuredGlow=defaultGlowColor(task);
                 int glow=glowColor(configuredGlow);
-                boolean glowing=!hasSpecialRole||(!MpsqNpcVisitStore.hasVisited(task)&&!MpsqNpcVisitStore.isGlowDisabled(str(o,"id","")));
+                String npcId=str(o,"id","");
+                boolean glowDisabled=MpsqNpcVisitStore.isGlowDisabled(npcId);
+                boolean roleGlowExpired=hasSpecialRole&&MpsqNpcVisitStore.hasVisited(task);
+                boolean glowing=!glowDisabled&&!roleGlowExpired;
                 if(playerSkin){var state=MpsqNpcSkinRenderer.createState(skin,yaw,pitch,(System.currentTimeMillis()%100000L)/50.0f,glowing);int light=WorldRenderer.getLightmapCoordinates(client.world,net.minecraft.util.math.BlockPos.ofFloored(x,y,z));MpsqNpcSkinRenderer.render(state,x-camera.x,y+bob-camera.y,z-camera.z,size*pulse,matrices,consumers,light,glow);}
                 else {matrices.push();matrices.translate(x-camera.x,y+bob-camera.y,z-camera.z);matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(-yaw));matrices.multiply(RotationAxis.POSITIVE_X.rotationDegrees(pitch));matrices.scale(size/16f*pulse,size/16f*pulse,size/16f*pulse);drawBbModel(model,matrices,consumers,0xFFFFFFFF);
                     if(glowing){var outline=client.getBufferBuilders().getOutlineVertexConsumers();outline.setColor((glow>>16)&255,(glow>>8)&255,glow&255,255);drawBbModel(model,matrices,outline,0xFFFFFFFF);outline.draw();}
