@@ -61,7 +61,8 @@ public final class MpsqAccessoryRenderer {
     private static int generation;
     private static String scope="";
     private MpsqAccessoryRenderer(){}
-    public static void refresh(){generation++;polling=false;loading.clear();npcRotations.clear();MpsqNpcSkinRenderer.clear(MinecraftClient.getInstance());clearModels(MinecraftClient.getInstance());localAssetUrls.clear();localAssetCategories.clear();localCatalogRequested=false;next=0;}
+    /** Requests fresh NPC metadata without discarding the textures/models currently on screen. */
+    public static void refresh(){next=0;}
     static boolean isCurrentGeneration(int epoch){return epoch==generation;}
     public static JsonArray npcsSnapshot(){return npcs.deepCopy();}
     public static void initialize(){
