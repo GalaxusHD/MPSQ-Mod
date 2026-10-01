@@ -20,6 +20,8 @@ public final class CinemaPlaybackStore {
         return STATES.getOrDefault(screenId, STOPPED);
     }
 
+    public static void set(UUID screenId, PlaybackState state) { STATES.put(screenId, state); }
+
     /** updatedAtMs is the server's timestamp of the last playback command. */
     public record PlaybackState(boolean playing, long positionMs, long revision, long updatedAtMs) { }
 }
