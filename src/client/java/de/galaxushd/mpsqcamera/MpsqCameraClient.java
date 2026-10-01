@@ -1,6 +1,7 @@
 package de.galaxushd.mpsqcamera;
 
 import net.fabricmc.api.ClientModInitializer;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.minecraft.client.MinecraftClient;
 import org.slf4j.Logger;
@@ -13,6 +14,12 @@ public class MpsqCameraClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         LOGGER.info("[MPSQ Team] Client mod initialized.");
+        // Keep Minecraft's subtitle option disabled across every world and menu.
+        ClientTickEvents.END_CLIENT_TICK.register(client -> {
+            if (client.options.getShowSubtitles().getValue()) {
+                client.options.getShowSubtitles().setValue(false);
+            }
+        });
         ModConfig.load();
         MpsqAudioManager.setVolume(ModConfig.volume);
         ScreenCreationManager.initialize();
