@@ -2,7 +2,9 @@ package de.galaxushd.mpsqcamera.mixin.client;
 
 import de.galaxushd.mpsqcamera.ScreenCreationManager;
 import de.galaxushd.mpsqcamera.MpsqNpcManager;
+import de.galaxushd.mpsqcamera.MpsqActionSetupScreen;
 import net.minecraft.client.Mouse;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
 import org.lwjgl.glfw.GLFW;
 import org.spongepowered.asm.mixin.Mixin;
@@ -32,6 +34,9 @@ public final class MouseMixin {
             )
     )
     private void mpsq$routeLookInput(ClientPlayerEntity player, double cursorDeltaX, double cursorDeltaY) {
+        // The redstone setup screen owns the mouse for its widgets. Do not also
+        // feed that cursor movement into the player/camera look input.
+        if (MinecraftClient.getInstance().currentScreen instanceof MpsqActionSetupScreen) return;
         if (ScreenCreationManager.isCameraViewActive()) {
             ScreenCreationManager.applyCameraLook(cursorDeltaX, cursorDeltaY);
             return;
