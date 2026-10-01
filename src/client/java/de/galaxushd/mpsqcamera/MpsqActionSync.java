@@ -4,9 +4,6 @@ import com.google.gson.*;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.text.Text;
@@ -17,12 +14,7 @@ public final class MpsqActionSync {
     private static boolean wasVisible=true;
     private static long next;
     private static int generation;
-    private static final Map<UUID, String> ACTIVE_LINK_TRIGGERS = new HashMap<>();
     private MpsqActionSync() {}
-    static void rememberActiveLinkTrigger(UUID screenId, String triggerId) {
-        if (screenId == null || triggerId == null || triggerId.isBlank()) return;
-        ACTIVE_LINK_TRIGGERS.put(screenId, triggerId);
-    }
     public static String server() {
         var entry = MinecraftClient.getInstance().getCurrentServerEntry();
         return entry == null ? "" : entry.address.toLowerCase(java.util.Locale.ROOT);
@@ -69,7 +61,6 @@ public final class MpsqActionSync {
         String current = server() + "|" + world();
         if (!current.equals(scope)) {
             scope=current; cursor=null; pending=false; generation++; next=0;
-            ACTIVE_LINK_TRIGGERS.clear();
             MpsqAudioManager.stop();
             MpsqMediaAudioManager.stop();
             MpsqBossbarManager.clear();
@@ -103,8 +94,8 @@ public final class MpsqActionSync {
                 else if(playing){MpsqAudioManager.stop();MpsqMediaAudioManager.stop();}
                 else startTriggerAudio(data);
             }
-            case "TOGGLE_BOSSBAR" -> {boolean shown=MpsqBossbarManager.get("event")!=null;if(stateDriven){if(powered&&!shown)MpsqBossbarManager.apply(new MpsqBossbarState("event",data.get("title").getAsString(),"purple",1,true));else if(!powered&&shown)MpsqBossbarManager.remove("event");}else if(shown)MpsqBossbarManager.remove("event");else MpsqBossbarManager.apply(new MpsqBossbarState("event",data.get("title").getAsString(),"purple",1,true));}
-            case "TOGGLE_COUNTDOWN" -> {boolean running=MpsqBossbarManager.countdownRunning();if(stateDriven){if(powered&&!running)MpsqBossbarManager.startCountdown(data.get("title").getAsString(),data.get("duration").getAsInt(),event.get("created_at").getAsString());else if(!powered&&running)MpsqBossbarManager.stopCountdown();}else if(running)MpsqBossbarManager.stopCountdown();else MpsqBossbarManager.startCountdown(data.get("title").getAsString(),data.get("duration").getAsInt(),event.get("created_at").getAsString());}
+            case "TOGGLE_BOSSBAR" -> {boolean shown=MpsqBossbarManager.get("event")!=null;String color=barColor(data);if(stateDriven){if(powered&&!shown)MpsqBossbarManager.apply(new MpsqBossbarState("event",data.get("title").getAsString(),color,1,true));else if(!powered&&shown)MpsqBossbarManager.remove("event");}else if(shown)MpsqBossbarManager.remove("event");else MpsqBossbarManager.apply(new MpsqBossbarState("event",data.get("title").getAsString(),color,1,true));}
+            case "TOGGLE_COUNTDOWN" -> {boolean running=MpsqBossbarManager.countdownRunning();String color=barColor(data);if(stateDriven){if(powered&&!running)MpsqBossbarManager.startCountdown(data.get("title").getAsString(),data.get("duration").getAsInt(),event.get("created_at").getAsString(),color);else if(!powered&&running)MpsqBossbarManager.stopCountdown();}else if(running)MpsqBossbarManager.stopCountdown();else MpsqBossbarManager.startCountdown(data.get("title").getAsString(),data.get("duration").getAsInt(),event.get("created_at").getAsString(),color);}
             case "PLAY_AUDIO", "START_PLAYLIST" -> {
                 var tracks=new ArrayList<String>();
                 if(data.has("tracks")) for(JsonElement track:data.getAsJsonArray("tracks")) tracks.add(track.getAsString());
@@ -116,16 +107,16 @@ public final class MpsqActionSync {
             case "STOP_AUDIO" -> {MpsqAudioManager.stop();MpsqMediaAudioManager.stop();}
             case "SHOW_DIALOGUE" -> MpsqDialogueManager.start(data);
             case "KICK_ANIMATION" -> { MpsqKickAnimationManager.start(data.get("targetName").getAsString()); MpsqMediaAudioManager.playBundledMp3("/assets/mpsqcamera/sounds/kick.mp3",0.28f); }
-            case "START_COUNTDOWN" -> MpsqBossbarManager.startCountdown(data.get("title").getAsString(), data.get("duration").getAsInt(), event.get("created_at").getAsString());
-            case "SHOW_BOSSBAR" -> MpsqBossbarManager.apply(new MpsqBossbarState("event",data.get("title").getAsString(),"purple",1,true));
+            case "START_COUNTDOWN" -> MpsqBossbarManager.startCountdown(data.get("title").getAsString(), data.get("duration").getAsInt(), event.get("created_at").getAsString(),barColor(data));
+            case "SHOW_BOSSBAR" -> MpsqBossbarManager.apply(new MpsqBossbarState("event",data.get("title").getAsString(),barColor(data),1,true));
             case "HIDE_BOSSBAR" -> MpsqBossbarManager.remove("event");
-            case "OPEN_LINK" -> openLinkOnScreen(data, event.has("trigger_id") && !event.get("trigger_id").isJsonNull()
-                    ? event.get("trigger_id").getAsString() : null);
+            case "OPEN_LINK" -> openLinkOnScreen(data);
             default -> { }
         }
     }
+    private static String barColor(JsonObject data){return MpsqBossbarManager.normalizeColor(data.has("color")&&!data.get("color").isJsonNull()?data.get("color").getAsString():"purple");}
     private static void startTriggerAudio(JsonObject data){String source=data.has("sourceType")?data.get("sourceType").getAsString():"minecraft";String sound=data.has("sound")?data.get("sound").getAsString():"";if(source.equals("mp3")||source.equals("mp4")){MpsqAudioManager.stop();MpsqMediaAudioManager.play(source,java.util.List.of(sound));}else{MpsqMediaAudioManager.stop();MpsqAudioManager.startPlaylist("MPSQ",java.util.List.of(sound));}}
-    private static void openLinkOnScreen(JsonObject data, String triggerId) {
+    private static void openLinkOnScreen(JsonObject data) {
         try {
             var screenId=java.util.UUID.fromString(data.get("screenId").getAsString());
             var screen=LocalScreenStore.findById(screenId).orElse(null);
@@ -134,28 +125,10 @@ public final class MpsqActionSync {
             if(screen==null||screen.inputType()!=LocalScreenStore.ScreenInputType.LINK
                     ||!"https".equalsIgnoreCase(uri.getScheme())||uri.getHost()==null
                     ||uri.getUserInfo()!=null||url.length()>2048)return;
+            LocalScreenStore.updateConfig(screenId,LocalScreenStore.ScreenInputType.LINK,url,null);
             var old=CinemaPlaybackStore.get(screenId);
-            long now=System.currentTimeMillis();
-            boolean sameVideo=url.equals(screen.url());
-            String activeTrigger=ACTIVE_LINK_TRIGGERS.get(screenId);
-            boolean sameTrigger=triggerId==null?sameVideo:triggerId.equals(activeTrigger);
-            if (sameTrigger && sameVideo && old.playing()) {
-                long position=old.positionMs();
-                if (old.updatedAtMs()>0L) position+=Math.max(0L,now-old.updatedAtMs());
-                CinemaPlaybackStore.set(screenId,new CinemaPlaybackStore.PlaybackState(false,position,old.revision()+1L,now));
-            } else {
-                if (!sameVideo) LocalScreenStore.updateConfig(screenId,LocalScreenStore.ScreenInputType.LINK,url,null);
-                long position=sameTrigger&&sameVideo?old.positionMs():0L;
-                CinemaPlaybackStore.set(screenId,new CinemaPlaybackStore.PlaybackState(true,position,old.revision()+1L,now));
-            }
-            rememberActiveLinkTrigger(screenId,triggerId);
+            CinemaPlaybackStore.set(screenId,new CinemaPlaybackStore.PlaybackState(true,0L,old.revision()+1L,System.currentTimeMillis()));
             CinemaBrowserManager.synchronize();
-            // The API writes the screen after inserting the action event. A
-            // delayed refresh avoids racing that write; stale revisions are
-            // also rejected by ScreenSyncManager/CinemaPlaybackStore.
-            if (isMpsqServer()) java.util.concurrent.CompletableFuture
-                    .delayedExecutor(1500L, java.util.concurrent.TimeUnit.MILLISECONDS)
-                    .execute(ScreenSyncManager::refresh);
         } catch(RuntimeException ignored) { }
     }
 }

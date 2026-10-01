@@ -30,11 +30,20 @@ public final class MpsqBossbarHud {
             Identifier background = barTexture(state.color(), "background");
             Identifier progress = barTexture(state.color(), "progress");
             context.drawGuiTexture(RenderPipelines.GUI_TEXTURED, background, left, barY, width, BAR_HEIGHT);
-            if (filled > 0) {
+            int customColor=customBarColor(state.color());
+            if(customColor!=0&&filled>0) {
+                context.fill(left,barY,left+filled,barY+BAR_HEIGHT,customColor);
+            } else if (filled > 0) {
                 context.drawGuiTexture(RenderPipelines.GUI_TEXTURED, progress, BAR_WIDTH, BAR_HEIGHT,
                         0, 0, left, barY, filled, BAR_HEIGHT);
             }
-            if(fractionalPixel>0f&&filled<width){
+            if(customColor!=0&&fractionalPixel>0f&&filled<width){
+                context.getMatrices().pushMatrix();
+                context.getMatrices().translate(left+filled,barY);
+                context.getMatrices().scale(fractionalPixel,1f);
+                context.fill(0,0,1,BAR_HEIGHT,customColor);
+                context.getMatrices().popMatrix();
+            } else if(fractionalPixel>0f&&filled<width){
                 context.getMatrices().pushMatrix();
                 context.getMatrices().translate(left+filled,barY);
                 context.getMatrices().scale(fractionalPixel,1f);
@@ -54,5 +63,12 @@ public final class MpsqBossbarHud {
             default -> "purple";
         };
         return Identifier.ofVanilla("boss_bar/" + safeColor + "_" + part);
+    }
+    private static int customBarColor(String color) {
+        return switch(String.valueOf(color).toLowerCase(java.util.Locale.ROOT)) {
+            case "pink" -> 0xFFEC2F53;
+            case "red" -> 0xFFCF2020;
+            default -> 0;
+        };
     }
 }

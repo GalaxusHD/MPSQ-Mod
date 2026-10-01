@@ -19,13 +19,16 @@ public final class MpsqActionSetupScreen extends Screen {
     private final MpsqTriggerBlockPolicy.Kind blockKind;
     private TextFieldWidget value, duration;
     private ButtonWidget soundTypeButton, linkScreenButton;
+    private ButtonWidget barColorButton;
+    private static final String[] BAR_COLORS={"purple","pink","red"};
+    private static final String[] BAR_COLOR_LABELS={"Violett (Standard)","Pink (#ec2f53)","Rot (#cf2020)"};
     private static final String[] SOUND_TYPES={"minecraft","mp3","mp4"};
     private static final String[] SOUND_TYPE_LABELS={"Minecraft-ID","MP3-Datei-ID","MP4-Datei-ID"};
     private static final String[] QUICK_ACTIONS={"TOGGLE_AUDIO","TOGGLE_COUNTDOWN","TOGGLE_BOSSBAR"};
     private static final String[] BLOCK_ACTIONS={"TOGGLE_AUDIO","TOGGLE_COUNTDOWN","TOGGLE_BOSSBAR","SHOW_DIALOGUE","OPEN_LINK"};
     private final String[] actions;
     private List<LocalScreenStore.LocalScreenData> linkScreens=List.of();
-    private int action, soundType, linkScreenIndex;
+    private int action, soundType, linkScreenIndex, barColor;
     private String status="";
 
     public MpsqActionSetupScreen(BlockPos pos,String block,String blockName,MpsqTriggerBlockPolicy.Kind blockKind,String properties) {
@@ -38,7 +41,7 @@ public final class MpsqActionSetupScreen extends Screen {
     public MpsqActionSetupScreen() { this(BlockPos.ORIGIN, "","",MpsqTriggerBlockPolicy.Kind.NONE,""); }
 
     @Override protected void init() {
-        int x=width/2-130,y=60;
+        int x=width/2-130,y=35;
         linkScreens=LocalScreenStore.getAllScreens().stream()
                 .filter(s->s.inputType()==LocalScreenStore.ScreenInputType.LINK&&!ScreenAccessStore.isTriggerLinkedOnly(s.id())).toList();
         addDrawableChild(ButtonWidget.builder(Text.literal(actionLabel(actions[action])),b->{
@@ -49,13 +52,16 @@ public final class MpsqActionSetupScreen extends Screen {
         }).dimensions(x,y+23,260,20).build());
         value=addDrawableChild(new TextFieldWidget(textRenderer,x,y+49,260,20,Text.literal("Text, Titel oder URL")));
         value.setMaxLength(3072);
-        duration=addDrawableChild(new TextFieldWidget(textRenderer,x,y+88,260,20,Text.literal("Sekunden")));
+        barColorButton=addDrawableChild(ButtonWidget.builder(Text.literal(BAR_COLOR_LABELS[barColor]),b->{
+            barColor=(barColor+1)%BAR_COLORS.length;b.setMessage(Text.literal(BAR_COLOR_LABELS[barColor]));
+        }).dimensions(x,y+75,260,20).build());
+        duration=addDrawableChild(new TextFieldWidget(textRenderer,x,y+101,260,20,Text.literal("Sekunden")));
         duration.setText("30");
         linkScreenButton=addDrawableChild(ButtonWidget.builder(Text.literal(screenLabel()),b->{
             if(!linkScreens.isEmpty()){linkScreenIndex=(linkScreenIndex+1)%linkScreens.size();b.setMessage(Text.literal(screenLabel()));}
-        }).dimensions(x,y+88,260,20).build());
-        addDrawableChild(ButtonWidget.builder(Text.literal(block.isEmpty()?"Auslösen":"Speichern"),b->save()).dimensions(x,y+120,125,20).build());
-        addDrawableChild(ButtonWidget.builder(Text.literal("Abbrechen"),b->close()).dimensions(x+135,y+120,125,20).build());
+        }).dimensions(x,y+101,260,20).build());
+        addDrawableChild(ButtonWidget.builder(Text.literal(block.isEmpty()?"Auslösen":"Speichern"),b->save()).dimensions(x,y+133,125,20).build());
+        addDrawableChild(ButtonWidget.builder(Text.literal("Abbrechen"),b->close()).dimensions(x+135,y+133,125,20).build());
         updateVisibility();
     }
 
@@ -66,8 +72,10 @@ public final class MpsqActionSetupScreen extends Screen {
     private void updateVisibility(){
         String selected=actions[action];
         boolean audio="TOGGLE_AUDIO".equals(selected), countdown="TOGGLE_COUNTDOWN".equals(selected), link="OPEN_LINK".equals(selected);
+        boolean bossbar="TOGGLE_BOSSBAR".equals(selected);
         soundTypeButton.visible=audio;soundTypeButton.active=audio;
         duration.visible=countdown;duration.active=countdown;
+        barColorButton.visible=countdown||bossbar;barColorButton.active=countdown||bossbar;
         linkScreenButton.visible=link;linkScreenButton.active=link&&!linkScreens.isEmpty();
         value.setPlaceholder(Text.literal(link?"HTTPS-Link für den Bildschirm":"Text oder Titel (Farben mit &c etc.)"));
     }
@@ -80,11 +88,12 @@ public final class MpsqActionSetupScreen extends Screen {
                 if(soundType>0&&!value.getText().trim().matches("[a-zA-Z0-9_-]{1,64}")){status="Bitte die Datei-ID aus dem Sound-Upload angeben.";return;}
                 data.addProperty("sourceType",SOUND_TYPES[soundType]);data.addProperty("sound",value.getText().trim());
             }
-            case "TOGGLE_BOSSBAR" -> data.addProperty("title",value.getText());
+            case "TOGGLE_BOSSBAR" -> {data.addProperty("title",value.getText());data.addProperty("color",BAR_COLORS[barColor]);}
             case "TOGGLE_COUNTDOWN" -> {
                 try{int seconds=Integer.parseInt(duration.getText());if(seconds<1||seconds>7200)throw new NumberFormatException();data.addProperty("duration",seconds);}
                 catch(NumberFormatException e){status="Dauer: 1–7200 Sekunden";return;}
                 data.addProperty("title",value.getText());
+                data.addProperty("color",BAR_COLORS[barColor]);
             }
             case "OPEN_LINK" -> {
                 String url=value.getText().trim();
@@ -119,7 +128,7 @@ public final class MpsqActionSetupScreen extends Screen {
                 "SHOW_DIALOGUE".equals(selected)?"Textseiten mit || trennen":
                 "TOGGLE_AUDIO".equals(selected)?(soundType==0?"Minecraft-Sound-ID, z. B. minecraft:music.menu":"Sound-Datei-ID aus dem MPSQ-Upload"):
                 "TOGGLE_COUNTDOWN".equals(selected)?"Countdown-Dauer in Sekunden":"&0–&f Farben: &chellrot, &egelb, &r zurücksetzen";
-        c.drawTextWithShadow(textRenderer,hint,width/2-130,132,0xFFFFFFFF);
+        c.drawTextWithShadow(textRenderer,hint,width/2-130,194,0xFFFFFFFF);
         c.drawCenteredTextWithShadow(textRenderer,Text.literal(status),width/2,height-24,0xFFFFFFFF);
     }
     private static String actionLabel(String action){return switch(action){
