@@ -10,6 +10,8 @@ import net.minecraft.util.math.BlockPos;
 public final class MpsqObjectScreen extends Screen {
     private final BlockPos pos;
     private final String server,world;
+    private final boolean editing;
+    private final String initialModel,initialName,initialSoundId;
     private TextFieldWidget model;
     private TextFieldWidget displayName;
     private TextFieldWidget soundId;
@@ -17,16 +19,17 @@ public final class MpsqObjectScreen extends Screen {
     private int rotation;
     private String status="";
     private boolean pending;
-    public MpsqObjectScreen(BlockPos support){super(Text.literal("MPSQ-Objekt platzieren"));pos=support.up().toImmutable();server=MpsqActionSync.server();world=MpsqActionSync.world();}
+    public MpsqObjectScreen(BlockPos support){super(Text.literal("MPSQ-Möbel platzieren"));pos=support.up().toImmutable();server=MpsqActionSync.server();world=MpsqActionSync.world();editing=false;initialModel="";initialName="";initialSoundId="";}
+    public MpsqObjectScreen(JsonObject existing){super(Text.literal("MPSQ-Möbel-Konfigurator"));pos=BlockPos.ofFloored(existing.get("x").getAsDouble(),existing.get("y").getAsDouble(),existing.get("z").getAsDouble());server=MpsqActionSync.server();world=MpsqActionSync.world();editing=true;initialModel=str(existing,"model_id",str(existing,"modelId",""));initialName=str(existing,"display_name",str(existing,"displayName",""));initialSoundId=str(existing,"sound_id",str(existing,"soundId",""));size=readFloat(existing,"scale",1.0f);rotation=existing.has("rotation")?existing.get("rotation").getAsInt():0;}
     @Override protected void init(){
-        model=addDrawableChild(new TextFieldWidget(textRenderer,width/2-120,70,145,20,Text.literal("Modell-ID")));model.setMaxLength(64);model.setPlaceholder(Text.literal("Modell-ID"));
+        model=addDrawableChild(new TextFieldWidget(textRenderer,width/2-120,70,145,20,Text.literal("Modell-ID")));model.setMaxLength(64);model.setPlaceholder(Text.literal("Modell-ID"));model.setText(initialModel);
         addDrawableChild(ButtonWidget.builder(Text.literal("Katalog"),b->client.setScreen(new MpsqModelsScreen(this))).dimensions(width/2+30,70,90,20).build());
-        displayName=addDrawableChild(new TextFieldWidget(textRenderer,width/2-120,98,240,20,Text.literal("Anzeigename")));displayName.setMaxLength(64);displayName.setPlaceholder(Text.literal("Anzeigename (optional)"));
-        soundId=addDrawableChild(new TextFieldWidget(textRenderer,width/2-120,154,240,20,Text.literal("Sound-ID")));soundId.setMaxLength(64);soundId.setPlaceholder(Text.literal("MP3-Datei-ID (optional)"));
+        displayName=addDrawableChild(new TextFieldWidget(textRenderer,width/2-120,98,240,20,Text.literal("Anzeigename")));displayName.setMaxLength(64);displayName.setPlaceholder(Text.literal("Anzeigename (optional)"));displayName.setText(initialName);
+        soundId=addDrawableChild(new TextFieldWidget(textRenderer,width/2-120,154,240,20,Text.literal("Sound-ID")));soundId.setMaxLength(64);soundId.setPlaceholder(Text.literal("MP3-Datei-ID (optional)"));soundId.setText(initialSoundId);
         addDrawableChild(ButtonWidget.builder(Text.literal(String.format(java.util.Locale.ROOT,"Größe: %.1fx",size)),b->{size=size>=3.0f?0.5f:size+0.5f;b.setMessage(Text.literal(String.format(java.util.Locale.ROOT,"Größe: %.1fx",size)));}).dimensions(width/2-120,126,116,20).build());
         addDrawableChild(ButtonWidget.builder(Text.literal("Drehung: "+rotation+"°"),b->{rotation=(rotation+90)%360;b.setMessage(Text.literal("Drehung: "+rotation+"°"));}).dimensions(width/2+4,126,116,20).build());
-        addDrawableChild(ButtonWidget.builder(Text.literal("Platzieren / Ersetzen"),b->save(false)).dimensions(width/2-120,182,240,20).build());
-        addDrawableChild(ButtonWidget.builder(Text.literal("Objekt hier entfernen"),b->save(true)).dimensions(width/2-120,208,240,20).build());
+        addDrawableChild(ButtonWidget.builder(Text.literal(editing?"Änderungen speichern":"Platzieren / Ersetzen"),b->save(false)).dimensions(width/2-120,182,240,20).build());
+        addDrawableChild(ButtonWidget.builder(Text.literal("Möbel hier entfernen"),b->save(true)).dimensions(width/2-120,208,240,20).build());
         addDrawableChild(ButtonWidget.builder(Text.literal("Schließen"),b->close()).dimensions(width/2-60,height-28,120,20).build());
     }
     private void save(boolean remove){
@@ -49,6 +52,8 @@ public final class MpsqObjectScreen extends Screen {
     @Override public void renderBackground(DrawContext c,int x,int y,float d){super.renderBackground(c,x,y,d);MpsqTheme.drawBackground(c,width,height);}
     @Override public void render(DrawContext c,int x,int y,float d){super.render(c,x,y,d);c.drawCenteredTextWithShadow(textRenderer,title,width/2,24,0xFFFFFFFF);c.drawCenteredTextWithShadow(textRenderer,"Position: "+pos.toShortString(),width/2,50,0xFFAAAAAA);c.drawCenteredTextWithShadow(textRenderer,textRenderer.trimToWidth(status,width-24),width/2,height-46,0xFFFFFFFF);}
     @Override public boolean shouldPause(){return false;}
+    private static String str(JsonObject o,String key,String fallback){return o.has(key)&&!o.get(key).isJsonNull()?o.get(key).getAsString():fallback;}
+    private static float readFloat(JsonObject o,String key,float fallback){try{float value=o.has(key)?o.get(key).getAsFloat():fallback;return Float.isFinite(value)?Math.max(0.25f,Math.min(3.0f,value)):fallback;}catch(RuntimeException ignored){return fallback;}}
 }
 
 

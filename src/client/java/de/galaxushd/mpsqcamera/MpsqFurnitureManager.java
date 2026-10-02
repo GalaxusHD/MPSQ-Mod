@@ -49,6 +49,11 @@ public final class MpsqFurnitureManager {
         }
 
         if (selected == null) return false;
+        if (player.isSneaking() && canConfigure(client)) {
+            client.setScreen(new MpsqObjectScreen(selected));
+            return true;
+        }
+
         String soundId = selected.has("sound_id") && !selected.get("sound_id").isJsonNull()
                 ? selected.get("sound_id").getAsString()
                 : selected.has("soundId") && !selected.get("soundId").isJsonNull()
@@ -57,5 +62,13 @@ public final class MpsqFurnitureManager {
             MpsqMediaAudioManager.play("mp3", List.of(soundId));
         }
         return true;
+    }
+
+    private static boolean canConfigure(MinecraftClient client) {
+        if (client.getServer() != null) return true;
+        if (!MpsqActionSync.isMpsqServer()) return false;
+        return TeamStateStore.self()
+                .map(profile -> profile.permissionRank().level() >= TeamRank.OFFICER.level())
+                .orElse(false);
     }
 }
