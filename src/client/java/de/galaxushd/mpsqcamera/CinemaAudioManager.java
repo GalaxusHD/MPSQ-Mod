@@ -20,6 +20,7 @@ public final class CinemaAudioManager {
     /* A larger queue absorbs short render/tick stalls without audible gaps. */
     private static final int MAX_PENDING_PACKETS = 256;
     private static final int MAX_QUEUED_BUFFERS = 48;
+    private static final int STARTUP_BUFFER_COUNT = 5;
     // Chromium's YouTube path sends 44.1 kHz PCM on the MCEF build that
     // reports params=null. Playing that at 48 kHz makes voices too high.
     private static final int FALLBACK_SAMPLE_RATE = 44_100;
@@ -114,6 +115,8 @@ public final class CinemaAudioManager {
         private final ConcurrentLinkedQueue<ByteBuffer> pendingPackets = new ConcurrentLinkedQueue<>();
         private int sourceId;
         private boolean closed;
+        private boolean started;
+        private final long openedAtNanos = System.nanoTime();
 
         private AudioStream(int sampleRate, int channels) {
             this.sampleRate = Math.max(8_000, sampleRate);
@@ -171,9 +174,13 @@ public final class CinemaAudioManager {
                     AL10.alSourceQueueBuffers(sourceId, bufferId);
                 }
 
-                if (AL10.alGetSourcei(sourceId, AL10.AL_BUFFERS_QUEUED) > 0
+                int queued = AL10.alGetSourcei(sourceId, AL10.AL_BUFFERS_QUEUED);
+                boolean startupBufferReady = queued >= STARTUP_BUFFER_COUNT
+                        || System.nanoTime() - openedAtNanos >= 200_000_000L;
+                if (queued > 0 && (started || startupBufferReady)
                         && AL10.alGetSourcei(sourceId, AL10.AL_SOURCE_STATE) != AL10.AL_PLAYING) {
                     AL10.alSourcePlay(sourceId);
+                    started = true;
                 }
             } catch (RuntimeException exception) {
                 MpsqCameraClient.LOGGER.warn("Kino-Audio konnte nicht ausgegeben werden", exception);

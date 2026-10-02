@@ -189,7 +189,9 @@ public final class CinemaBrowserManager {
         // MCEF can release cursor capture asynchronously, so restore now and
         // retry for several ticks after creation/stop/close.
         restoreGameMouse();
-        mouseRestoreDelayTicks = Math.max(mouseRestoreDelayTicks, 10);
+        // Some MCEF builds change GLFW cursor mode well after close returns.
+        // Keep recapturing during the transition instead of relying on one retry.
+        mouseRestoreDelayTicks = Math.max(mouseRestoreDelayTicks, 200);
     }
 
     /** Converts common YouTube links to their player URL, including a synchronized start point. */
