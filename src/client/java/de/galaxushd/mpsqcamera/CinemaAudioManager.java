@@ -10,6 +10,7 @@ import org.lwjgl.openal.AL10;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -20,7 +21,8 @@ public final class CinemaAudioManager {
     /* A larger queue absorbs short render/tick stalls without audible gaps. */
     private static final int MAX_PENDING_PACKETS = 256;
     private static final int MAX_QUEUED_BUFFERS = 48;
-    private static final int STARTUP_BUFFER_COUNT = 5;
+    private static final int STARTUP_BUFFER_MILLIS = 100;
+    private static final int MAX_STARTUP_WAIT_MILLIS = 500;
     // Chromium's YouTube path sends 44.1 kHz PCM on the MCEF build that
     // reports params=null. Playing that at 48 kHz makes voices too high.
     private static final int FALLBACK_SAMPLE_RATE = 44_100;
@@ -113,6 +115,8 @@ public final class CinemaAudioManager {
         private final int sampleRate;
         private final int channels;
         private final ConcurrentLinkedQueue<ByteBuffer> pendingPackets = new ConcurrentLinkedQueue<>();
+        private final Map<Integer, Integer> queuedBufferFrames = new HashMap<>();
+        private int queuedFrames;
         private int sourceId;
         private boolean closed;
         private boolean started;
@@ -161,7 +165,10 @@ public final class CinemaAudioManager {
 
             int processed = AL10.alGetSourcei(sourceId, AL10.AL_BUFFERS_PROCESSED);
                 while (processed-- > 0) {
-                    AL10.alDeleteBuffers(AL10.alSourceUnqueueBuffers(sourceId));
+                    int bufferId = AL10.alSourceUnqueueBuffers(sourceId);
+                    queuedFrames -= queuedBufferFrames.getOrDefault(bufferId, 0);
+                    queuedBufferFrames.remove(bufferId);
+                    AL10.alDeleteBuffers(bufferId);
                 }
 
                 while (AL10.alGetSourcei(sourceId, AL10.AL_BUFFERS_QUEUED) < MAX_QUEUED_BUFFERS) {
@@ -170,13 +177,18 @@ public final class CinemaAudioManager {
                         break;
                     }
                     int bufferId = AL10.alGenBuffers();
+                    int frames = packet.remaining() / 4;
                     AL10.alBufferData(bufferId, AL10.AL_FORMAT_STEREO16, packet, sampleRate);
                     AL10.alSourceQueueBuffers(sourceId, bufferId);
+                    queuedBufferFrames.put(bufferId, frames);
+                    queuedFrames += frames;
                 }
 
                 int queued = AL10.alGetSourcei(sourceId, AL10.AL_BUFFERS_QUEUED);
-                boolean startupBufferReady = queued >= STARTUP_BUFFER_COUNT
-                        || System.nanoTime() - openedAtNanos >= 200_000_000L;
+                long bufferedNanos = queuedFrames * 1_000_000_000L / sampleRate;
+                boolean startupBufferReady = bufferedNanos >= STARTUP_BUFFER_MILLIS * 1_000_000L
+                        || (queuedFrames > 0 && System.nanoTime() - openedAtNanos
+                        >= MAX_STARTUP_WAIT_MILLIS * 1_000_000L);
                 if (queued > 0 && (started || startupBufferReady)
                         && AL10.alGetSourcei(sourceId, AL10.AL_SOURCE_STATE) != AL10.AL_PLAYING) {
                     AL10.alSourcePlay(sourceId);
