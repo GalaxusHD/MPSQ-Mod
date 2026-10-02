@@ -69,40 +69,6 @@ public final class MpsqApiClient {
     public static CompletableFuture<JsonElement> patch(String path, JsonObject body) { return request("PATCH", path, body, true); }
     public static CompletableFuture<JsonElement> delete(String path) { return request("DELETE", path, null, true); }
 
-    public static CompletableFuture<List<MpsqTrigger>> loadTriggers() {
-        return get("/triggers?server=" + java.net.URLEncoder.encode(MpsqActionSync.server(), StandardCharsets.UTF_8)).thenApply(json -> {
-            List<MpsqTrigger> result = new ArrayList<>();
-            if (!json.isJsonArray()) return result;
-            for (JsonElement value : json.getAsJsonArray()) {
-                JsonObject row = value.getAsJsonObject();
-                result.add(new MpsqTrigger(UUID.fromString(row.get("id").getAsString()), row.get("world_id").getAsString(),
-                        new BlockPos(row.get("pos_x").getAsInt(), row.get("pos_y").getAsInt(), row.get("pos_z").getAsInt()),
-                        row.get("block_id").getAsString(), row.has("object_type") ? row.get("object_type").getAsString() : "TRIGGER",
-                        row.get("action_type").getAsString(), Map.of()));
-            }
-            return result;
-        });
-    }
-
-    public static CompletableFuture<JsonElement> fireTrigger(UUID triggerId) {
-        return fireTrigger(triggerId, null, false);
-    }
-
-    public static CompletableFuture<JsonElement> fireTrigger(UUID triggerId, Boolean powered) {
-        return fireTrigger(triggerId, powered, false);
-    }
-
-    public static CompletableFuture<JsonElement> fireTrigger(UUID triggerId, Boolean powered, boolean pulse) {
-        JsonObject body = new JsonObject(); body.addProperty("serverId", MpsqActionSync.server()); body.addProperty("worldId", MpsqActionSync.world());
-        if (powered != null) { body.addProperty("powered", powered); body.addProperty("pulse", pulse); }
-        return post("/triggers/" + triggerId + "/fire", body);
-    }
-
-    public static CompletableFuture<JsonElement> redeemCode(String code) {
-        JsonObject body = new JsonObject(); body.addProperty("code", code);
-        return post("/redeem", body);
-    }
-
     /** Uploads one frame directly to R2 using a short-lived, camera-scoped URL. */
     public static CompletableFuture<JsonElement> postCameraFrame(UUID cameraId, byte[] png) {
         return frameUploadUrl(cameraId).thenCompose(url -> {
@@ -197,8 +163,10 @@ public final class MpsqApiClient {
                 JsonObject row = element.getAsJsonObject();
                 BlockPos pos1 = new BlockPos(row.get("pos1_x").getAsInt(), row.get("pos1_y").getAsInt(), row.get("pos1_z").getAsInt());
                 BlockPos pos2 = new BlockPos(row.get("pos2_x").getAsInt(), row.get("pos2_y").getAsInt(), row.get("pos2_z").getAsInt());
-                LocalScreenStore.ScreenInputType mode = "CAMERA".equals(row.get("mode").getAsString())
-                        ? LocalScreenStore.ScreenInputType.CAMERA : LocalScreenStore.ScreenInputType.LINK;
+                String modeValue = row.get("mode").getAsString();
+                LocalScreenStore.ScreenInputType mode = "CAMERA".equals(modeValue)
+                        ? LocalScreenStore.ScreenInputType.CAMERA
+                        : ("REDSTONE".equals(modeValue) ? LocalScreenStore.ScreenInputType.REDSTONE : LocalScreenStore.ScreenInputType.LINK);
                 UUID cameraId = null;
                 if (row.has("mpsq_screen_cameras") && row.get("mpsq_screen_cameras").isJsonArray()) {
                     JsonArray cameras = row.getAsJsonArray("mpsq_screen_cameras");
@@ -403,7 +371,7 @@ public final class MpsqApiClient {
                 JsonObject row = element.getAsJsonObject();
                 TeamTemplate.Speaker speaker = TeamTemplate.Speaker.fromId(
                         row.has("speaker") && !row.get("speaker").isJsonNull() ? row.get("speaker").getAsString() : "offizier");
-                templates.add(new TeamTemplate(UUID.fromString(row.get("id").getAsString()), row.get("text").getAsString(), speaker, row.has("sound_id")&&!row.get("sound_id").isJsonNull()?row.get("sound_id").getAsString():""));
+                templates.add(new TeamTemplate(UUID.fromString(row.get("id").getAsString()), row.get("text").getAsString(), speaker));
             }
             return templates;
         });
@@ -475,5 +443,3 @@ public final class MpsqApiClient {
         return "Minecraft Client";
     }
 }
-
-

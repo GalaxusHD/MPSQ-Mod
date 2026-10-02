@@ -25,7 +25,7 @@ public final class ScreenSyncManager {
         String server=MpsqActionSync.server(),world=MpsqActionSync.world();
         String path="/screens?server="+URLEncoder.encode(server,StandardCharsets.UTF_8)+"&world="+URLEncoder.encode(world,StandardCharsets.UTF_8);
         return MpsqApiClient.get(path).thenAccept(json -> {
-            List<LocalScreenStore.LocalScreenData> screens = new ArrayList<>(); Map<UUID, String> codes = new HashMap<>(); Map<UUID, LocalScreenStore.LocalGroupData> groups = new HashMap<>(); Set<UUID> owned = new HashSet<>(),triggerLinkedOnly=new HashSet<>(); Map<UUID, CinemaPlaybackStore.PlaybackState> playbackStates = new HashMap<>(); Map<UUID, String> activeTriggers = new HashMap<>();
+            List<LocalScreenStore.LocalScreenData> screens = new ArrayList<>(); Map<UUID, String> codes = new HashMap<>(); Map<UUID, LocalScreenStore.LocalGroupData> groups = new HashMap<>(); Set<UUID> owned = new HashSet<>(),triggerLinkedOnly=new HashSet<>(); Map<UUID, CinemaPlaybackStore.PlaybackState> playbackStates = new HashMap<>();
             for (JsonElement item : json.getAsJsonArray()) {
                 JsonObject row = item.getAsJsonObject(); UUID id = UUID.fromString(row.get("id").getAsString());
                 BlockPos p1 = new BlockPos(row.get("pos1_x").getAsInt(), row.get("pos1_y").getAsInt(), row.get("pos1_z").getAsInt()); BlockPos p2 = new BlockPos(row.get("pos2_x").getAsInt(), row.get("pos2_y").getAsInt(), row.get("pos2_z").getAsInt());
@@ -34,7 +34,10 @@ public final class ScreenSyncManager {
                 if(row.has("is_trigger_linked_only")&&row.get("is_trigger_linked_only").getAsBoolean())triggerLinkedOnly.add(id);
                 if (row.has("front") && !row.get("front").isJsonNull()) ScreenAccessStore.setFront(id, row.get("front").getAsString());
                 if (groupId != null && row.has("mpsq_screen_groups") && row.get("mpsq_screen_groups").isJsonObject()) { JsonObject group = row.getAsJsonObject("mpsq_screen_groups"); groups.put(id, new LocalScreenStore.LocalGroupData(groupId, group.get("activation_code").getAsString())); }
-                LocalScreenStore.ScreenInputType mode = "CAMERA".equals(row.get("mode").getAsString()) ? LocalScreenStore.ScreenInputType.CAMERA : LocalScreenStore.ScreenInputType.LINK;
+                String modeValue = row.get("mode").getAsString();
+                LocalScreenStore.ScreenInputType mode = "CAMERA".equals(modeValue)
+                        ? LocalScreenStore.ScreenInputType.CAMERA
+                        : ("REDSTONE".equals(modeValue) ? LocalScreenStore.ScreenInputType.REDSTONE : LocalScreenStore.ScreenInputType.LINK);
                 List<UUID> cameraIds = new ArrayList<>();
                 if (row.has("mpsq_screen_cameras") && row.get("mpsq_screen_cameras").isJsonArray()) {
                     JsonArray assignments = row.getAsJsonArray("mpsq_screen_cameras");
@@ -59,9 +62,6 @@ public final class ScreenSyncManager {
                     boolean playing = state.has("playing") && state.get("playing").getAsBoolean();
                     long positionMs = state.has("positionMs") ? state.get("positionMs").getAsLong() : 0L;
                     long revision = state.has("revision") ? state.get("revision").getAsLong() : 0L;
-                    if (state.has("activeTriggerId") && !state.get("activeTriggerId").isJsonNull()) {
-                        activeTriggers.put(id, state.get("activeTriggerId").getAsString());
-                    }
                     long updatedAtMs = 0L;
                     try {
                         if (row.has("updated_at") && !row.get("updated_at").isJsonNull()) {
@@ -73,35 +73,9 @@ public final class ScreenSyncManager {
                 screens.add(new LocalScreenStore.LocalScreenData(id, p1, p2, row.get("name").getAsString(), new Vec3d(p1.getX(), p1.getY(), p1.getZ()), mode, row.get("cinema_url").getAsString(), firstCameraId, groupId));
             }
             MinecraftClient.getInstance().execute(() -> {
-                // The trigger event is inserted just before the API stores its
-                // resulting playback state. Ignore a stale screen response so
-                // it cannot erase the optimistic URL or stop the browser.
-                List<LocalScreenStore.LocalScreenData> mergedScreens = new ArrayList<>(screens.size());
-                for (LocalScreenStore.LocalScreenData screen : screens) {
-                    LocalScreenStore.LocalScreenData previous = LocalScreenStore.findById(screen.id()).orElse(null);
-                    String url = screen.url();
-                    CinemaPlaybackStore.PlaybackState incoming = playbackStates.get(screen.id());
-                    CinemaPlaybackStore.PlaybackState current = CinemaPlaybackStore.get(screen.id());
-                    boolean stalePlayback = incoming != null && incoming.revision() < current.revision();
-                    boolean stillPlaying = incoming == null
-                            ? current.playing()
-                            : incoming.playing();
-                    if (stalePlayback && previous != null) {
-                        url = previous.url();
-                    } else if (url.isBlank() && stillPlaying && previous != null && !previous.url().isBlank()) {
-                        url = previous.url();
-                    }
-                    if (!stalePlayback && activeTriggers.containsKey(screen.id())) {
-                        MpsqActionSync.rememberActiveLinkTrigger(screen.id(), activeTriggers.get(screen.id()));
-                    }
-                    mergedScreens.add(new LocalScreenStore.LocalScreenData(screen.id(), screen.pos1(), screen.pos2(),
-                            screen.name(), screen.createdFrom(), screen.inputType(), url, screen.cameraId(), screen.groupId()));
-                }
-                LocalScreenStore.replaceAll(mergedScreens);
+                LocalScreenStore.replaceAll(screens);
                 ScreenAccessStore.replace(codes, groups, owned, triggerLinkedOnly);
-                // Older/API responses may omit playback_state. An omitted field
-                // is not a stop command and must not terminate a running player.
-                CinemaPlaybackStore.merge(playbackStates);
+                CinemaPlaybackStore.replace(playbackStates);
                 CinemaBrowserManager.synchronize();
             });
         });

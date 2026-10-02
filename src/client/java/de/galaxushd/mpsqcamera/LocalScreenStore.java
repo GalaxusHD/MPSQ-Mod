@@ -119,7 +119,7 @@ public final class LocalScreenStore {
     }
 
     public enum ScreenInputType {
-        LINK("Link"), CAMERA("Kamera");
+        LINK("Kino"), CAMERA("Kamera"), REDSTONE("MPSQ Redstone");
         private final String label;
         ScreenInputType(String label) { this.label = label; }
         public Text text() { return Text.literal(label); }

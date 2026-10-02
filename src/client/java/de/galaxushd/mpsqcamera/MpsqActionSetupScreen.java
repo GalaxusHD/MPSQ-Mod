@@ -21,7 +21,7 @@ public final class MpsqActionSetupScreen extends Screen {
     private ButtonWidget soundTypeButton, linkScreenButton;
     private ButtonWidget barColorButton;
     private static final String[] BAR_COLORS={"purple","pink","red"};
-    private static final String[] BAR_COLOR_LABELS={"Violett (Standard)","Pink (Enderdragon)","Rot (Raid)"};
+    private static final String[] BAR_COLOR_LABELS={"Violett (Standard)","Pink (#ec2f53)","Rot (#cf2020)"};
     private static final String[] SOUND_TYPES={"minecraft","mp3","mp4"};
     private static final String[] SOUND_TYPE_LABELS={"Minecraft-ID","MP3-Datei-ID","MP4-Datei-ID"};
     private static final String[] QUICK_ACTIONS={"TOGGLE_AUDIO","TOGGLE_COUNTDOWN","TOGGLE_BOSSBAR"};
@@ -43,7 +43,7 @@ public final class MpsqActionSetupScreen extends Screen {
     @Override protected void init() {
         int x=width/2-130,y=35;
         linkScreens=LocalScreenStore.getAllScreens().stream()
-                .filter(s->s.inputType()==LocalScreenStore.ScreenInputType.LINK&&!ScreenAccessStore.isTriggerLinkedOnly(s.id())).toList();
+                .filter(s->s.inputType()==LocalScreenStore.ScreenInputType.REDSTONE).toList();
         addDrawableChild(ButtonWidget.builder(Text.literal(actionLabel(actions[action])),b->{
             action=(action+1)%actions.length; b.setMessage(Text.literal(actionLabel(actions[action]))); updateVisibility();
         }).dimensions(x,y,260,20).build());
@@ -66,7 +66,7 @@ public final class MpsqActionSetupScreen extends Screen {
     }
 
     private String screenLabel(){
-        if(linkScreens.isEmpty())return "Kein MPSQ-Kinobildschirm geladen";
+        if(linkScreens.isEmpty())return "Kein MPSQ-Redstone-Bildschirm geladen";
         return "Bildschirm: "+linkScreens.get(Math.floorMod(linkScreenIndex,linkScreens.size())).name();
     }
     private void updateVisibility(){
@@ -99,7 +99,7 @@ public final class MpsqActionSetupScreen extends Screen {
                 String url=value.getText().trim();
                 try{URI uri=URI.create(url);if(!"https".equalsIgnoreCase(uri.getScheme())||uri.getHost()==null||uri.getUserInfo()!=null||url.length()>2048)throw new IllegalArgumentException();}
                 catch(IllegalArgumentException e){status="Bitte einen gültigen HTTPS-Link eingeben.";return;}
-                if(linkScreens.isEmpty()){status="Es wurde kein MPSQ-Kinobildschirm geladen.";return;}
+                if(linkScreens.isEmpty()){status="Es wurde kein MPSQ-Redstone-Bildschirm geladen.";return;}
                 data.addProperty("url",url);data.addProperty("screenId",linkScreens.get(linkScreenIndex).id().toString());
             }
             case "SHOW_DIALOGUE" -> {JsonArray pages=new JsonArray();for(String line:value.getText().split("\\|\\|",-1)){line=line.trim();if(line.isEmpty()||line.length()>240||pages.size()>=12){status="1–12 Textseiten mit höchstens 240 Zeichen, getrennt mit ||";return;}pages.add(line);}data.add("pages",pages);}
@@ -124,7 +124,7 @@ public final class MpsqActionSetupScreen extends Screen {
         super.render(c,x,y,d);
         c.drawCenteredTextWithShadow(textRenderer,title,width/2,24,MpsqTheme.TEXT_TITEL);
         String selected=actions[action];
-        String hint="OPEN_LINK".equals(selected)?"HTTPS-Link auf dem ausgewählten MPSQ-Bildschirm":
+        String hint="OPEN_LINK".equals(selected)?"HTTPS-Link auf dem ausgewählten MPSQ-Redstone-Bildschirm":
                 "SHOW_DIALOGUE".equals(selected)?"Textseiten mit || trennen":
                 "TOGGLE_AUDIO".equals(selected)?(soundType==0?"Minecraft-Sound-ID, z. B. minecraft:music.menu":"Sound-Datei-ID aus dem MPSQ-Upload"):
                 "TOGGLE_COUNTDOWN".equals(selected)?"Countdown-Dauer in Sekunden":"&0–&f Farben: &chellrot, &egelb, &r zurücksetzen";
