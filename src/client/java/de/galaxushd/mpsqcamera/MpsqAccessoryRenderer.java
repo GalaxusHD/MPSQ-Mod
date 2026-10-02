@@ -68,6 +68,7 @@ public final class MpsqAccessoryRenderer {
     public static void refresh(){generation++;polling=false;loading.clear();npcRotations.clear();MpsqNpcSkinRenderer.clear(MinecraftClient.getInstance());clearModels(MinecraftClient.getInstance());localAssetUrls.clear();localAssetCategories.clear();localCatalogRequested=false;next=0;}
     static boolean isCurrentGeneration(int epoch){return epoch==generation;}
     public static JsonArray npcsSnapshot(){return npcs.deepCopy();}
+    public static JsonArray objectsSnapshot(){return objects.deepCopy();}
     /** Updates the visible snapshot without discarding skin textures or reloading the NPC. */
     public static void markTutorialCompleted(String npcId){
         for(JsonElement element:npcs){
@@ -141,7 +142,7 @@ public final class MpsqAccessoryRenderer {
             var camera=context.camera().getPos();
             for(var value:objects){var o=value.getAsJsonObject();Model model=models.get(o.get("url").getAsString());if(model==null)continue;
                 double x=o.get("x").getAsDouble(),y=o.get("y").getAsDouble(),z=o.get("z").getAsDouble();if(camera.squaredDistanceTo(x,y,z)>4096)continue;
-                matrices.push();matrices.translate(x+0.5-camera.x,y-camera.y,z+0.5-camera.z);matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(o.get("rotation").getAsFloat()));matrices.translate(-0.5,0,-0.5);matrices.scale(1f/16,1f/16,1f/16);drawBakedFurniture(model,matrices,consumers,0xFFFFFFFF);matrices.pop();
+                float objectScale=o.has("scale")?o.get("scale").getAsFloat():1.0f;objectScale=Float.isFinite(objectScale)?Math.max(0.25f,Math.min(3.0f,objectScale)):1.0f;matrices.push();matrices.translate(x+0.5-camera.x,y-camera.y,z+0.5-camera.z);matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(o.get("rotation").getAsFloat()));matrices.translate(-0.5,0,-0.5);matrices.scale(objectScale/16,objectScale/16,objectScale/16);drawBakedFurniture(model,matrices,consumers,0xFFFFFFFF);matrices.pop();String furnitureName=o.has("display_name")?o.get("display_name").getAsString():"";MpsqFurnitureNameTagRenderer.draw(context,matrices,consumers,furnitureName,x+0.5,y+2.0*objectScale+0.15,z+0.5);
             }
             for(var player:client.world.getPlayers()){
                 if(player.isInvisible()||player.isSpectator()||(player==client.player&&client.options.getPerspective().isFirstPerson()))continue;
@@ -336,3 +337,5 @@ public final class MpsqAccessoryRenderer {
     private static String previewColorKey(JsonObject face){JsonArray uv=face.has("uv")?face.getAsJsonArray("uv"):new JsonArray();return str(face,"texture","")+"|"+uv;}
     private static void validateBones(JsonArray bones,int depth)throws IOException{if(depth>32)throw new IOException("Knochenhierarchie ist zu tief");for(JsonElement value:bones){if(!value.isJsonObject())throw new IOException("Ungültiger Knochen");JsonObject bone=value.getAsJsonObject();for(String key:new String[]{"origin","rotation"})if(!bone.has(key)||bone.getAsJsonArray(key).size()!=3)throw new IOException("Ungültiger Knochen-Drehpunkt");if(bone.has("elements")){JsonArray refs=bone.getAsJsonArray("elements");if(refs.size()>512)throw new IOException("Zu viele Knochen-Elemente");for(JsonElement ref:refs)if(ref.getAsInt()<0)throw new IOException("Ungültiger Knochen-Verweis");}if(bone.has("children"))validateBones(bone.getAsJsonArray("children"),depth+1);}}
 }
+
+
