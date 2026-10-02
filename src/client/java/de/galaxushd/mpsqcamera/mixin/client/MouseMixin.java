@@ -3,6 +3,7 @@ package de.galaxushd.mpsqcamera.mixin.client;
 import de.galaxushd.mpsqcamera.ScreenCreationManager;
 import de.galaxushd.mpsqcamera.CinemaBrowserManager;
 import de.galaxushd.mpsqcamera.MpsqNpcManager;
+import de.galaxushd.mpsqcamera.MpsqFurnitureManager;
 import de.galaxushd.mpsqcamera.MpsqActionSetupScreen;
 import net.minecraft.client.Mouse;
 import net.minecraft.client.MinecraftClient;
@@ -20,7 +21,7 @@ public final class MouseMixin {
     @Inject(method = "onMouseButton", at = @At("HEAD"), cancellable = true)
     private void mpsq$interactWithNpc(long window, int button, int action, int mods, CallbackInfo ci) {
         if (button == GLFW.GLFW_MOUSE_BUTTON_RIGHT && action == GLFW.GLFW_PRESS
-                && MpsqNpcManager.handleRightClick()) {
+                && (MpsqNpcManager.handleRightClick() || MpsqFurnitureManager.handleRightClick())) {
             ci.cancel();
         }
     }
