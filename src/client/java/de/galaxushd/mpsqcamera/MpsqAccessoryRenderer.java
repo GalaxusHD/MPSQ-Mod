@@ -38,14 +38,17 @@ public final class MpsqAccessoryRenderer {
     public static boolean hasGlowingNpcs(){
         for(JsonElement element:npcs){
             if(!element.isJsonObject())continue;
-            JsonObject npc=element.getAsJsonObject();
-            String task=npc.has("task_type")&&!npc.get("task_type").isJsonNull()?npc.get("task_type").getAsString():"none";
-            boolean special=switch(task){case "accessories","quest","tutorial"->true;default->false;};
-            if(!special)return true;
-            String id=str(npc,"id","");
-            if(!MpsqNpcVisitStore.hasVisited(task)&&!MpsqNpcVisitStore.isGlowDisabled(id))return true;
+            if(shouldGlow(element.getAsJsonObject()))return true;
         }
         return false;
+    }
+    private static boolean shouldGlow(JsonObject npc){
+        String task=str(npc,"task_type","none"),id=str(npc,"id","");
+        boolean role=switch(task){case "accessories","quest","tutorial"->true;default->false;};
+        // First access is tracked per NPC. Opening its settings never records a visit.
+        if(role&&MpsqNpcVisitStore.hasVisited(task,id))return false;
+        // Role NPCs glow by default until opened; ordinary NPCs default to off.
+        return MpsqNpcVisitStore.isGlowEnabled(id,role);
     }
     private static final Set<String> loading=new HashSet<>();
     private static final Map<String,String> localAssetUrls=new HashMap<>();
@@ -65,6 +68,14 @@ public final class MpsqAccessoryRenderer {
     public static void refresh(){generation++;polling=false;loading.clear();npcRotations.clear();MpsqNpcSkinRenderer.clear(MinecraftClient.getInstance());clearModels(MinecraftClient.getInstance());localAssetUrls.clear();localAssetCategories.clear();localCatalogRequested=false;next=0;}
     static boolean isCurrentGeneration(int epoch){return epoch==generation;}
     public static JsonArray npcsSnapshot(){return npcs.deepCopy();}
+    /** Updates the visible snapshot without discarding skin textures or reloading the NPC. */
+    public static void markTutorialCompleted(String npcId){
+        for(JsonElement element:npcs){
+            if(!element.isJsonObject())continue;
+            JsonObject npc=element.getAsJsonObject();
+            if(npcId.equals(str(npc,"id",""))){npc.addProperty("tutorial_completed",true);return;}
+        }
+    }
     public static void initialize(){
         ClientTickEvents.END_CLIENT_TICK.register(client->{
             if(tryOnUrl!=null&&client.player!=null){
@@ -163,7 +174,7 @@ public final class MpsqAccessoryRenderer {
                 String configuredGlow=str(o,"glow_color",defaultGlowColor(task));
                 if("none".equalsIgnoreCase(configuredGlow))configuredGlow=defaultGlowColor(task);
                 int glow=glowColor(configuredGlow);
-                boolean glowing=!hasSpecialRole||(!MpsqNpcVisitStore.hasVisited(task)&&!MpsqNpcVisitStore.isGlowDisabled(str(o,"id","")));
+                boolean glowing=shouldGlow(o);
                 if(playerSkin){var state=MpsqNpcSkinRenderer.createState(skin,yaw,pitch,(System.currentTimeMillis()%100000L)/50.0f,glowing);int light=WorldRenderer.getLightmapCoordinates(client.world,net.minecraft.util.math.BlockPos.ofFloored(x,y,z));MpsqNpcSkinRenderer.render(state,x-camera.x,y+bob-camera.y,z-camera.z,size*pulse,matrices,consumers,light,glow);}
                 else {matrices.push();matrices.translate(x-camera.x,y+bob-camera.y,z-camera.z);matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(-yaw));matrices.multiply(RotationAxis.POSITIVE_X.rotationDegrees(pitch));matrices.scale(size/16f*pulse,size/16f*pulse,size/16f*pulse);drawBbModel(model,matrices,consumers,0xFFFFFFFF);
                     if(glowing){var outline=client.getBufferBuilders().getOutlineVertexConsumers();outline.setColor((glow>>16)&255,(glow>>8)&255,glow&255,255);drawBbModel(model,matrices,outline,0xFFFFFFFF);outline.draw();}
