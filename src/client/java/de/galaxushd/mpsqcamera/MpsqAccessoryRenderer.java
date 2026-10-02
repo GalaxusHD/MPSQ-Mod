@@ -69,6 +69,15 @@ public final class MpsqAccessoryRenderer {
     static boolean isCurrentGeneration(int epoch){return epoch==generation;}
     public static JsonArray npcsSnapshot(){return npcs.deepCopy();}
     public static JsonArray objectsSnapshot(){return objects.deepCopy();}
+    public static double furnitureHitboxCenterY(JsonObject furniture){
+        double y=furniture.has("y")?furniture.get("y").getAsDouble():0.0;
+        String url=str(furniture,"url","");Model model=models.get(url);
+        if(model==null)return y+0.5;
+        float scale=furniture.has("scale")?furniture.get("scale").getAsFloat():1.0f;
+        scale=Float.isFinite(scale)?Math.max(0.25f,Math.min(3.0f,scale)):1.0f;
+        FurnitureBounds bounds=furnitureBounds(model);
+        return y+(bounds.maxY()-bounds.minY())*scale/32.0;
+    }
     /** Updates the visible snapshot without discarding skin textures or reloading the NPC. */
     public static void markTutorialCompleted(String npcId){
         for(JsonElement element:npcs){
@@ -252,8 +261,8 @@ public final class MpsqAccessoryRenderer {
         buffer.vertex(entry,-width/2,height/2,0).color(255,255,255,255).texture(0,0).overlay(OverlayTexture.DEFAULT_UV).light(0xF000F0).normal(0,0,1);matrices.pop();
     }
     private static void drawModel(Model model,MatrixStack matrices,VertexConsumerProvider consumers,int tint){drawElements(model,matrices,consumers,tint,null);drawMeshes(model,matrices,consumers,tint);}
-    private record FurnitureBounds(float centerX,float minY,float centerZ){}
-    private static FurnitureBounds furnitureBounds(Model model){float minX=Float.POSITIVE_INFINITY,minY=Float.POSITIVE_INFINITY,minZ=Float.POSITIVE_INFINITY,maxX=Float.NEGATIVE_INFINITY,maxZ=Float.NEGATIVE_INFINITY;for(RenderFace face:model.bakedGeometry)for(float[] vertex:face.vertices){minX=Math.min(minX,vertex[0]);minY=Math.min(minY,vertex[1]);minZ=Math.min(minZ,vertex[2]);maxX=Math.max(maxX,vertex[0]);maxZ=Math.max(maxZ,vertex[2]);}if(!Float.isFinite(minX))return new FurnitureBounds(8f,0f,8f);return new FurnitureBounds((minX+maxX)*0.5f,minY,(minZ+maxZ)*0.5f);}
+    private record FurnitureBounds(float centerX,float minY,float maxY,float centerZ){}
+    private static FurnitureBounds furnitureBounds(Model model){float minX=Float.POSITIVE_INFINITY,minY=Float.POSITIVE_INFINITY,minZ=Float.POSITIVE_INFINITY,maxX=Float.NEGATIVE_INFINITY,maxY=Float.NEGATIVE_INFINITY,maxZ=Float.NEGATIVE_INFINITY;for(RenderFace face:model.bakedGeometry)for(float[] vertex:face.vertices){minX=Math.min(minX,vertex[0]);minY=Math.min(minY,vertex[1]);minZ=Math.min(minZ,vertex[2]);maxX=Math.max(maxX,vertex[0]);maxY=Math.max(maxY,vertex[1]);maxZ=Math.max(maxZ,vertex[2]);}if(!Float.isFinite(minX))return new FurnitureBounds(8f,0f,16f,8f);return new FurnitureBounds((minX+maxX)*0.5f,minY,maxY,(minZ+maxZ)*0.5f);}
     private static void drawBakedFurniture(Model model,MatrixStack matrices,VertexConsumerProvider consumers,int tint){for(RenderFace face:model.bakedGeometry){var buffer=consumers.getBuffer(RenderLayer.getEntityCutoutNoCull(face.texture));for(int i=0;i<4;i++){float[] vertex=face.vertices[Math.min(i,face.vertices.length-1)];buffer.vertex(matrices.peek(),vertex[0],vertex[1],vertex[2]).color((tint>>16)&255,(tint>>8)&255,tint&255,(tint>>>24)&255).texture(vertex[3],vertex[4]).overlay(OverlayTexture.DEFAULT_UV).light(0xF000F0).normal(matrices.peek(),face.nx,face.ny,face.nz);}}}
     private static void drawBbModel(Model model,MatrixStack matrices,VertexConsumerProvider consumers,int tint){if(model.bones==null||model.bones.isEmpty()){drawModel(model,matrices,consumers,tint);return;}java.util.BitSet used=new java.util.BitSet(model.elements.size());for(JsonElement bone:model.bones)drawBone(model,bone.getAsJsonObject(),matrices,consumers,tint,used);for(int i=used.nextClearBit(0);i<model.elements.size();i=used.nextClearBit(i+1))drawElements(model,matrices,consumers,tint,i);drawMeshes(model,matrices,consumers,tint);}
     private static void drawBone(Model model,JsonObject bone,MatrixStack matrices,VertexConsumerProvider consumers,int tint,java.util.BitSet used){
