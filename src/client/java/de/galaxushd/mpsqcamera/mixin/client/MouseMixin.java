@@ -1,6 +1,7 @@
 package de.galaxushd.mpsqcamera.mixin.client;
 
 import de.galaxushd.mpsqcamera.ScreenCreationManager;
+import de.galaxushd.mpsqcamera.CinemaBrowserManager;
 import de.galaxushd.mpsqcamera.MpsqNpcManager;
 import de.galaxushd.mpsqcamera.MpsqActionSetupScreen;
 import net.minecraft.client.Mouse;
@@ -34,6 +35,9 @@ public final class MouseMixin {
             )
     )
     private void mpsq$routeLookInput(ClientPlayerEntity player, double cursorDeltaX, double cursorDeltaY) {
+        // Closing/stopping an MCEF browser can leave one accumulated cursor
+        // delta. Ignore that single spike so it cannot snap the view around.
+        if (CinemaBrowserManager.discardCursorRestoreSpike(cursorDeltaX, cursorDeltaY)) return;
         // The redstone setup screen owns the mouse for its widgets. Do not also
         // feed that cursor movement into the player/camera look input.
         if (MinecraftClient.getInstance().currentScreen instanceof MpsqActionSetupScreen) return;
