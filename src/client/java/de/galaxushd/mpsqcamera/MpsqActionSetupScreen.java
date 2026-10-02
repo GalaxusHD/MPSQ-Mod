@@ -21,7 +21,7 @@ public final class MpsqActionSetupScreen extends Screen {
     private ButtonWidget soundTypeButton, linkScreenButton;
     private ButtonWidget barColorButton;
     private static final String[] BAR_COLORS={"purple","pink","red"};
-    private static final String[] BAR_COLOR_LABELS={"Violett (Standard)","Pink (#ec2f53)","Rot (#cf2020)"};
+    private static final String[] BAR_COLOR_LABELS={"Violett (Standard)","Pink (Enderdragon)","Rot (Raid)"};
     private static final String[] SOUND_TYPES={"minecraft","mp3","mp4"};
     private static final String[] SOUND_TYPE_LABELS={"Minecraft-ID","MP3-Datei-ID","MP4-Datei-ID"};
     private static final String[] QUICK_ACTIONS={"TOGGLE_AUDIO","TOGGLE_COUNTDOWN","TOGGLE_BOSSBAR"};
