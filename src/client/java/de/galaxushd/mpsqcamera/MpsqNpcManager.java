@@ -64,7 +64,9 @@ public final class MpsqNpcManager {
     private static void interact(JsonObject npc) {
         String task = npc.has("task_type") && !npc.get("task_type").isJsonNull() ? npc.get("task_type").getAsString() : "none";
         String npcId=npc.has("id")&&!npc.get("id").isJsonNull()?npc.get("id").getAsString():"";
-        if (MpsqNpcVisitStore.markVisited(task,npcId)) MpsqAccessoryRenderer.refresh();
+        // Visit state is read by the renderer each frame. A full refresh clears
+        // player-skin textures and makes the NPC disappear while they reload.
+        MpsqNpcVisitStore.markVisited(task,npcId);
         if ("accessories".equals(task)) {
             MinecraftClient.getInstance().setScreen(new MpsqAccessoriesScreen(null,true));
             return;
@@ -89,7 +91,7 @@ public final class MpsqNpcManager {
                     JsonObject patch = new JsonObject(); patch.addProperty("tutorialCompleted", true);
                     boolean saved = MpsqLocalNpcStore.update(MpsqActionSync.world(), id, patch);
                     if (saved) {
-                        MpsqAccessoryRenderer.refresh();
+                        MpsqAccessoryRenderer.markTutorialCompleted(id);
                         if (MinecraftClient.getInstance().player != null) MinecraftClient.getInstance().player.sendMessage(net.minecraft.text.Text.literal("Tutorial abgeschlossen und in dieser Welt gespeichert."), false);
                     } else if (MinecraftClient.getInstance().player != null) {
                         MinecraftClient.getInstance().player.sendMessage(net.minecraft.text.Text.literal("Tutorial-Abschluss konnte lokal nicht gespeichert werden."), false);
@@ -99,7 +101,7 @@ public final class MpsqNpcManager {
                 JsonObject body = new JsonObject(); body.addProperty("server", MpsqActionSync.server()); body.addProperty("world", MpsqActionSync.world());
                 MpsqApiClient.post("/npcs/" + id + "/tutorial-complete", body).whenComplete((result, error) -> MinecraftClient.getInstance().execute(() -> {
                     if (error == null) {
-                        MpsqAccessoryRenderer.refresh();
+                        MpsqAccessoryRenderer.markTutorialCompleted(id);
                         if (MinecraftClient.getInstance().player != null) MinecraftClient.getInstance().player.sendMessage(net.minecraft.text.Text.literal("Tutorial abgeschlossen und gespeichert."), false);
                     } else if (MinecraftClient.getInstance().player != null) MinecraftClient.getInstance().player.sendMessage(net.minecraft.text.Text.literal("Tutorial-Abschluss fehlgeschlagen: " + error.getMessage()), false);
                 }));
