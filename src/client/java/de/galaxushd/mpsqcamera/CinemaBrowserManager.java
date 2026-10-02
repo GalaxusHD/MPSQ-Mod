@@ -5,6 +5,7 @@ import com.cinemamod.mcef.MCEFBrowser;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.util.Identifier;
+import org.lwjgl.glfw.GLFW;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -31,6 +32,7 @@ public final class CinemaBrowserManager {
     private static final Set<UUID> FAILED_BROWSERS = new HashSet<>();
     private static int ticks;
     private static int mouseRestoreDelayTicks;
+    private static volatile long cursorRestoreSpikeGuardUntilNanos;
     private static volatile boolean refreshInProgress;
     private static boolean initializationAttempted;
 
@@ -174,8 +176,11 @@ public final class CinemaBrowserManager {
     private static void close(UUID screenId) {
         BrowserSession session = BROWSERS.remove(screenId);
         if (session != null) {
-            session.browser().close();
-            requestGameMouseRestore();
+            try {
+                session.browser().close();
+            } finally {
+                requestGameMouseRestore();
+            }
         }
         // Some MCEF versions report browser=null in their audio callbacks, so we
         // cannot associate a stream with a screen. Once the last cinema browser
@@ -186,17 +191,42 @@ public final class CinemaBrowserManager {
     /** MCEF can alter GLFW cursor capture while initializing a hidden browser. */
     static void restoreGameMouse() {
         MinecraftClient client = MinecraftClient.getInstance();
-        if (client.currentScreen == null && client.isWindowFocused()) client.mouse.lockCursor();
+        if (client.currentScreen == null && client.isWindowFocused()) {
+            long window = client.getWindow().getHandle();
+            // Re-lock only if MCEF actually released capture. Reapplying the
+            // GLFW mode every tick resets cursor tracking and can turn the
+            // stale delta into a sudden camera rotation when stop is pressed.
+            if (GLFW.glfwGetInputMode(window, GLFW.GLFW_CURSOR) == GLFW.GLFW_CURSOR_DISABLED) return;
+            cursorRestoreSpikeGuardUntilNanos = System.nanoTime() + 400_000_000L;
+            client.mouse.lockCursor();
+            // MCEF can change GLFW mode without updating Minecraft's internal
+            // locked flag, so use the raw GLFW fallback only if still needed.
+            if (GLFW.glfwGetInputMode(window, GLFW.GLFW_CURSOR) != GLFW.GLFW_CURSOR_DISABLED) {
+                GLFW.glfwSetInputMode(window, GLFW.GLFW_CURSOR, GLFW.GLFW_CURSOR_DISABLED);
+            }
+        }
+    }
+
+    /** Drops only a large stale cursor delta produced while recapturing mouse input. */
+    public static boolean discardCursorRestoreSpike(double deltaX, double deltaY) {
+        if (System.nanoTime() > cursorRestoreSpikeGuardUntilNanos) return false;
+        if (Math.abs(deltaX) <= 40.0 && Math.abs(deltaY) <= 40.0) return false;
+        cursorRestoreSpikeGuardUntilNanos = 0L;
+        return true;
     }
 
     /** MCEF may release GLFW cursor capture asynchronously after browser creation or close. */
     static void requestGameMouseRestore() {
-        // MCEF can release cursor capture asynchronously, so restore now and
-        // retry for several ticks after creation/stop/close.
-        restoreGameMouse();
-        // Some MCEF builds change GLFW cursor mode well after close returns.
-        // Keep recapturing during the transition instead of relying on one retry.
-        mouseRestoreDelayTicks = Math.max(mouseRestoreDelayTicks, 200);
+        MinecraftClient client = MinecraftClient.getInstance();
+        // Browser close callbacks may arrive outside the client thread.
+        client.execute(() -> {
+            if (client.currentScreen == null && client.isWindowFocused()) {
+                restoreGameMouse();
+                // Some MCEF builds change GLFW cursor mode well after close returns.
+                // Keep recapturing during the transition instead of relying on one retry.
+                mouseRestoreDelayTicks = Math.max(mouseRestoreDelayTicks, 200);
+            }
+        });
     }
 
     /** Converts common YouTube links to their player URL, including a synchronized start point. */
