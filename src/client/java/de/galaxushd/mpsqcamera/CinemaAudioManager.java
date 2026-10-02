@@ -21,8 +21,9 @@ public final class CinemaAudioManager {
     /* A larger queue absorbs short render/tick stalls without audible gaps. */
     private static final int MAX_PENDING_PACKETS = 256;
     private static final int MAX_QUEUED_BUFFERS = 48;
-    private static final int STARTUP_BUFFER_MILLIS = 100;
-    private static final int MAX_STARTUP_WAIT_MILLIS = 500;
+    /* Give the decoder and OpenAL queue enough lead-in to avoid a clipped/stuttering start. */
+    private static final int STARTUP_BUFFER_MILLIS = 250;
+    private static final int MAX_STARTUP_WAIT_MILLIS = 1_000;
     // Chromium's YouTube path sends 44.1 kHz PCM on the MCEF build that
     // reports params=null. Playing that at 48 kHz makes voices too high.
     private static final int FALLBACK_SAMPLE_RATE = 44_100;
@@ -120,7 +121,7 @@ public final class CinemaAudioManager {
         private int sourceId;
         private boolean closed;
         private boolean started;
-        private final long openedAtNanos = System.nanoTime();
+        private volatile long firstPacketAtNanos;
 
         private AudioStream(int sampleRate, int channels) {
             this.sampleRate = Math.max(8_000, sampleRate);
@@ -146,6 +147,7 @@ public final class CinemaAudioManager {
                 }
                 pcm.flip();
                 pendingPackets.offer(pcm);
+                if (firstPacketAtNanos == 0L) firstPacketAtNanos = System.nanoTime();
             } catch (RuntimeException exception) {
                 MpsqCameraClient.LOGGER.warn("Kino-Audiodaten konnten nicht gelesen werden", exception);
             }
@@ -186,9 +188,10 @@ public final class CinemaAudioManager {
 
                 int queued = AL10.alGetSourcei(sourceId, AL10.AL_BUFFERS_QUEUED);
                 long bufferedNanos = queuedFrames * 1_000_000_000L / sampleRate;
+                long firstPacketAt = firstPacketAtNanos;
                 boolean startupBufferReady = bufferedNanos >= STARTUP_BUFFER_MILLIS * 1_000_000L
-                        || (queuedFrames > 0 && System.nanoTime() - openedAtNanos
-                        >= MAX_STARTUP_WAIT_MILLIS * 1_000_000L);
+                        || (queuedFrames > 0 && firstPacketAt > 0L
+                        && System.nanoTime() - firstPacketAt >= MAX_STARTUP_WAIT_MILLIS * 1_000_000L);
                 if (queued > 0 && (started || startupBufferReady)
                         && AL10.alGetSourcei(sourceId, AL10.AL_SOURCE_STATE) != AL10.AL_PLAYING) {
                     AL10.alSourcePlay(sourceId);
