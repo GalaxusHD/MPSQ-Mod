@@ -1,0 +1,19 @@
+--- a/src/client/java/de/galaxushd/mpsqcamera/MpsqAccessoryRenderer.java
++++ b/src/client/java/de/galaxushd/mpsqcamera/MpsqAccessoryRenderer.java
+@@ -38,6 +38,7 @@
+     private MpsqAccessoryRenderer(){}
+     public static void refresh(){generation++;polling=false;loading.clear();localAssetUrls.clear();localCatalogRequested=false;next=0;}
+     public static JsonArray npcsSnapshot(){return npcs.deepCopy();}
++    public static JsonArray objectsSnapshot(){return objects.deepCopy();}
+     public static void initialize(){
+         ClientTickEvents.END_CLIENT_TICK.register(client->{
+             if(tryOnUrl!=null&&client.player!=null){
+@@ -98,7 +99,7 @@
+             var camera=context.camera().getPos();
+             for(var value:objects){var o=value.getAsJsonObject();Model model=models.get(o.get("url").getAsString());if(model==null)continue;
+                 double x=o.get("x").getAsDouble(),y=o.get("y").getAsDouble(),z=o.get("z").getAsDouble();if(camera.squaredDistanceTo(x,y,z)>4096)continue;
+-                matrices.push();matrices.translate(x+0.5-camera.x,y-camera.y,z+0.5-camera.z);matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(o.get("rotation").getAsFloat()));matrices.translate(-0.5,0,-0.5);matrices.scale(1f/16,1f/16,1f/16);drawModel(model,matrices,consumers,0xFFFFFFFF);matrices.pop();
++                float objectScale=o.has("scale")?o.get("scale").getAsFloat():1.0f;objectScale=Float.isFinite(objectScale)?Math.max(0.25f,Math.min(3.0f,objectScale)):1.0f;matrices.push();matrices.translate(x+0.5-camera.x,y-camera.y,z+0.5-camera.z);matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(o.get("rotation").getAsFloat()));matrices.translate(-0.5,0,-0.5);matrices.scale(objectScale/16,objectScale/16,objectScale/16);drawModel(model,matrices,consumers,0xFFFFFFFF);matrices.pop();String furnitureName=o.has("display_name")?o.get("display_name").getAsString():"";MpsqFurnitureNameTagRenderer.draw(context,matrices,consumers,furnitureName,x+0.5,y+2.0*objectScale+0.15,z+0.5);
+             }
+             for(var player:client.world.getPlayers()){
+                 if(player.isInvisible()||player.isSpectator()||(player==client.player&&client.options.getPerspective().isFirstPerson()))continue;

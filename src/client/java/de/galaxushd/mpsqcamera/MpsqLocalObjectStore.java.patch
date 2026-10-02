@@ -1,0 +1,24 @@
+--- a/src/client/java/de/galaxushd/mpsqcamera/MpsqLocalObjectStore.java
++++ b/src/client/java/de/galaxushd/mpsqcamera/MpsqLocalObjectStore.java
+@@ -73,6 +73,11 @@
+     }
+ 
+     public static boolean set(String worldId, int x, int y, int z, String modelId, int rotation, boolean remove) {
++        return set(worldId, x, y, z, modelId, rotation, "", 1.0f, "", remove);
++    }
++
++    public static boolean set(String worldId, int x, int y, int z, String modelId, int rotation,
++                              String displayName, float scale, String soundId, boolean remove) {
+         JsonArray rows = load(), next = new JsonArray();
+         for (JsonElement value : rows) {
+             if (!value.isJsonObject()) continue;
+@@ -86,6 +91,9 @@
+             row.addProperty("world_id",worldId);
+             row.addProperty("x", x); row.addProperty("y", y); row.addProperty("z", z);
+             row.addProperty("model_id", modelId); row.addProperty("rotation", rotation);
++            row.addProperty("display_name", displayName == null ? "" : displayName);
++            row.addProperty("scale", Float.isFinite(scale) ? Math.max(0.25f, Math.min(3.0f, scale)) : 1.0f);
++            row.addProperty("sound_id", soundId == null ? "" : soundId);
+             next.add(row);
+         }
+         return save(next);

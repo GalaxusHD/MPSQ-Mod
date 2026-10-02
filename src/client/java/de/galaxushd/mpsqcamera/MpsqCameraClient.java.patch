@@ -1,0 +1,10 @@
+--- a/src/client/java/de/galaxushd/mpsqcamera/MpsqCameraClient.java
++++ b/src/client/java/de/galaxushd/mpsqcamera/MpsqCameraClient.java
+@@ -36,6 +36,7 @@
+         MpsqKickAnimationManager.initialize();
+         MpsqTemplateAudio.initialize();
+         MpsqAccessoryRenderer.initialize();
++        MpsqFurnitureInteraction.initialize();
+         MpsqNpcManager.initialize();
+         TeamProfileSync.initialize();
+         // Load the rank cache independently. A temporary camera or screen API
