@@ -18,6 +18,7 @@ public class MpsqCameraClient implements ClientModInitializer {
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             if (client.options.getShowSubtitles().getValue()) {
                 client.options.getShowSubtitles().setValue(false);
+                client.options.write();
             }
         });
         ModConfig.load();
