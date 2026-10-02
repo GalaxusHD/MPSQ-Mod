@@ -5,6 +5,7 @@ import com.cinemamod.mcef.MCEFBrowser;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.util.Identifier;
+import org.lwjgl.glfw.GLFW;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -169,8 +170,11 @@ public final class CinemaBrowserManager {
     private static void close(UUID screenId) {
         BrowserSession session = BROWSERS.remove(screenId);
         if (session != null) {
-            session.browser().close();
-            requestGameMouseRestore();
+            try {
+                session.browser().close();
+            } finally {
+                requestGameMouseRestore();
+            }
         }
         // Some MCEF versions report browser=null in their audio callbacks, so we
         // cannot associate a stream with a screen. Once the last cinema browser
@@ -181,17 +185,26 @@ public final class CinemaBrowserManager {
     /** MCEF can alter GLFW cursor capture while initializing a hidden browser. */
     static void restoreGameMouse() {
         MinecraftClient client = MinecraftClient.getInstance();
-        if (client.currentScreen == null && client.isWindowFocused()) client.mouse.lockCursor();
+        if (client.currentScreen == null && client.isWindowFocused()) {
+            // MCEF can switch GLFW back to a visible cursor without updating
+            // Minecraft's internal locked flag, making lockCursor() a no-op.
+            client.mouse.lockCursor();
+            GLFW.glfwSetInputMode(client.getWindow().getHandle(), GLFW.GLFW_CURSOR, GLFW.GLFW_CURSOR_DISABLED);
+        }
     }
 
     /** MCEF may release GLFW cursor capture asynchronously after browser creation or close. */
     static void requestGameMouseRestore() {
-        // MCEF can release cursor capture asynchronously, so restore now and
-        // retry for several ticks after creation/stop/close.
-        restoreGameMouse();
-        // Some MCEF builds change GLFW cursor mode well after close returns.
-        // Keep recapturing during the transition instead of relying on one retry.
-        mouseRestoreDelayTicks = Math.max(mouseRestoreDelayTicks, 200);
+        MinecraftClient client = MinecraftClient.getInstance();
+        // Browser close callbacks may arrive outside the client thread.
+        client.execute(() -> {
+            if (client.currentScreen == null && client.isWindowFocused()) {
+                restoreGameMouse();
+                // Some MCEF builds change GLFW cursor mode well after close returns.
+                // Keep recapturing during the transition instead of relying on one retry.
+                mouseRestoreDelayTicks = Math.max(mouseRestoreDelayTicks, 200);
+            }
+        });
     }
 
     /** Converts common YouTube links to their player URL, including a synchronized start point. */
