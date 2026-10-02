@@ -63,12 +63,29 @@ public final class MpsqAccessoryRenderer {
     private static long next;
     private static boolean polling;
     private static int generation;
+    private static int objectRevision;
     private static String scope="";
     private MpsqAccessoryRenderer(){}
     public static void refresh(){generation++;polling=false;loading.clear();npcRotations.clear();MpsqNpcSkinRenderer.clear(MinecraftClient.getInstance());clearModels(MinecraftClient.getInstance());localAssetUrls.clear();localAssetCategories.clear();localCatalogRequested=false;next=0;}
     static boolean isCurrentGeneration(int epoch){return epoch==generation;}
     public static JsonArray npcsSnapshot(){return npcs.deepCopy();}
     public static JsonArray objectsSnapshot(){return objects.deepCopy();}
+    /** Removes furniture at one world position from the visible snapshot immediately. */
+    public static void removeFurnitureAt(int x,int y,int z){
+        objectRevision++;
+        JsonArray remaining=new JsonArray();
+        for(JsonElement element:objects){
+            if(!element.isJsonObject()){remaining.add(element.deepCopy());continue;}
+            JsonObject furniture=element.getAsJsonObject();
+            if(!hasBlockPosition(furniture,x,y,z))remaining.add(furniture.deepCopy());
+        }
+        objects=remaining;
+    }
+    private static boolean hasBlockPosition(JsonObject value,int x,int y,int z){
+        try{return value.has("x")&&value.has("y")&&value.has("z")
+                &&value.get("x").getAsDouble()==x&&value.get("y").getAsDouble()==y&&value.get("z").getAsDouble()==z;}
+        catch(RuntimeException ignored){return false;}
+    }
     public static double furnitureHitboxCenterY(JsonObject furniture){
         double y=furniture.has("y")?furniture.get("y").getAsDouble():0.0;
         String url=str(furniture,"url","");Model model=models.get(url);
@@ -120,8 +137,9 @@ public final class MpsqAccessoryRenderer {
                 if(!localAccessoryCatalogRequested&&MpsqApiClient.isReady()){localAccessoryCatalogRequested=true;MpsqApiClient.get("/accessory-catalog").whenComplete((data,error)->client.execute(()->{if(epoch!=generation)return;if(error!=null||!data.isJsonArray()){localAccessoryCatalogRequested=false;return;}MpsqLocalWorldStore.setArray("accessory_catalog",data.getAsJsonArray());applyLocalEquippedAccessory(data.getAsJsonArray());}));}
                 for(JsonElement value:objects){JsonObject row=value.getAsJsonObject();if(row.has("url")&&!row.get("url").isJsonNull()){String url=row.get("url").getAsString();if(!models.containsKey(url)&&models.size()+loading.size()<64)load(url,epoch);}}
             }else{
+                int objectVersion=objectRevision;
                 MpsqApiClient.get("/objects?server="+java.net.URLEncoder.encode(MpsqActionSync.server(),java.nio.charset.StandardCharsets.UTF_8)+"&world="+java.net.URLEncoder.encode(MpsqActionSync.world(),java.nio.charset.StandardCharsets.UTF_8)).whenComplete((data,error)->client.execute(()->{
-                    if(epoch!=generation||error!=null)return;objects=data.getAsJsonArray();
+                    if(epoch!=generation||objectVersion!=objectRevision||error!=null)return;objects=data.getAsJsonArray();
                     for(var value:objects){var o=value.getAsJsonObject();String url=o.get("url").getAsString();if(!models.containsKey(url)&&models.size()+loading.size()<64)load(url,epoch);}
                 }));
                 MpsqApiClient.get("/npcs?server="+java.net.URLEncoder.encode(MpsqActionSync.server(),java.nio.charset.StandardCharsets.UTF_8)+"&world="+java.net.URLEncoder.encode(MpsqActionSync.world(),java.nio.charset.StandardCharsets.UTF_8)).whenComplete((data,error)->client.execute(()->{

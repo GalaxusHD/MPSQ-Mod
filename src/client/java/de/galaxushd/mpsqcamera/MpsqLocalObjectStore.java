@@ -8,7 +8,34 @@ public final class MpsqLocalObjectStore {
     private MpsqLocalObjectStore(){}
     public static JsonArray loadWorld(String world){JsonArray out=new JsonArray();for(JsonElement e:MpsqLocalWorldStore.array("objects")){if(!e.isJsonObject())continue;JsonObject o=e.getAsJsonObject();if(world.equals(str(o,"world_id","minecraft:overworld")))out.add(o.deepCopy());}return out;}
     public static synchronized boolean set(String world,int x,int y,int z,String model,int rotation,boolean remove){return set(world,x,y,z,model,rotation,"",1.0f,"",remove);}
-    public static synchronized boolean set(String world,int x,int y,int z,String model,int rotation,String displayName,float scale,String soundId,boolean remove){if(!MpsqLocalWorldStore.available())return false;JsonArray all=MpsqLocalWorldStore.array("objects"),next=new JsonArray();for(JsonElement e:all){if(!e.isJsonObject())continue;JsonObject o=e.getAsJsonObject();boolean same=world.equals(str(o,"world_id","minecraft:overworld"))&&o.has("x")&&o.get("x").getAsInt()==x&&o.get("y").getAsInt()==y&&o.get("z").getAsInt()==z;if(!same)next.add(o.deepCopy());}if(!remove){JsonObject o=new JsonObject();o.addProperty("id",UUID.randomUUID().toString());o.addProperty("world_id",world);o.addProperty("x",x);o.addProperty("y",y);o.addProperty("z",z);o.addProperty("model_id",model);o.addProperty("rotation",rotation);o.addProperty("display_name",displayName==null?"":displayName);o.addProperty("scale",Float.isFinite(scale)?Math.max(0.25f,Math.min(3.0f,scale)):1.0f);o.addProperty("sound_id",soundId==null?"":soundId);next.add(o);}return MpsqLocalWorldStore.setArray("objects",next);}
+    public static synchronized boolean set(String world,int x,int y,int z,String model,int rotation,String displayName,float scale,String soundId,boolean remove){
+        if(!MpsqLocalWorldStore.available())return false;
+        JsonArray all=MpsqLocalWorldStore.array("objects"),next=new JsonArray();
+        boolean found=false;
+        for(JsonElement element:all){
+            if(!element.isJsonObject()){next.add(element.deepCopy());continue;}
+            JsonObject object=element.getAsJsonObject();
+            boolean same=world.equals(str(object,"world_id","minecraft:overworld"))
+                    &&hasBlockPosition(object,x,y,z);
+            if(same)found=true;else next.add(object.deepCopy());
+        }
+        if(remove&&!found)return false;
+        if(!remove){
+            JsonObject object=new JsonObject();
+            object.addProperty("id",UUID.randomUUID().toString());object.addProperty("world_id",world);
+            object.addProperty("x",x);object.addProperty("y",y);object.addProperty("z",z);
+            object.addProperty("model_id",model);object.addProperty("rotation",rotation);
+            object.addProperty("display_name",displayName==null?"":displayName);
+            object.addProperty("scale",Float.isFinite(scale)?Math.max(0.25f,Math.min(3.0f,scale)):1.0f);
+            object.addProperty("sound_id",soundId==null?"":soundId);next.add(object);
+        }
+        return MpsqLocalWorldStore.setArray("objects",next);
+    }
+    private static boolean hasBlockPosition(JsonObject object,int x,int y,int z){
+        try{return object.has("x")&&object.has("y")&&object.has("z")
+                &&object.get("x").getAsDouble()==x&&object.get("y").getAsDouble()==y&&object.get("z").getAsDouble()==z;}
+        catch(RuntimeException ignored){return false;}
+    }
     private static String str(JsonObject o,String k,String fallback){return o.has(k)&&!o.get(k).isJsonNull()?o.get(k).getAsString():fallback;}
 }
 

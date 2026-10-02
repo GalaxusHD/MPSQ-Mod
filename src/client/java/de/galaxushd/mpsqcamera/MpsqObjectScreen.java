@@ -37,17 +37,25 @@ public final class MpsqObjectScreen extends Screen {
         if(!remove&&!model.getText().trim().matches("[a-z0-9_-]{1,64}")){status="Bitte eine gültige Möbel-ID eingeben.";return;}
         BlockPos target=pos;int facing=rotation;
         if(!remove&&model.getText().trim().equalsIgnoreCase("minecraft-cat-lying")&&client.player!=null){target=client.player.getBlockPos();facing=Math.floorMod(Math.round(client.player.getYaw()+180),360)/90*90;}
+        final BlockPos saveTarget=target;
         if(server.isBlank() && client.getServer()!=null){
             pending=true;status="Wird lokal gespeichert…";
             boolean saved=MpsqLocalObjectStore.set(world,target.getX(),target.getY(),target.getZ(),model.getText().trim(),facing,displayName.getText().trim(),size,soundId.getText().trim(),remove);
             pending=false;
-            status=saved?"In dieser Einzelspielerwelt gespeichert.":"Speichern in der Einzelspielerwelt fehlgeschlagen.";
-            if(saved)MpsqAccessoryRenderer.refresh();
+            status=saved?(remove?"Möbel entfernt.":"In dieser Einzelspielerwelt gespeichert."):(remove?"An dieser Position wurde kein Möbel gefunden.":"Speichern in der Einzelspielerwelt fehlgeschlagen.");
+            if(saved){if(remove)MpsqAccessoryRenderer.removeFurnitureAt(target.getX(),target.getY(),target.getZ());else MpsqAccessoryRenderer.refresh();}
             return;
         }
         if(!MpsqActionSync.isMpsqServer()){status="Online-Speicher ist nur auf mixelpixel.net verfügbar.";return;}
         JsonObject body=new JsonObject();body.addProperty("server",server);body.addProperty("world",world);body.addProperty("x",target.getX());body.addProperty("y",target.getY());body.addProperty("z",target.getZ());body.addProperty("rotation",facing);body.addProperty("modelId",model.getText().trim());body.addProperty("displayName",displayName.getText().trim());body.addProperty("scale",size);body.addProperty("soundId",soundId.getText().trim());body.addProperty("remove",remove);
-        pending=true;status="Wird gespeichert…";MpsqApiClient.post("/objects",body).whenComplete((data,error)->client.execute(()->{pending=false;status=error==null?"Gespeichert.":"Fehler: "+error.getMessage();if(error==null)MpsqAccessoryRenderer.refresh();}));
+        pending=true;status=remove?"Möbel wird entfernt…":"Wird gespeichert…";MpsqApiClient.post("/objects",body).whenComplete((data,error)->client.execute(()->{
+            pending=false;
+            if(error!=null){status="Fehler: "+error.getMessage();return;}
+            boolean ok=data!=null&&data.isJsonObject()&&data.getAsJsonObject().has("ok")&&data.getAsJsonObject().get("ok").getAsBoolean();
+            if(!ok){status=remove?"An dieser Position wurde kein Möbel gefunden.":"Speichern fehlgeschlagen.";return;}
+            status=remove?"Möbel entfernt.":"Gespeichert.";
+            if(remove)MpsqAccessoryRenderer.removeFurnitureAt(saveTarget.getX(),saveTarget.getY(),saveTarget.getZ());else MpsqAccessoryRenderer.refresh();
+        }));
     }
     @Override public void renderBackground(DrawContext c,int x,int y,float d){super.renderBackground(c,x,y,d);MpsqTheme.drawBackground(c,width,height);}
     @Override public void render(DrawContext c,int x,int y,float d){super.render(c,x,y,d);c.drawCenteredTextWithShadow(textRenderer,title,width/2,24,0xFFFFFFFF);c.drawCenteredTextWithShadow(textRenderer,"Position: "+pos.toShortString(),width/2,50,0xFFAAAAAA);c.drawCenteredTextWithShadow(textRenderer,textRenderer.trimToWidth(status,width-24),width/2,height-46,0xFFFFFFFF);}
