@@ -146,7 +146,6 @@ public final class CinemaBrowserManager {
                 return false;
             }
             CinemaAudioManager.initialize();
-            requestGameMouseRestore();
             return true;
         } catch (RuntimeException exception) {
             MpsqCameraClient.LOGGER.warn("MCEF konnte nicht initialisiert werden; Kino-Bildschirme bleiben offline.", exception);
@@ -170,8 +169,8 @@ public final class CinemaBrowserManager {
     private static void close(UUID screenId) {
         BrowserSession session = BROWSERS.remove(screenId);
         if (session != null) {
-            try { session.browser().close(); }
-            finally { requestGameMouseRestore(); }
+            session.browser().close();
+            requestGameMouseRestore();
         }
         // Some MCEF versions report browser=null in their audio callbacks, so we
         // cannot associate a stream with a screen. Once the last cinema browser
@@ -185,7 +184,7 @@ public final class CinemaBrowserManager {
         if (client.currentScreen == null && client.isWindowFocused()) client.mouse.lockCursor();
     }
 
-    /** MCEF can change GLFW cursor capture after a browser operation has returned. */
+    /** MCEF may release GLFW cursor capture asynchronously after browser creation or close. */
     static void requestGameMouseRestore() {
         MinecraftClient client = MinecraftClient.getInstance();
         if (client.currentScreen == null && client.isWindowFocused()) {

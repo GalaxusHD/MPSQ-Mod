@@ -4,6 +4,9 @@ import com.google.gson.*;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.text.Text;
@@ -14,7 +17,12 @@ public final class MpsqActionSync {
     private static boolean wasVisible=true;
     private static long next;
     private static int generation;
+    private static final Map<UUID, String> ACTIVE_LINK_TRIGGERS = new HashMap<>();
     private MpsqActionSync() {}
+    static void rememberActiveLinkTrigger(UUID screenId, String triggerId) {
+        if (screenId == null || triggerId == null || triggerId.isBlank()) return;
+        ACTIVE_LINK_TRIGGERS.put(screenId, triggerId);
+    }
     public static String server() {
         var entry = MinecraftClient.getInstance().getCurrentServerEntry();
         return entry == null ? "" : entry.address.toLowerCase(java.util.Locale.ROOT);
@@ -110,13 +118,14 @@ public final class MpsqActionSync {
             case "START_COUNTDOWN" -> MpsqBossbarManager.startCountdown(data.get("title").getAsString(), data.get("duration").getAsInt(), event.get("created_at").getAsString(),barColor(data));
             case "SHOW_BOSSBAR" -> MpsqBossbarManager.apply(new MpsqBossbarState("event",data.get("title").getAsString(),barColor(data),1,true));
             case "HIDE_BOSSBAR" -> MpsqBossbarManager.remove("event");
-            case "OPEN_LINK" -> openLinkOnScreen(data);
+            case "OPEN_LINK" -> openLinkOnScreen(data, event.has("trigger_id") && !event.get("trigger_id").isJsonNull()
+                    ? event.get("trigger_id").getAsString() : null);
             default -> { }
         }
     }
     private static String barColor(JsonObject data){return MpsqBossbarManager.normalizeColor(data.has("color")&&!data.get("color").isJsonNull()?data.get("color").getAsString():"purple");}
     private static void startTriggerAudio(JsonObject data){String source=data.has("sourceType")?data.get("sourceType").getAsString():"minecraft";String sound=data.has("sound")?data.get("sound").getAsString():"";if(source.equals("mp3")||source.equals("mp4")){MpsqAudioManager.stop();MpsqMediaAudioManager.play(source,java.util.List.of(sound));}else{MpsqMediaAudioManager.stop();MpsqAudioManager.startPlaylist("MPSQ",java.util.List.of(sound));}}
-    private static void openLinkOnScreen(JsonObject data) {
+    private static void openLinkOnScreen(JsonObject data, String triggerId) {
         try {
             var screenId=java.util.UUID.fromString(data.get("screenId").getAsString());
             var screen=LocalScreenStore.findById(screenId).orElse(null);
@@ -125,10 +134,25 @@ public final class MpsqActionSync {
             if(screen==null||screen.inputType()!=LocalScreenStore.ScreenInputType.LINK
                     ||!"https".equalsIgnoreCase(uri.getScheme())||uri.getHost()==null
                     ||uri.getUserInfo()!=null||url.length()>2048)return;
-            LocalScreenStore.updateConfig(screenId,LocalScreenStore.ScreenInputType.LINK,url,null);
             var old=CinemaPlaybackStore.get(screenId);
-            CinemaPlaybackStore.set(screenId,new CinemaPlaybackStore.PlaybackState(true,0L,old.revision()+1L,System.currentTimeMillis()));
+            long now=System.currentTimeMillis();
+            boolean sameVideo=url.equals(screen.url());
+            String activeTrigger=ACTIVE_LINK_TRIGGERS.get(screenId);
+            boolean sameTrigger=triggerId==null?sameVideo:triggerId.equals(activeTrigger);
+            if (sameTrigger && sameVideo && old.playing()) {
+                long position=old.positionMs();
+                if (old.updatedAtMs()>0L) position+=Math.max(0L,now-old.updatedAtMs());
+                CinemaPlaybackStore.set(screenId,new CinemaPlaybackStore.PlaybackState(false,position,old.revision()+1L,now));
+            } else {
+                if (!sameVideo) LocalScreenStore.updateConfig(screenId,LocalScreenStore.ScreenInputType.LINK,url,null);
+                long position=sameTrigger&&sameVideo?old.positionMs():0L;
+                CinemaPlaybackStore.set(screenId,new CinemaPlaybackStore.PlaybackState(true,position,old.revision()+1L,now));
+            }
+            rememberActiveLinkTrigger(screenId,triggerId);
             CinemaBrowserManager.synchronize();
+            if (isMpsqServer()) java.util.concurrent.CompletableFuture
+                    .delayedExecutor(1500L, java.util.concurrent.TimeUnit.MILLISECONDS)
+                    .execute(ScreenSyncManager::refresh);
         } catch(RuntimeException ignored) { }
     }
 }
