@@ -39,7 +39,7 @@ public final class CinemaBrowserManager {
     public static void initialize() {
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             if (mouseRestoreDelayTicks > 0) {
-                if ((mouseRestoreDelayTicks & 1) == 0) restoreGameMouse();
+                restoreGameMouse();
                 mouseRestoreDelayTicks--;
             }
             if (client.world == null) {
@@ -186,11 +186,10 @@ public final class CinemaBrowserManager {
 
     /** MCEF may release GLFW cursor capture asynchronously after browser creation or close. */
     static void requestGameMouseRestore() {
-        MinecraftClient client = MinecraftClient.getInstance();
-        if (client.currentScreen == null && client.isWindowFocused()) {
-            restoreGameMouse();
-            mouseRestoreDelayTicks = Math.max(mouseRestoreDelayTicks, 8);
-        }
+        // MCEF can release cursor capture asynchronously, so restore now and
+        // retry for several ticks after creation/stop/close.
+        restoreGameMouse();
+        mouseRestoreDelayTicks = Math.max(mouseRestoreDelayTicks, 10);
     }
 
     /** Converts common YouTube links to their player URL, including a synchronized start point. */

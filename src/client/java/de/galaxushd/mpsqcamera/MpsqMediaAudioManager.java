@@ -78,7 +78,6 @@ public final class MpsqMediaAudioManager {
             effectBrowser=MCEF.createBrowser(page,false);
             effectBrowser.setFocus(false);
             effectBrowser.resize(64,64);
-            CinemaBrowserManager.requestGameMouseRestore();
             effectExpiresAt=System.currentTimeMillis()+8_000L;
         } catch(Exception exception) {
             closeEffectBrowser();
@@ -94,7 +93,7 @@ public final class MpsqMediaAudioManager {
         // A tiny off-screen Chromium page owns the HTML audio element; PCM is
         // routed back into Minecraft by the existing MCEF/OpenAL bridge.
         String html = "<!doctype html><meta charset=utf-8><audio id=a preload=auto></audio><script>const q=" + json
-                + ";let i=0,a=document.getElementById('a');a.preload='auto';a.volume="+Math.max(0.0f,Math.min(1.0f,volume))+";const next=()=>{i++;if(i<q.length){a.src=q[i];a.load()}};a.onended=next;a.onerror=next;a.oncanplay=()=>a.play().catch(()=>{});a.src=q[0];a.load();</script>";
+                + ";let i=0,a=document.getElementById('a');a.preload='auto';a.volume="+Math.max(0.0f,Math.min(1.0f,volume))+";const next=()=>{i++;if(i<q.length){a.dataset.started='';a.src=q[i];a.load()}};a.onended=next;a.onerror=next;a.oncanplay=()=>{if(a.dataset.started===String(i))return;a.dataset.started=String(i);a.currentTime=0;a.play().catch(()=>{a.dataset.started=''})};a.src=q[0];a.load();</script>";
         String page = "data:text/html;base64," + Base64.getEncoder().encodeToString(html.getBytes(StandardCharsets.UTF_8));
         try {
             browser = MCEF.createBrowser(page, false);
