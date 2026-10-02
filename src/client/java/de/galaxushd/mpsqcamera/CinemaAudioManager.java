@@ -10,29 +10,26 @@ import org.lwjgl.openal.AL10;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 /** Bridges MCEF's float PCM callback to Minecraft's already-active OpenAL device. */
 public final class CinemaAudioManager {
     /* A larger queue absorbs short render/tick stalls without audible gaps. */
     private static final int MAX_PENDING_PACKETS = 256;
-    private static final int MAX_QUEUED_BUFFERS = 48;
-    /* Give the decoder and OpenAL queue enough lead-in to avoid a clipped/stuttering start. */
-    private static final int STARTUP_BUFFER_MILLIS = 250;
-    private static final int MAX_STARTUP_WAIT_MILLIS = 1_000;
+    private static final int MAX_QUEUED_BUFFERS = 24;
+    private static final int MAX_QUEUED_AUDIO_MILLIS = 120;
+    private static final int STARTUP_BUFFER_MILLIS = 80;
+    private static final int MAX_STARTUP_WAIT_MILLIS = 500;
+    private static final int MAX_PACKET_LATENESS_MILLIS = 40;
     // Chromium's YouTube path sends 44.1 kHz PCM on the MCEF build that
     // reports params=null. Playing that at 48 kHz makes voices too high.
     private static final int FALLBACK_SAMPLE_RATE = 44_100;
     private static final Map<CefBrowser, AudioStream> STREAMS = new ConcurrentHashMap<>();
     /* Some MCEF/JCEF builds call audio callbacks without the browser or parameters. */
     private static final AtomicReference<AudioStream> FALLBACK_STREAM = new AtomicReference<>();
-    private static final AtomicLong LAST_AUDIBLE_AUDIO_NANOS = new AtomicLong();
-    private static final long AUDIO_TAIL_NANOS = 500_000_000L;
     private static boolean initialized;
 
     private CinemaAudioManager() {
@@ -66,12 +63,6 @@ public final class CinemaAudioManager {
         clear();
     }
 
-    /** True while MPSQ browser audio is producing audible samples (with a short queue-drain tail). */
-    public static boolean isMusicAudioActive() {
-        long lastAudible = LAST_AUDIBLE_AUDIO_NANOS.get();
-        return lastAudible != 0L && System.nanoTime() - lastAudible < AUDIO_TAIL_NANOS;
-    }
-
     private static void tick() {
         for (AudioStream stream : STREAMS.values()) {
             stream.pump();
@@ -103,7 +94,7 @@ public final class CinemaAudioManager {
         public void onAudioStreamPacket(CefBrowser browser, DataPointer data, int frames, long pts) {
             AudioStream stream = browser == null ? FALLBACK_STREAM.get() : STREAMS.get(browser);
             if (stream != null) {
-                stream.accept(data, frames);
+                stream.accept(data, frames, pts);
             }
         }
 
@@ -124,20 +115,20 @@ public final class CinemaAudioManager {
     private static final class AudioStream {
         private final int sampleRate;
         private final int channels;
-        private final ConcurrentLinkedQueue<ByteBuffer> pendingPackets = new ConcurrentLinkedQueue<>();
-        private final Map<Integer, Integer> queuedBufferFrames = new HashMap<>();
+        private final ConcurrentLinkedQueue<AudioPacket> pendingPackets = new ConcurrentLinkedQueue<>();
+        private final Map<Integer, Integer> queuedBufferFrames = new ConcurrentHashMap<>();
+        private volatile long firstPacketAtNanos;
         private int queuedFrames;
         private int sourceId;
         private boolean closed;
         private boolean started;
-        private volatile long firstPacketAtNanos;
 
         private AudioStream(int sampleRate, int channels) {
             this.sampleRate = Math.max(8_000, sampleRate);
             this.channels = Math.max(1, channels);
         }
 
-        private void accept(DataPointer data, int frames) {
+        private void accept(DataPointer data, int frames, long pts) {
             if (closed || frames <= 0 || pendingPackets.size() >= MAX_PENDING_PACKETS) {
                 return;
             }
@@ -150,17 +141,13 @@ public final class CinemaAudioManager {
                         : left;
 
                 ByteBuffer pcm = ByteBuffer.allocateDirect(frames * 4).order(ByteOrder.nativeOrder());
-                boolean audible = false;
                 for (int index = 0; index < frames; index++) {
-                    float leftSample = left.getFloat(index);
-                    float rightSample = right.getFloat(index);
-                    audible |= Math.abs(leftSample) > 0.001f || Math.abs(rightSample) > 0.001f;
-                    pcm.putShort(toPcm16(leftSample));
-                    pcm.putShort(toPcm16(rightSample));
+                    pcm.putShort(toPcm16(left.getFloat(index)));
+                    pcm.putShort(toPcm16(right.getFloat(index)));
                 }
                 pcm.flip();
-                pendingPackets.offer(pcm);
-                if (audible) LAST_AUDIBLE_AUDIO_NANOS.set(System.nanoTime());
+                long timestampMs = pts > 0L ? pts : System.currentTimeMillis();
+                pendingPackets.offer(new AudioPacket(pcm, frames, timestampMs));
                 if (firstPacketAtNanos == 0L) firstPacketAtNanos = System.nanoTime();
             } catch (RuntimeException exception) {
                 MpsqCameraClient.LOGGER.warn("Kino-Audiodaten konnten nicht gelesen werden", exception);
@@ -187,17 +174,24 @@ public final class CinemaAudioManager {
                     AL10.alDeleteBuffers(bufferId);
                 }
 
-                while (AL10.alGetSourcei(sourceId, AL10.AL_BUFFERS_QUEUED) < MAX_QUEUED_BUFFERS) {
-                    ByteBuffer packet = pendingPackets.poll();
-                    if (packet == null) {
-                        break;
-                    }
+                long maxQueuedFrames = (long) sampleRate * MAX_QUEUED_AUDIO_MILLIS / 1_000L;
+                long nowMs = System.currentTimeMillis();
+                while (AL10.alGetSourcei(sourceId, AL10.AL_BUFFERS_QUEUED) < MAX_QUEUED_BUFFERS
+                        && queuedFrames < maxQueuedFrames) {
+                    AudioPacket next = pendingPackets.peek();
+                    if (next == null) break;
+                    if (queuedFrames > 0 && queuedFrames + next.frames() > maxQueuedFrames) break;
+                    AudioPacket packet = pendingPackets.poll();
+                    if (packet == null) break;
+                    long packetEndMs = packet.presentationTimeMs()
+                            + packet.frames() * 1_000L / sampleRate;
+                    // Do not replay stale chunks after a slow tick or video-specific startup stall.
+                    if (packetEndMs < nowMs - MAX_PACKET_LATENESS_MILLIS) continue;
                     int bufferId = AL10.alGenBuffers();
-                    int frames = packet.remaining() / 4;
-                    AL10.alBufferData(bufferId, AL10.AL_FORMAT_STEREO16, packet, sampleRate);
+                    AL10.alBufferData(bufferId, AL10.AL_FORMAT_STEREO16, packet.pcm(), sampleRate);
                     AL10.alSourceQueueBuffers(sourceId, bufferId);
-                    queuedBufferFrames.put(bufferId, frames);
-                    queuedFrames += frames;
+                    queuedBufferFrames.put(bufferId, packet.frames());
+                    queuedFrames += packet.frames();
                 }
 
                 int queued = AL10.alGetSourcei(sourceId, AL10.AL_BUFFERS_QUEUED);
@@ -243,5 +237,7 @@ public final class CinemaAudioManager {
             float clamped = Math.max(-1.0f, Math.min(1.0f, sample));
             return (short) Math.round(clamped * Short.MAX_VALUE);
         }
+
+        private record AudioPacket(ByteBuffer pcm, int frames, long presentationTimeMs) { }
     }
 }
