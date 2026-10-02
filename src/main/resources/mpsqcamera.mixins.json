@@ -7,6 +7,7 @@
     "MouseMixin",
     "GameRendererMixin",
     "KeyboardMixin",
+    "SoundSystemMixin",
     "InGameHudMixin",
     "EntityRendererMixin",
     "PlayerEntityRendererMixin",
