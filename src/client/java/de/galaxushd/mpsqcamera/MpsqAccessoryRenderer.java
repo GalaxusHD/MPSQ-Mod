@@ -190,7 +190,7 @@ public final class MpsqAccessoryRenderer {
                 float size=o.has("scale")?o.get("scale").getAsFloat():1f;String animation=o.has("animation")?o.get("animation").getAsString():"none";float phase=(System.currentTimeMillis()%4000L)/1000f;float bob=animation.equals("bob")?(float)Math.sin(phase*Math.PI*2)*0.08f:0;float pulse=animation.equals("pulse")?1f+(float)Math.sin(phase*Math.PI*2)*0.08f:1f;float bodyYaw=o.has("yaw")?o.get("yaw").getAsFloat():0f,pitch=o.has("pitch")?o.get("pitch").getAsFloat():0f,relativeHeadYaw=0f;boolean face=o.has("face_player")&&o.get("face_player").getAsBoolean();float npcHeight=playerSkin?1.8f*size:size;
                 float targetYaw=bodyYaw;
                 boolean trackingPlayer=face&&client.player!=null&&client.player.squaredDistanceTo(x,y+npcHeight*0.5,z)<=900;
-                if(trackingPlayer){double dx=client.player.getX()-x,dz=client.player.getZ()-z,lookFromY=y+npcHeight*0.85,targetY=client.player.getY()+client.player.getHeight()*0.9,dy=targetY-lookFromY;targetYaw=(float)Math.toDegrees(Math.atan2(-dx,dz));pitch=(float)-Math.toDegrees(Math.atan2(dy,Math.sqrt(dx*dx+dz*dz)));}
+                if(trackingPlayer){LookAngles look=calculateVillagerLookAngles(x,y,z,size,playerSkin,client.player);targetYaw=look.yaw();pitch=look.pitch();}
                 String rotationKey=o.has("id")?o.get("id").getAsString():x+":"+y+":"+z;
                 if(trackingPlayer){float[] smoothed=smoothNpcRotation(rotationKey,bodyYaw,targetYaw,pitch);bodyYaw=smoothed[0];relativeHeadYaw=smoothed[1];pitch=smoothed[2];}
                 else npcRotations.remove(rotationKey);
@@ -226,6 +226,20 @@ public final class MpsqAccessoryRenderer {
                     if("tutorial".equals(tag)&&!tutorialDone){float hover=(float)Math.sin(System.currentTimeMillis()/360.0)*0.07f*tagScale;float iconOffset=tagVerticalOffset+0.36f*tagScale;drawBillboard(context,matrices,consumers,Identifier.of("mpsqcamera","textures/gui/npc_tags/tutorial_exclamation.png"),tagX,y+npcHeight+bob+iconOffset+hover-camera.y,tagZ,0.42f*tagScale,0.42f*tagScale);}}
             }
         });
+    }
+    private record LookAngles(float yaw,float pitch){}
+
+    /** Uses the same eye-to-eye target as vanilla look-at behavior: the NPC's
+     * eye point tracks the player's actual eye height, including crouching. */
+    private static LookAngles calculateVillagerLookAngles(double npcX,double npcY,double npcZ,float npcScale,boolean playerSkin,net.minecraft.client.network.ClientPlayerEntity player){
+        double dx=player.getX()-npcX;
+        double dz=player.getZ()-npcZ;
+        double npcEyeY=npcY+(playerSkin?1.62d*npcScale:0.9d*npcScale);
+        double dy=player.getEyeY()-npcEyeY;
+        double horizontalDistance=Math.sqrt(dx*dx+dz*dz);
+        float yaw=(float)Math.toDegrees(Math.atan2(-dx,dz));
+        float pitch=(float)-Math.toDegrees(Math.atan2(dy,Math.max(1.0e-4,horizontalDistance)));
+        return new LookAngles(yaw,pitch);
     }
     private static float[] smoothNpcRotation(String key,float initialBodyYaw,float targetYaw,float targetPitch){
         long now=System.nanoTime();
