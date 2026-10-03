@@ -13,6 +13,7 @@ import java.nio.ByteOrder;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 /** Bridges MCEF's float PCM callback to Minecraft's already-active OpenAL device. */
@@ -26,6 +27,8 @@ public final class CinemaAudioManager {
     private static final Map<CefBrowser, AudioStream> STREAMS = new ConcurrentHashMap<>();
     /* Some MCEF/JCEF builds call audio callbacks without the browser or parameters. */
     private static final AtomicReference<AudioStream> FALLBACK_STREAM = new AtomicReference<>();
+    private static final AtomicLong LAST_AUDIBLE_AUDIO_NANOS = new AtomicLong();
+    private static final long AUDIO_TAIL_NANOS = 500_000_000L;
     private static boolean initialized;
 
     private CinemaAudioManager() {
@@ -52,8 +55,15 @@ public final class CinemaAudioManager {
         STREAMS.clear();
         AudioStream fallback = FALLBACK_STREAM.getAndSet(null);
         if (fallback != null) fallback.close();
+        LAST_AUDIBLE_AUDIO_NANOS.set(0L);
     }
 
+    /** True while browser music is audible, including a short queue-drain tail. */
+    public static boolean isMusicAudioActive() {
+        long lastAudible = LAST_AUDIBLE_AUDIO_NANOS.get();
+        long elapsed = System.nanoTime() - lastAudible;
+        return lastAudible != 0L && elapsed >= 0L && elapsed < AUDIO_TAIL_NANOS;
+    }
     /** Stops all MCEF audio immediately. Required for MCEF builds whose callback has no browser identity. */
     public static void stopAll() {
         clear();
@@ -138,10 +148,15 @@ public final class CinemaAudioManager {
                         : left;
 
                 ByteBuffer pcm = ByteBuffer.allocateDirect(frames * 4).order(ByteOrder.nativeOrder());
+                boolean audible = false;
                 for (int index = 0; index < frames; index++) {
-                    pcm.putShort(toPcm16(left.getFloat(index)));
-                    pcm.putShort(toPcm16(right.getFloat(index)));
+                    float leftSample = left.getFloat(index);
+                    float rightSample = right.getFloat(index);
+                    audible |= Math.abs(leftSample) > 0.001f || Math.abs(rightSample) > 0.001f;
+                    pcm.putShort(toPcm16(leftSample));
+                    pcm.putShort(toPcm16(rightSample));
                 }
+                if (audible) LAST_AUDIBLE_AUDIO_NANOS.set(System.nanoTime());
                 pcm.flip();
                 pendingPackets.offer(pcm);
             } catch (RuntimeException exception) {
