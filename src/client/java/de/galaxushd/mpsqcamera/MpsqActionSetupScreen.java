@@ -97,7 +97,7 @@ public final class MpsqActionSetupScreen extends Screen {
         boolean audio="TOGGLE_AUDIO".equals(selected), countdown="TOGGLE_COUNTDOWN".equals(selected), link="OPEN_LINK".equals(selected);
         boolean bossbar="TOGGLE_BOSSBAR".equals(selected);
         soundTypeButton.visible=audio;soundTypeButton.active=audio;
-        value.setDimensions(width/2-130,35+(audio?49:23),260,20);
+        value.setPosition(width/2-130,35+(audio?49:23));
         duration.visible=countdown;duration.active=countdown;
         barColorButton.visible=countdown||bossbar;barColorButton.active=countdown||bossbar;
         linkScreenButton.visible=link;linkScreenButton.active=link&&!linkScreensLoading&&!linkScreens.isEmpty();
