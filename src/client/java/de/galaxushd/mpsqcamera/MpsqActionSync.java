@@ -10,6 +10,7 @@ import java.util.UUID;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
 
 public final class MpsqActionSync {
     private static String scope = "", cursor;
@@ -117,7 +118,18 @@ public final class MpsqActionSync {
             case "STOP_AUDIO" -> {MpsqAudioManager.stop();MpsqMediaAudioManager.stop();}
             case "SWITCH_SYSTEM" -> MpsqSystemController.onTrigger(data.get("systemId").getAsString(), stateDriven, powered);
             case "SHOW_DIALOGUE" -> MpsqDialogueManager.start(data);
-            case "KICK_ANIMATION" -> { MpsqKickAnimationManager.start(data.get("targetName").getAsString()); if (TeamVisibilitySettings.visible()) MpsqMediaAudioManager.playBundledMp3("/assets/mpsqcamera/sounds/kick.mp3",0.28f); }
+            case "KICK_ANIMATION" -> {
+                String targetName = data.get("targetName").getAsString();
+                MpsqKickAnimationManager.start(targetName);
+                if (TeamVisibilitySettings.visible()) {
+                    MpsqMediaAudioManager.playBundledMp3("/assets/mpsqcamera/sounds/kick.mp3", 0.28f);
+                    MinecraftClient client = MinecraftClient.getInstance();
+                    if (client.inGameHud != null) client.inGameHud.getChatHud().addMessage(
+                            Text.empty()
+                                    .append(Text.literal("Spieler " + targetName + " ").formatted(Formatting.DARK_AQUA))
+                                    .append(Text.literal("wurde disqualifiziert.").formatted(Formatting.RED)));
+                }
+            }
             case "START_COUNTDOWN" -> MpsqBossbarManager.startCountdown(data.get("title").getAsString(), data.get("duration").getAsInt(), event.get("created_at").getAsString(),barColor(data));
             case "SHOW_BOSSBAR" -> MpsqBossbarManager.apply(new MpsqBossbarState("event",data.get("title").getAsString(),barColor(data),1,true));
             case "HIDE_BOSSBAR" -> MpsqBossbarManager.remove("event");
@@ -159,6 +171,8 @@ public final class MpsqActionSync {
         } catch(RuntimeException ignored) { }
     }
 }
+
+
 
 
 

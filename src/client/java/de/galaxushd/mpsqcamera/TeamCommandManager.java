@@ -7,6 +7,7 @@ import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallba
 import net.fabricmc.fabric.api.client.message.v1.ClientSendMessageEvents;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
 
 /** Client-only /mpsq command. It is consumed locally and never sent to the Minecraft server. */
 public final class TeamCommandManager {
@@ -41,6 +42,7 @@ public final class TeamCommandManager {
                             MpsqApiClient.post("/kick-animation", body);
                         } else if (TeamVisibilitySettings.visible()) {
                             MpsqMediaAudioManager.playBundledMp3("/assets/mpsqcamera/sounds/kick.mp3", 0.28f);
+                            showKickMessage(target);
                         }
                     }
                 });
@@ -52,6 +54,15 @@ public final class TeamCommandManager {
         });
     }
 
+
+    private static void showKickMessage(String target) {
+        MinecraftClient client = MinecraftClient.getInstance();
+        if (client.inGameHud == null) return;
+        Text message = Text.empty()
+                .append(Text.literal("Spieler " + target + " ").formatted(Formatting.DARK_AQUA))
+                .append(Text.literal("wurde disqualifiziert.").formatted(Formatting.RED));
+        client.inGameHud.getChatHud().addMessage(message);
+    }
     private static void submit(String rawMessage) {
             String message = TeamChatPolicy.prepare(rawMessage);
             MinecraftClient client = MinecraftClient.getInstance();
@@ -77,4 +88,9 @@ public final class TeamCommandManager {
             }, () -> { if (client.player != null) client.player.sendMessage(Text.translatable("gui.mpsqcamera.team.command.denied"), true); });
     }
 }
+
+
+
+
+
 
