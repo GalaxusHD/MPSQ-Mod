@@ -90,7 +90,7 @@ public final class MpsqActionSetupScreen extends Screen {
         duration.visible=countdown;duration.active=countdown;
         barColorButton.visible=countdown||bossbar;barColorButton.active=countdown||bossbar;
         linkScreenButton.visible=link;linkScreenButton.active=link&&!linkScreensLoading&&!linkScreens.isEmpty();
-        value.setPlaceholder(Text.literal(link?"HTTPS-Link für den Bildschirm":audio?"Minecraft-Sound-ID oder MPSQ-MP3/MP4-ID":"SWITCH_SYSTEM".equals(selected)?"System-ID, z. B. bewegungssensor":"Text oder Titel (Farben mit &c etc.)"));
+        value.setPlaceholder(Text.literal(link?"HTTPS-Link für den Bildschirm":audio?"minecraft:entity.cat.ambient oder MPSQ-Sound-ID":"SWITCH_SYSTEM".equals(selected)?"System-ID, z. B. bewegungssensor":"Text oder Titel (Farben mit &c etc.)"));
     }
 
     private void save() {
@@ -98,7 +98,13 @@ public final class MpsqActionSetupScreen extends Screen {
         switch(actions[action]) {
             case "TOGGLE_AUDIO" -> {
                 String sound=value.getText().trim();
-                if(sound.isEmpty()||sound.length()>128||!sound.matches("[a-zA-Z0-9_.:/-]+")){status="Minecraft-Sound-ID oder MPSQ-Datei-ID eingeben.";return;}
+                if(sound.isEmpty()||sound.length()>128){status="minecraft:Sound-ID oder MPSQ-Sound-ID eingeben.";return;}
+                if(sound.contains(":")){
+                    var id=net.minecraft.util.Identifier.tryParse(sound);
+                    if(id==null||!net.minecraft.registry.Registries.SOUND_EVENT.containsId(id)){status="Diese Minecraft-Sound-ID ist nicht registriert. Nutze minecraft:pfad oder eine MPSQ-Datei-ID.";return;}
+                }else if(!sound.matches("[a-zA-Z0-9_-]{1,64}")){
+                    status="MPSQ-Sound-IDs dürfen nur Buchstaben, Zahlen, _ und - enthalten; Minecraft-IDs brauchen namespace:pfad.";return;
+                }
                 data.addProperty("sourceType","auto");data.addProperty("sound",sound);
             }
             case "SWITCH_SYSTEM" -> {
@@ -146,7 +152,7 @@ public final class MpsqActionSetupScreen extends Screen {
         String hint="OPEN_LINK".equals(selected)?"HTTPS-Link auf dem ausgewählten Kino-Bildschirm":
                 "SWITCH_SYSTEM".equals(selected)?"Gleiche ID stoppt; andere ID ersetzt das aktive System":
                 "SHOW_DIALOGUE".equals(selected)?"Textseiten mit || trennen":
-                "TOGGLE_AUDIO".equals(selected)?"Minecraft-Sound-ID oder MPSQ-MP3/MP4-ID":
+                "TOGGLE_AUDIO".equals(selected)?"Minecraft-ID: minecraft:pfad · MPSQ-ID: ohne Namespace":
                 "TOGGLE_COUNTDOWN".equals(selected)?"Countdown-Dauer in Sekunden":"&0–&f Farben: &chellrot, &egelb, &r zurücksetzen";
         c.drawTextWithShadow(textRenderer,hint,width/2-130,176,0xFFFFFFFF);
         c.drawCenteredTextWithShadow(textRenderer,Text.literal(status),width/2,height-24,0xFFFFFFFF);

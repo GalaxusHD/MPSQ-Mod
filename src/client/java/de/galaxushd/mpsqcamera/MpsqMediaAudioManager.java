@@ -35,7 +35,7 @@ public final class MpsqMediaAudioManager {
         });
     }
 
-    /** Resolves an uploaded MP3/MP4 ID first, then falls back to a Minecraft sound ID. */
+    /** Namespaced IDs are Minecraft registry entries; unqualified IDs are MPSQ uploads. */
     public static void playAuto(String id) {
         stop();
         if (id == null) return;
@@ -43,7 +43,16 @@ public final class MpsqMediaAudioManager {
         if (value.isEmpty() || value.length()>128 || !value.matches("[a-zA-Z0-9_.:/-]+")) return;
         if (value.contains(":")) {
             Identifier identifier=Identifier.tryParse(value);
-            if (identifier!=null) { MpsqAudioManager.startPlaylist("MPSQ", List.of(identifier.toString()), MpsqAudioManager.categoryForSoundId(identifier)); return; }
+            if (identifier==null || !net.minecraft.registry.Registries.SOUND_EVENT.containsId(identifier)) {
+                MpsqCameraClient.LOGGER.warn("Minecraft-Sound-ID ist nicht registriert: {}",value);
+                return;
+            }
+            MpsqAudioManager.startPlaylist("MPSQ", List.of(identifier.toString()), MpsqAudioManager.categoryForSoundId(identifier));
+            return;
+        }
+        if (!value.matches("[a-zA-Z0-9_-]{1,64}")) {
+            MpsqCameraClient.LOGGER.warn("Ungültige namespacefreie MPSQ-Sound-ID: {}",value);
+            return;
         }
         long request=++generation;
         MpsqApiClient.get("/sounds/"+value).whenComplete((json,error)->MinecraftClient.getInstance().execute(()->{
@@ -54,9 +63,7 @@ public final class MpsqMediaAudioManager {
                 String url=result.has("url")?result.get("url").getAsString():"";
                 if ((type.equals("mp3")||type.equals("mp4"))&&safeHttps(url)) { openPlayer(List.of(url),1.0f); return; }
             }
-            Identifier identifier=Identifier.tryParse(value);
-            if(identifier!=null) MpsqAudioManager.startPlaylist("MPSQ",List.of(identifier.toString()), MpsqAudioManager.categoryForSoundId(identifier));
-            else MpsqCameraClient.LOGGER.warn("MPSQ-Sound-ID ist weder eine verfügbare Datei noch eine Minecraft-Sound-ID: {}",value);
+            MpsqCameraClient.LOGGER.warn("MPSQ-Sound-ID ist nicht verfügbar oder keine gültige MP3/MP4-Datei: {}",value);
         }));
     }
 
@@ -66,12 +73,27 @@ public final class MpsqMediaAudioManager {
         long request = ++generation;
         List<java.util.concurrent.CompletableFuture<String>> lookups = new ArrayList<>();
         for (String id : assetIds) {
-            if (id == null || !id.matches("[a-zA-Z0-9_-]{1,64}")) return;
-            lookups.add(MpsqApiClient.get("/sounds/" + id + "?type=" + type).thenApply(data -> {
-                JsonObject result = data.getAsJsonObject();
-                String url = result.has("url") ? result.get("url").getAsString() : "";
-                return safeHttps(url) ? url : "";
+            if (id == null || !id.matches("[a-zA-Z0-9_-]{1,64}")) {
+                MpsqCameraClient.LOGGER.warn("Ungültige MPSQ-Playlist-ID übersprungen: {}", id);
+                continue;
+            }
+            lookups.add(MpsqApiClient.get("/sounds/" + id + "?type=" + type).handle((data, error) -> {
+                if (error != null) {
+                    MpsqCameraClient.LOGGER.warn("MPSQ-Playlist-Titel '{}' konnte nicht geladen werden und wird übersprungen", id, error);
+                    return "";
+                }
+                try {
+                    JsonObject result = data.getAsJsonObject();
+                    String url = result.has("url") ? result.get("url").getAsString() : "";
+                    if (safeHttps(url)) return url;
+                } catch (RuntimeException ignored) { }
+                MpsqCameraClient.LOGGER.warn("MPSQ-Playlist-Titel '{}' lieferte keine gültige Audio-URL und wird übersprungen", id);
+                return "";
             }));
+        }
+        if (lookups.isEmpty()) {
+            MpsqCameraClient.LOGGER.warn("MPSQ-Playlist enthält keine gültigen Audio-IDs.");
+            return;
         }
         java.util.concurrent.CompletableFuture.allOf(lookups.toArray(java.util.concurrent.CompletableFuture[]::new))
                 .whenComplete((ignored, error) -> MinecraftClient.getInstance().execute(() -> {
@@ -79,9 +101,10 @@ public final class MpsqMediaAudioManager {
                         if (error != null) MpsqCameraClient.LOGGER.warn("MPSQ-Audiodatei konnte nicht geladen werden", error);
                         return;
                     }
-                    List<String> urls = lookups.stream().map(java.util.concurrent.CompletableFuture::join).toList();
-                    if (urls.isEmpty() || urls.stream().anyMatch(String::isBlank)) {
-                        MpsqCameraClient.LOGGER.warn("Mindestens eine MPSQ-Audiodatei-ID ist ungültig oder nicht verfügbar.");
+                    List<String> urls = lookups.stream().map(java.util.concurrent.CompletableFuture::join)
+                            .filter(url -> !url.isBlank()).toList();
+                    if (urls.isEmpty()) {
+                        MpsqCameraClient.LOGGER.warn("Kein Titel der MPSQ-Playlist konnte geladen werden; Playlist bleibt ohne Wiedergabe.");
                         return;
                     }
                     openPlayer(urls,1.0f);
