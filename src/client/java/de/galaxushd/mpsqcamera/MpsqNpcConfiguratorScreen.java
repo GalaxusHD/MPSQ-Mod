@@ -20,11 +20,11 @@ public final class MpsqNpcConfiguratorScreen extends Screen {
     private final Screen parent;
     private final String npcId,server,world;
     private int tab;
-    private String displayName,glowColor,dialogue,status="",taskType="none";
+    private String displayName,glowColor,dialogue,soundId,status="",taskType="none";
     private float scale;
     private float yaw,pitch;
     private boolean facePlayer;
-    private TextFieldWidget nameField,dialogueField;
+    private TextFieldWidget nameField,dialogueField,soundField;
     private boolean pending,glowEnabled;
     private int scroll;
 
@@ -37,7 +37,7 @@ public final class MpsqNpcConfiguratorScreen extends Screen {
         this.glowEnabled=MpsqNpcVisitStore.isGlowEnabled(this.npcId,isRoleTask(this.taskType))&&(!isRoleTask(this.taskType)||!MpsqNpcVisitStore.hasVisited(this.taskType,this.npcId));
         this.yaw=npc.has("yaw")?npc.get("yaw").getAsFloat():0f;this.pitch=npc.has("pitch")?npc.get("pitch").getAsFloat():0f;this.facePlayer=npc.has("face_player")&&npc.get("face_player").getAsBoolean();
         JsonObject interaction=npc.has("interaction_data")&&npc.get("interaction_data").isJsonObject()?npc.getAsJsonObject("interaction_data"):new JsonObject();
-        List<String> pages=new ArrayList<>();if(interaction.has("pages")&&interaction.get("pages").isJsonArray())for(var page:interaction.getAsJsonArray("pages"))pages.add(page.getAsString());this.dialogue=String.join(" || ",pages);
+        List<String> pages=new ArrayList<>();if(interaction.has("pages")&&interaction.get("pages").isJsonArray())for(var page:interaction.getAsJsonArray("pages"))pages.add(page.getAsString());this.dialogue=String.join(" || ",pages);this.soundId=str(interaction,"soundId","");
     }
 
     @Override protected void init(){
@@ -47,7 +47,7 @@ public final class MpsqNpcConfiguratorScreen extends Screen {
             addDrawableChild(ButtonWidget.builder(Text.literal("+"),b->{captureFields();scale=Math.min(3f,scale+.25f);clearAndInit();}).dimensions(content+142,top+103-scroll,34,22).build());
             boolean visited=isRoleTask(taskType)&&MpsqNpcVisitStore.hasVisited(taskType,npcId);String glowLabel=visited?"Aus · bereits genutzt":glowEnabled?"An":"Aus";
             addDrawableChild(ButtonWidget.builder(Text.literal("Glow: "+glowLabel),b->{if(visited){glowEnabled=false;status="Nach der ersten Nutzung bleibt dieser Aufgaben-Glow aus.";}else{glowEnabled=!glowEnabled;status="Glow-Einstellung geändert – bitte speichern.";}clearAndInit();}).dimensions(content,top+157-scroll,184,24).build());
-        }else if(tab==1){dialogueField=addDrawableChild(new TextFieldWidget(textRenderer,content,top+65-scroll,panelRight()-12-content,22,Text.literal("Dialog")));dialogueField.setMaxLength(3072);dialogueField.setText(dialogue);}
+        }else if(tab==1){dialogueField=addDrawableChild(new TextFieldWidget(textRenderer,content,top+65-scroll,panelRight()-12-content,22,Text.literal("Dialog")));dialogueField.setMaxLength(3072);dialogueField.setText(dialogue);soundField=addDrawableChild(new TextFieldWidget(textRenderer,content,top+145-scroll,panelRight()-12-content,22,Text.literal("Sound-ID")));soundField.setMaxLength(128);soundField.setPlaceholder(Text.literal("Minecraft-Sound oder MPSQ-MP3/MP4-ID (optional)"));soundField.setText(soundId);}
         else if(tab==2){
             addDrawableChild(ButtonWidget.builder(Text.literal("Yaw −15°"),b->{yaw=wrapYaw(yaw-15);clearAndInit();}).dimensions(content,top+76-scroll,88,22).build());
             addDrawableChild(ButtonWidget.builder(Text.literal("Yaw +15°"),b->{yaw=wrapYaw(yaw+15);clearAndInit();}).dimensions(content+96,top+76-scroll,88,22).build());
@@ -75,7 +75,7 @@ public final class MpsqNpcConfiguratorScreen extends Screen {
         int content=left+122,viewportBottom=bottom-50;c.enableScissor(content-4,top+43,right-10,viewportBottom);
         c.fill(content-9,top+43,right-12,top+45,0xFF9C203C);
         if(tab==0){c.drawTextWithShadow(textRenderer,Text.literal("Anzeigename"),content,top+43-scroll,0xFFE8EAF0);c.drawTextWithShadow(textRenderer,Text.literal("Größe"),content,top+91-scroll,0xFFE8EAF0);c.drawCenteredTextWithShadow(textRenderer,Text.literal(String.format(java.util.Locale.ROOT,"%.2f×",scale)),content+88,top+109-scroll,0xFFFFFFFF);c.drawTextWithShadow(textRenderer,Text.literal("Glowfarbe: "+colorName(glowColor)+" · fest nach Rolle"),content,top+137-scroll,0xFFE8EAF0);}
-        else if(tab==1){c.drawTextWithShadow(textRenderer,Text.literal("Dialog beim Rechtsklick"),content,top+47-scroll,0xFFE8EAF0);c.drawTextWithShadow(textRenderer,Text.literal("Seiten mit  ||  trennen · max. 12 × 240 Zeichen"),content,top+96-scroll,0xFFBBBBBB);c.drawTextWithShadow(textRenderer,Text.literal("Der Text erscheint im MPSQ-Dialogfenster."),content,top+115-scroll,0xFF999999);}
+        else if(tab==1){c.drawTextWithShadow(textRenderer,Text.literal("Dialog beim Rechtsklick"),content,top+47-scroll,0xFFE8EAF0);c.drawTextWithShadow(textRenderer,Text.literal("Seiten mit  ||  trennen · max. 12 × 240 Zeichen"),content,top+96-scroll,0xFFBBBBBB);c.drawTextWithShadow(textRenderer,Text.literal("Der Text erscheint im MPSQ-Dialogfenster."),content,top+115-scroll,0xFF999999);c.drawTextWithShadow(textRenderer,Text.literal("Optionaler Sound beim Anklicken"),content,top+127-scroll,0xFFE8EAF0);}
         else if(tab==2){c.drawTextWithShadow(textRenderer,Text.literal("Kopfrotation · Schritte von 15°"),content,top+49-scroll,0xFFE8EAF0);c.drawTextWithShadow(textRenderer,Text.literal("Yaw: "+Math.round(yaw)+"°"),content,top+104-scroll,0xFFFFFFFF);c.drawTextWithShadow(textRenderer,Text.literal("Pitch: "+Math.round(pitch)+"°"),content,top+147-scroll,0xFFFFFFFF);c.drawTextWithShadow(textRenderer,Text.literal("Folgt Spielern nur bis 30 Blöcke Entfernung."),content,top+196-scroll,0xFFBBBBBB);}
         else {c.drawTextWithShadow(textRenderer,Text.literal("NPC-Funktion auswählen"),content,top+48-scroll,0xFFE8EAF0);c.drawTextWithShadow(textRenderer,Text.literal("Accessoires: Shop · Tutorial: Dialog · Quests: Aufgaben"),content,top+108-scroll,0xFFBBBBBB);c.drawTextWithShadow(textRenderer,Text.literal("Der passende Bild-Tag wird über dem NPC angezeigt."),content,top+128-scroll,0xFF999999);}
         c.disableScissor();c.drawTextWithShadow(textRenderer,textRenderer.trimToWidth(status,right-left-30),left+15,bottom-39,status.startsWith("Gespeichert")?0xFF77DD99:0xFFFFA0AA);
@@ -88,9 +88,9 @@ public final class MpsqNpcConfiguratorScreen extends Screen {
     private static String defaultGlowColor(String task){return switch(task){case "tutorial"->"#c3971f";case "accessories"->"#8027b0";case "quest"->"#2149c4";default->"#ec2f53";};}
     private String taskLabel(String value){for(int i=0;i<TASKS.length;i++)if(TASKS[i].equals(value))return TASK_LABELS[i];return TASK_LABELS[0];}
     private static boolean isRoleTask(String value){return "tutorial".equals(value)||"accessories".equals(value)||"quest".equals(value);}
-    private void captureFields(){if(nameField!=null)displayName=nameField.getText().trim();if(dialogueField!=null)dialogue=dialogueField.getText();}
-    private void save(){if(pending)return;captureFields();List<String> pages=new ArrayList<>();if(!dialogue.isBlank())for(String p:dialogue.split("\\|\\|",-1)){String page=p.trim();if(page.isEmpty()||page.length()>240||pages.size()>=12){status="Jede Dialogseite braucht 1–240 Zeichen (max. 12 Seiten).";return;}pages.add(page);}if(displayName.isBlank()){status="Bitte einen NPC-Namen eingeben.";return;}
-        glowColor=defaultGlowColor(taskType);JsonArray pageArray=new JsonArray();pages.forEach(pageArray::add);JsonObject interaction=new JsonObject();interaction.add("pages",pageArray);JsonObject body=new JsonObject();body.addProperty("name",displayName);body.addProperty("scale",scale);body.addProperty("glowColor",glowColor);body.addProperty("animation","none");body.addProperty("yaw",yaw);body.addProperty("pitch",pitch);body.addProperty("facePlayer",facePlayer);body.addProperty("taskType",taskType);body.add("interactionData",interaction);body.addProperty("server",server);body.addProperty("world",world);
+    private void captureFields(){if(nameField!=null)displayName=nameField.getText().trim();if(dialogueField!=null)dialogue=dialogueField.getText();if(soundField!=null)soundId=soundField.getText().trim();}
+    private void save(){if(pending)return;captureFields();List<String> pages=new ArrayList<>();if(!dialogue.isBlank())for(String p:dialogue.split("\\|\\|",-1)){String page=p.trim();if(page.isEmpty()||page.length()>240||pages.size()>=12){status="Jede Dialogseite braucht 1–240 Zeichen (max. 12 Seiten).";return;}pages.add(page);}if(displayName.isBlank()){status="Bitte einen NPC-Namen eingeben.";return;}if(soundId.length()>128||(!soundId.isBlank()&&!soundId.matches("[a-zA-Z0-9_.:/-]+"))){status="Ungültige Minecraft- oder MPSQ-Sound-ID.";return;}
+        glowColor=defaultGlowColor(taskType);JsonArray pageArray=new JsonArray();pages.forEach(pageArray::add);JsonObject interaction=new JsonObject();interaction.add("pages",pageArray);interaction.addProperty("soundId",soundId);JsonObject body=new JsonObject();body.addProperty("name",displayName);body.addProperty("scale",scale);body.addProperty("glowColor",glowColor);body.addProperty("animation","none");body.addProperty("yaw",yaw);body.addProperty("pitch",pitch);body.addProperty("facePlayer",facePlayer);body.addProperty("taskType",taskType);body.add("interactionData",interaction);body.addProperty("server",server);body.addProperty("world",world);
         String savedSettings="Gespeichert · "+colorName(glowColor);
         if(server.isBlank()&&client.getServer()!=null){pending=true;status="Wird lokal gespeichert …";clearAndInit();boolean saved=MpsqLocalNpcStore.update(MpsqActionSync.world(),npcId,body);pending=false;status=saved?savedSettings:"Lokaler NPC wurde nicht gefunden.";if(saved&&(!isRoleTask(taskType)||!MpsqNpcVisitStore.hasVisited(taskType,npcId)))MpsqNpcVisitStore.setGlowEnabled(npcId,glowEnabled,isRoleTask(taskType));MpsqAccessoryRenderer.refresh();clearAndInit();return;}
         pending=true;status="Wird gespeichert …";clearAndInit();MpsqApiClient.patch("/npcs/"+npcId,body).whenComplete((data,error)->client.execute(()->{pending=false;status=error==null?savedSettings:"Speichern fehlgeschlagen: "+error.getMessage();if(error==null&&(!isRoleTask(taskType)||!MpsqNpcVisitStore.hasVisited(taskType,npcId)))MpsqNpcVisitStore.setGlowEnabled(npcId,glowEnabled,isRoleTask(taskType));MpsqAccessoryRenderer.refresh();clearAndInit();}));}
@@ -98,7 +98,7 @@ public final class MpsqNpcConfiguratorScreen extends Screen {
     private static float wrapYaw(float value){return ((value%360)+360)%360;}
 
     @Override public boolean mouseClicked(double x,double y,int button){if(button==0){int left=panelLeft(),top=panelTop();if(x>=left+8&&x<=left+114&&y>=top+48&&y<top+48+TABS.length*26){captureFields();tab=Math.max(0,Math.min(TABS.length-1,(int)(y-(top+48))/26));scroll=0;clearAndInit();return true;}if(tab==3&&x>=left+122&&y>=top+68-scroll&&y<top+94-scroll){int current=Math.max(0,java.util.Arrays.asList(TASKS).indexOf(taskType));taskType=TASKS[(current+1)%TASKS.length];glowColor=defaultGlowColor(taskType);glowEnabled=MpsqNpcVisitStore.isGlowEnabled(npcId,isRoleTask(taskType))&&(!isRoleTask(taskType)||!MpsqNpcVisitStore.hasVisited(taskType,npcId));clearAndInit();return true;}}return super.mouseClicked(x,y,button);}
-    private int contentHeight(){return switch(tab){case 0->244;case 1->130;case 2->220;default->184;};}
+    private int contentHeight(){return switch(tab){case 0->244;case 1->182;case 2->220;default->184;};}
     private int maxScroll(){return Math.max(0,contentHeight()-(panelBottom()-50-(panelTop()+43)));}
     @Override public boolean mouseScrolled(double x,double y,double horizontal,double vertical){if(x<panelLeft()+118||x>panelRight()-8)return false;captureFields();scroll=Math.max(0,Math.min(maxScroll(),scroll-(int)Math.signum(vertical)*24));clearAndInit();return true;}
     @Override public void close(){client.setScreen(parent);}

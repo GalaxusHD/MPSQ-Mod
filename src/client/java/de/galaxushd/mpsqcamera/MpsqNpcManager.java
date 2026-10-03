@@ -62,6 +62,9 @@ public final class MpsqNpcManager {
     }
 
     private static void interact(JsonObject npc) {
+        JsonObject interaction=npc.has("interaction_data")&&npc.get("interaction_data").isJsonObject()?npc.getAsJsonObject("interaction_data"):new JsonObject();
+        String configuredSound=interaction.has("soundId")&&!interaction.get("soundId").isJsonNull()?interaction.get("soundId").getAsString().trim():"";
+        if(!configuredSound.isBlank())MpsqMediaAudioManager.playAuto(configuredSound);
         String task = npc.has("task_type") && !npc.get("task_type").isJsonNull() ? npc.get("task_type").getAsString() : "none";
         String npcId=npc.has("id")&&!npc.get("id").isJsonNull()?npc.get("id").getAsString():"";
         // Visit state is read by the renderer each frame. A full refresh clears
@@ -75,8 +78,7 @@ public final class MpsqNpcManager {
             MinecraftClient.getInstance().setScreen(new MpsqQuestsScreen(null,npc.get("id").getAsString()));
             return;
         }
-        JsonObject data = npc.has("interaction_data") && npc.get("interaction_data").isJsonObject()
-                ? npc.getAsJsonObject("interaction_data") : new JsonObject();
+        JsonObject data = interaction;
         if (!data.has("pages") || !data.get("pages").isJsonArray() || data.getAsJsonArray("pages").isEmpty()) {
             JsonArray pages = new JsonArray();
             pages.add(npc.has("name") ? npc.get("name").getAsString() : "Hallo!");

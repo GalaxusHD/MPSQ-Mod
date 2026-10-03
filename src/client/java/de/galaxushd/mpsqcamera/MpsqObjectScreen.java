@@ -25,7 +25,7 @@ public final class MpsqObjectScreen extends Screen {
         model=addDrawableChild(new TextFieldWidget(textRenderer,width/2-120,70,145,20,Text.literal("Modell-ID")));model.setMaxLength(64);model.setPlaceholder(Text.literal("Modell-ID"));model.setText(initialModel);
         addDrawableChild(ButtonWidget.builder(Text.literal("Katalog"),b->client.setScreen(new MpsqModelsScreen(this))).dimensions(width/2+30,70,90,20).build());
         displayName=addDrawableChild(new TextFieldWidget(textRenderer,width/2-120,98,240,20,Text.literal("Anzeigename")));displayName.setMaxLength(64);displayName.setPlaceholder(Text.literal("Anzeigename (optional)"));displayName.setText(initialName);
-        soundId=addDrawableChild(new TextFieldWidget(textRenderer,width/2-120,154,240,20,Text.literal("Sound-ID")));soundId.setMaxLength(64);soundId.setPlaceholder(Text.literal("MP3-Datei-ID (optional)"));soundId.setText(initialSoundId);
+        soundId=addDrawableChild(new TextFieldWidget(textRenderer,width/2-120,154,240,20,Text.literal("Sound-ID")));soundId.setMaxLength(128);soundId.setPlaceholder(Text.literal("Minecraft-Sound oder MPSQ-MP3/MP4-ID (optional)"));soundId.setText(initialSoundId);
         addDrawableChild(ButtonWidget.builder(Text.literal(String.format(java.util.Locale.ROOT,"Größe: %.1fx",size)),b->{size=size>=3.0f?0.5f:size+0.5f;b.setMessage(Text.literal(String.format(java.util.Locale.ROOT,"Größe: %.1fx",size)));}).dimensions(width/2-120,126,116,20).build());
         addDrawableChild(ButtonWidget.builder(Text.literal("Drehung: "+rotation+"°"),b->{rotation=(rotation+90)%360;b.setMessage(Text.literal("Drehung: "+rotation+"°"));}).dimensions(width/2+4,126,116,20).build());
         addDrawableChild(ButtonWidget.builder(Text.literal(editing?"Änderungen speichern":"Platzieren / Ersetzen"),b->save(false)).dimensions(width/2-120,182,240,20).build());
@@ -35,19 +35,21 @@ public final class MpsqObjectScreen extends Screen {
     private void save(boolean remove){
         if(pending)return;
         if(!remove&&!model.getText().trim().matches("[a-z0-9_-]{1,64}")){status="Bitte eine gültige Möbel-ID eingeben.";return;}
+        String soundValue=soundId.getText().trim();
+        if(!remove&&(soundValue.length()>128||(!soundValue.isEmpty()&&!soundValue.matches("[a-zA-Z0-9_.:/-]+")))){status="Ungültige Minecraft- oder MPSQ-Sound-ID.";return;}
         BlockPos target=pos;int facing=rotation;
         if(!remove&&model.getText().trim().equalsIgnoreCase("minecraft-cat-lying")&&client.player!=null){target=client.player.getBlockPos();facing=Math.floorMod(Math.round(client.player.getYaw()+180),360)/90*90;}
         final BlockPos saveTarget=target;
         if(server.isBlank() && client.getServer()!=null){
             pending=true;status="Wird lokal gespeichert…";
-            boolean saved=MpsqLocalObjectStore.set(world,target.getX(),target.getY(),target.getZ(),model.getText().trim(),facing,displayName.getText().trim(),size,soundId.getText().trim(),remove);
+            boolean saved=MpsqLocalObjectStore.set(world,target.getX(),target.getY(),target.getZ(),model.getText().trim(),facing,displayName.getText().trim(),size,soundValue,remove);
             pending=false;
             status=saved?(remove?"Möbel entfernt.":"In dieser Einzelspielerwelt gespeichert."):(remove?"An dieser Position wurde kein Möbel gefunden.":"Speichern in der Einzelspielerwelt fehlgeschlagen.");
             if(saved){if(remove)MpsqAccessoryRenderer.removeFurnitureAt(target.getX(),target.getY(),target.getZ());else MpsqAccessoryRenderer.refresh();}
             return;
         }
         if(!MpsqActionSync.isMpsqServer()){status="Online-Speicher ist nur auf mixelpixel.net verfügbar.";return;}
-        JsonObject body=new JsonObject();body.addProperty("server",server);body.addProperty("world",world);body.addProperty("x",target.getX());body.addProperty("y",target.getY());body.addProperty("z",target.getZ());body.addProperty("rotation",facing);body.addProperty("modelId",model.getText().trim());body.addProperty("displayName",displayName.getText().trim());body.addProperty("scale",size);body.addProperty("soundId",soundId.getText().trim());body.addProperty("remove",remove);
+        JsonObject body=new JsonObject();body.addProperty("server",server);body.addProperty("world",world);body.addProperty("x",target.getX());body.addProperty("y",target.getY());body.addProperty("z",target.getZ());body.addProperty("rotation",facing);body.addProperty("modelId",model.getText().trim());body.addProperty("displayName",displayName.getText().trim());body.addProperty("scale",size);body.addProperty("soundId",soundValue);body.addProperty("remove",remove);
         pending=true;status=remove?"Möbel wird entfernt…":"Wird gespeichert…";MpsqApiClient.post("/objects",body).whenComplete((data,error)->client.execute(()->{
             pending=false;
             if(error!=null){status="Fehler: "+error.getMessage();return;}

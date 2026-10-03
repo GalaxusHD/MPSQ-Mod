@@ -5,7 +5,6 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Vec3d;
 
-import java.util.List;
 
 /** Handles right-click interaction with client-rendered furniture. */
 public final class MpsqFurnitureManager {
@@ -58,8 +57,8 @@ public final class MpsqFurnitureManager {
                 ? selected.get("sound_id").getAsString()
                 : selected.has("soundId") && !selected.get("soundId").isJsonNull()
                 ? selected.get("soundId").getAsString() : "";
-        if (soundId.matches("[a-zA-Z0-9_-]{1,64}")) {
-            MpsqMediaAudioManager.play("mp3", List.of(soundId));
+        if (!soundId.isBlank() && soundId.length() <= 128) {
+            MpsqMediaAudioManager.playAuto(soundId);
         }
         return true;
     }

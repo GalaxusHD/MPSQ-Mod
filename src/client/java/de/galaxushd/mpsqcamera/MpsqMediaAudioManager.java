@@ -6,6 +6,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.util.Identifier;
 
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
@@ -32,6 +33,31 @@ public final class MpsqMediaAudioManager {
                 closeEffectBrowser();
             }
         });
+    }
+
+    /** Resolves an uploaded MP3/MP4 ID first, then falls back to a Minecraft sound ID. */
+    public static void playAuto(String id) {
+        stop();
+        if (id == null) return;
+        String value=id.trim();
+        if (value.isEmpty() || value.length()>128 || !value.matches("[a-zA-Z0-9_.:/-]+")) return;
+        if (value.contains(":")) {
+            Identifier identifier=Identifier.tryParse(value);
+            if (identifier!=null) { MpsqAudioManager.startPlaylist("MPSQ", List.of(identifier.toString())); return; }
+        }
+        long request=++generation;
+        MpsqApiClient.get("/sounds/"+value).whenComplete((json,error)->MinecraftClient.getInstance().execute(()->{
+            if(request!=generation)return;
+            if(error==null&&json!=null&&json.isJsonObject()) {
+                JsonObject result=json.getAsJsonObject();
+                String type=result.has("type")?result.get("type").getAsString():"";
+                String url=result.has("url")?result.get("url").getAsString():"";
+                if ((type.equals("mp3")||type.equals("mp4"))&&safeHttps(url)) { openPlayer(List.of(url),1.0f); return; }
+            }
+            Identifier identifier=Identifier.tryParse(value);
+            if(identifier!=null) MpsqAudioManager.startPlaylist("MPSQ",List.of(identifier.toString()));
+            else MpsqCameraClient.LOGGER.warn("MPSQ-Sound-ID ist weder eine verfügbare Datei noch eine Minecraft-Sound-ID: {}",value);
+        }));
     }
 
     public static void play(String type, List<String> assetIds) {
