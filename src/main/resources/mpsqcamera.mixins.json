@@ -16,7 +16,8 @@
     "ItemModelManagerMixin",
     "PlayerEntityModelMixin",
     "MpsqNpcGlowPostprocessorMixin",
-    "SoundSystemMixin"
+    "SoundSystemMixin",
+    "MpsqMovementSensorGlowMixin"
   ],
   "injectors": {
     "defaultRequire": 1
