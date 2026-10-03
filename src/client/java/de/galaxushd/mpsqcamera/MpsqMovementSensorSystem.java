@@ -71,7 +71,7 @@ public final class MpsqMovementSensorSystem {
             seen.add(id);
             Vec3d position = player.getPos();
             boolean sneaking = player.isSneaking();
-            boolean swinging = player.isHandSwinging();
+            boolean swinging = player.handSwinging;
             Sample previous = SAMPLES.put(id, new Sample(position, sneaking, swinging));
             if (previous == null) continue;
 
@@ -97,7 +97,7 @@ public final class MpsqMovementSensorSystem {
         if (client.world == null) return;
         for (PlayerEntity entity : client.world.getPlayers()) {
             if (!(entity instanceof AbstractClientPlayerEntity player)) continue;
-            SAMPLES.put(player.getUuid(), new Sample(player.getPos(), player.isSneaking(), player.isHandSwinging()));
+            SAMPLES.put(player.getUuid(), new Sample(player.getPos(), player.isSneaking(), player.handSwinging));
         }
     }
 
