@@ -21,6 +21,7 @@ public class MpsqCameraClient implements ClientModInitializer {
             }
         });
         ModConfig.load();
+        MpsqMusicPlayerManager.initialize();
         ScreenCreationManager.initialize();
         CameraCreationManager.initialize();
         BodycamRequestManager.initialize();
