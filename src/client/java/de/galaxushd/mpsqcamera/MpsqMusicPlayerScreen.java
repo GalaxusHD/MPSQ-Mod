@@ -15,9 +15,12 @@ import java.util.List;
 public final class MpsqMusicPlayerScreen extends Screen {
     private static final int ACCENT = 0xFFFF526F;
     private static final int PANEL = 0xE5191D28;
+    private static final int TRACK_ROW_HEIGHT = 21;
     private final List<Playlist> playlists = new ArrayList<>();
     private int selected = -1;
-    private int scroll;
+    private int selectedTrack;
+    private int playlistScroll;
+    private int trackScroll;
     private String status = "Playlists werden geladen…";
     private boolean loading;
 
@@ -38,7 +41,7 @@ public final class MpsqMusicPlayerScreen extends Screen {
         addDrawableChild(ButtonWidget.builder(Text.literal("Schließen"), button -> close())
                 .dimensions(left, bottom, 130, 22).build());
         if (canControl()) {
-            addDrawableChild(ButtonWidget.builder(Text.literal("▶ Abspielen"), button -> playSelected())
+            addDrawableChild(ButtonWidget.builder(Text.literal("▶ Titel abspielen"), button -> playSelected())
                     .dimensions(left + 140, bottom, 142, 22).build());
             addDrawableChild(ButtonWidget.builder(Text.literal("■ Stoppen"), button -> stopPlayback())
                     .dimensions(left + 292, bottom, panelWidth - 292, 22).build());
@@ -70,7 +73,8 @@ public final class MpsqMusicPlayerScreen extends Screen {
                     }
                 }
                 selected = playlists.isEmpty() ? -1 : Math.min(Math.max(selected, 0), playlists.size() - 1);
-                status = playlists.isEmpty() ? "Noch keine Playlists verfügbar." : "Wähle eine Playlist aus.";
+                selectedTrack = selected < 0 ? 0 : Math.min(selectedTrack, playlists.get(selected).tracks().size() - 1);
+                status = playlists.isEmpty() ? "Noch keine Playlists verfügbar." : "Wähle eine Playlist und dann einen Titel aus.";
             }
         }));
     }
@@ -80,13 +84,15 @@ public final class MpsqMusicPlayerScreen extends Screen {
         if (selected < 0 || selected >= playlists.size()) { status = "Bitte zuerst eine Playlist auswählen."; return; }
         if (!MpsqActionSync.isMpsqServer()) { status = "Der gemeinsame Player ist auf dem MPSQ-Server verfügbar."; return; }
         Playlist playlist = playlists.get(selected);
+        int start = Math.max(0, Math.min(selectedTrack, playlist.tracks().size() - 1));
         JsonObject action = new JsonObject();
         action.addProperty("sourceType", "mp3");
         action.addProperty("playlistName", playlist.name());
         com.google.gson.JsonArray ids = new com.google.gson.JsonArray();
-        playlist.tracks().forEach(ids::add);
+        playlist.tracks().subList(start, playlist.tracks().size()).forEach(ids::add);
         action.add("tracks", ids);
-        sendAction("START_PLAYLIST", action, "Playlist wird für alle Mod-Nutzer gestartet: " + playlist.name());
+        String title = playlist.trackNames().get(start);
+        sendAction("START_PLAYLIST", action, "Wiedergabe ab „" + title + "“ für alle Mod-Nutzer gestartet.");
     }
 
     private void stopPlayback() {
@@ -112,14 +118,32 @@ public final class MpsqMusicPlayerScreen extends Screen {
         int panelWidth = Math.min(430, width - 32);
         int left = (width - panelWidth) / 2;
         int top = (height - panelHeight()) / 2;
-        int rowTop = top + 78;
-        int visible = Math.max(1, Math.min(6, (panelHeight() - 196) / 28));
-        if (mouseX >= left + 16 && mouseX <= left + panelWidth - 16 && mouseY >= rowTop && mouseY < rowTop + visible * 28) {
-            int row = (int) ((mouseY - rowTop) / 28) + scroll;
+        int playlistTop = top + 78;
+        int playlistBottom = playlistTop + visiblePlaylistRows() * 28;
+        if (mouseX >= left + 16 && mouseX <= left + panelWidth - 16
+                && mouseY >= playlistTop && mouseY < playlistBottom) {
+            int row = (int) ((mouseY - playlistTop) / 28) + playlistScroll;
             if (row >= 0 && row < playlists.size()) {
                 selected = row;
-                status = playlists.get(row).tracks().size() + " Track(s) · " + (canControl() ? "bereit zum Abspielen" : "Steuerung ab Offizier");
+                selectedTrack = 0;
+                trackScroll = 0;
+                status = "Wähle einen Titel aus „" + playlists.get(row).name() + "“.";
                 return true;
+            }
+        }
+
+        if (selected >= 0 && selected < playlists.size()) {
+            int trackTop = trackListTop(top);
+            int visible = visibleTrackRows(top);
+            int trackBottom = trackTop + visible * TRACK_ROW_HEIGHT;
+            if (mouseX >= left + 16 && mouseX <= left + panelWidth - 16
+                    && mouseY >= trackTop && mouseY < trackBottom) {
+                int row = (int) ((mouseY - trackTop) / TRACK_ROW_HEIGHT) + trackScroll;
+                if (row >= 0 && row < playlists.get(selected).tracks().size()) {
+                    selectedTrack = row;
+                    status = "Ausgewählt: " + playlists.get(selected).trackNames().get(row);
+                    return true;
+                }
             }
         }
         return super.mouseClicked(mouseX, mouseY, button);
@@ -127,8 +151,20 @@ public final class MpsqMusicPlayerScreen extends Screen {
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
-        int visible = Math.max(1, Math.min(6, (panelHeight() - 196) / 28));
-        scroll = Math.max(0, Math.min(Math.max(0, playlists.size() - visible), scroll - (int) Math.signum(verticalAmount)));
+        int panelWidth = Math.min(430, width - 32);
+        int left = (width - panelWidth) / 2;
+        int top = (height - panelHeight()) / 2;
+        if (mouseX >= left && mouseX <= left + panelWidth && mouseY < trackListTop(top)) {
+            int visible = visiblePlaylistRows();
+            playlistScroll = Math.max(0, Math.min(Math.max(0, playlists.size() - visible),
+                    playlistScroll - (int) Math.signum(verticalAmount)));
+            return true;
+        }
+        if (selected >= 0 && selected < playlists.size() && mouseY >= trackListTop(top)) {
+            int max = Math.max(0, playlists.get(selected).tracks().size() - visibleTrackRows(top));
+            trackScroll = Math.max(0, Math.min(max, trackScroll - (int) Math.signum(verticalAmount)));
+            return true;
+        }
         return true;
     }
 
@@ -145,34 +181,53 @@ public final class MpsqMusicPlayerScreen extends Screen {
         context.fill(left, top, left + 3, top + panelHeight, 0xFF8F1738);
         context.drawTextWithShadow(textRenderer, "MPSQ  /  MUSIKPLAYER", left + 16, top + 14, ACCENT);
         context.drawTextWithShadow(textRenderer, "Gemeinsame Playlists", left + 16, top + 34, 0xFFFFFFFF);
-        context.drawTextWithShadow(textRenderer, "Mit P öffnen · Playlists von der MPSQ-Website", left + 16, top + 54, 0xFFBFC3CF);
+        context.drawTextWithShadow(textRenderer, "Playlist anklicken, dann gewünschten Titel auswählen", left + 16, top + 54, 0xFFBFC3CF);
 
-        int rowTop = top + 78;
-        int visible = Math.max(1, Math.min(6, (panelHeight - 196) / 28));
-        for (int i = 0; i < visible; i++) {
-            int index = scroll + i;
+        int playlistTop = top + 78;
+        int visiblePlaylists = visiblePlaylistRows();
+        for (int i = 0; i < visiblePlaylists; i++) {
+            int index = playlistScroll + i;
             if (index >= playlists.size()) break;
             Playlist playlist = playlists.get(index);
-            int y = rowTop + i * 28;
+            int y = playlistTop + i * 28;
             int bg = index == selected ? 0xFF8E2040 : 0xFF272B36;
             context.fill(left + 16, y, left + panelWidth - 16, y + 24, bg);
             context.drawTextWithShadow(textRenderer, playlist.name(), left + 25, y + 5, 0xFFFFFFFF);
             String trackLabel = playlist.tracks().size() + " Titel";
             context.drawTextWithShadow(textRenderer, trackLabel, left + panelWidth - 25 - textRenderer.getWidth(trackLabel), y + 5, 0xFFD2D4DC);
         }
-        if (playlists.isEmpty()) context.drawTextWithShadow(textRenderer, "Keine Playlists vorhanden.", left + 18, rowTop + 8, 0xFFD2D4DC);
-        else if (selected >= 0 && selected < playlists.size()) {
+        if (playlists.isEmpty()) {
+            context.drawTextWithShadow(textRenderer, "Keine Playlists vorhanden.", left + 18, playlistTop + 8, 0xFFD2D4DC);
+        } else if (selected >= 0 && selected < playlists.size()) {
             Playlist current = playlists.get(selected);
-            context.drawTextWithShadow(textRenderer, "Titel", left + 16, top + panelHeight - 91, 0xFFFFA4B4);
-            int count = Math.min(3, current.trackNames().size());
-            for (int i = 0; i < count; i++) context.drawTextWithShadow(textRenderer,
-                    (i + 1) + ". " + current.trackNames().get(i), left + 22, top + panelHeight - 75 + i * 13, 0xFFE5E6EB);
-            if (current.trackNames().size() > count) context.drawTextWithShadow(textRenderer,
-                    "… und " + (current.trackNames().size() - count) + " weitere", left + 22,
-                    top + panelHeight - 75 + count * 13, 0xFFBFC3CF);
+            int trackTop = trackListTop(top);
+            context.drawTextWithShadow(textRenderer, "Titel · ab hier wird die Playlist abgespielt", left + 16, trackTop - 14, 0xFFFFA4B4);
+            int visibleTracks = visibleTrackRows(top);
+            for (int i = 0; i < visibleTracks; i++) {
+                int index = trackScroll + i;
+                if (index >= current.trackNames().size()) break;
+                int y = trackTop + i * TRACK_ROW_HEIGHT;
+                if (index == selectedTrack) context.fill(left + 16, y - 2, left + panelWidth - 16, y + TRACK_ROW_HEIGHT - 1, 0xFF8E2040);
+                String title = (index + 1) + ". " + current.trackNames().get(index);
+                int maxWidth = panelWidth - 50;
+                while (textRenderer.getWidth(title) > maxWidth && title.length() > 4) title = title.substring(0, title.length() - 2) + "…";
+                context.drawTextWithShadow(textRenderer, title, left + 22, y + 3, 0xFFE5E6EB);
+            }
         }
         context.drawTextWithShadow(textRenderer, status, left + 16, top + panelHeight - 40, 0xFFBFC3CF);
+    }
 
+    private int visiblePlaylistRows() {
+        return Math.max(1, Math.min(4, (panelHeight() - 230) / 28));
+    }
+
+    private int trackListTop(int top) {
+        return top + 78 + visiblePlaylistRows() * 28 + 25;
+    }
+
+    private int visibleTrackRows(int top) {
+        int bottom = top + panelHeight() - 54;
+        return Math.max(1, (bottom - trackListTop(top)) / TRACK_ROW_HEIGHT);
     }
 
     @Override
