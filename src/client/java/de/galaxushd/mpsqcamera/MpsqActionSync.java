@@ -65,13 +65,14 @@ public final class MpsqActionSync {
             })));
     }
     private static void tick(MinecraftClient client) {
-        if(!TeamVisibilitySettings.visible()){if(wasVisible){MpsqAudioManager.stop();MpsqMediaAudioManager.stop();MpsqBossbarManager.clear();}wasVisible=false;return;}wasVisible=true;
+        if(!TeamVisibilitySettings.visible()){if(wasVisible){MpsqAudioManager.stop();MpsqMediaAudioManager.stop();MpsqBossbarManager.clear();MpsqSystemController.stopActive();}wasVisible=false;return;}wasVisible=true;
         String current = server() + "|" + world();
         if (!current.equals(scope)) {
             scope=current; cursor=null; pending=false; generation++; next=0;
             MpsqAudioManager.stop();
             MpsqMediaAudioManager.stop();
             MpsqBossbarManager.clear();
+            MpsqSystemController.stopActive();
         }
         if (client.world == null || !isMpsqServer() || !MpsqApiClient.isReady() || pending || System.currentTimeMillis()<next) return;
         int requestGeneration=generation;
@@ -94,7 +95,7 @@ public final class MpsqActionSync {
         String actionType=event.get("action_type").getAsString();
         boolean stateDriven=data.has("redstone_powered")&&!(data.has("redstone_pulse")&&data.get("redstone_pulse").getAsBoolean());
         boolean powered=stateDriven&&data.get("redstone_powered").getAsBoolean();
-        if(stateDriven&&!powered&&!java.util.Set.of("TOGGLE_AUDIO","TOGGLE_COUNTDOWN","TOGGLE_BOSSBAR").contains(actionType))return;
+        if(stateDriven&&!powered&&!java.util.Set.of("TOGGLE_AUDIO","TOGGLE_COUNTDOWN","TOGGLE_BOSSBAR","SWITCH_SYSTEM").contains(actionType))return;
         switch(actionType) {
             case "TOGGLE_AUDIO" -> {
                 boolean playing=MpsqAudioManager.playing()||MpsqMediaAudioManager.playing();
@@ -114,6 +115,7 @@ public final class MpsqActionSync {
                 else {MpsqMediaAudioManager.stop();var firstSound=tracks.isEmpty()?null:net.minecraft.util.Identifier.tryParse(tracks.get(0));MpsqAudioManager.startPlaylist("MPSQ",tracks,MpsqAudioManager.categoryForSoundId(firstSound));}
             }
             case "STOP_AUDIO" -> {MpsqAudioManager.stop();MpsqMediaAudioManager.stop();}
+            case "SWITCH_SYSTEM" -> MpsqSystemController.onTrigger(data.get("systemId").getAsString(), stateDriven, powered);
             case "SHOW_DIALOGUE" -> MpsqDialogueManager.start(data);
             case "KICK_ANIMATION" -> { MpsqKickAnimationManager.start(data.get("targetName").getAsString()); MpsqMediaAudioManager.playBundledMp3("/assets/mpsqcamera/sounds/kick.mp3",0.28f); }
             case "START_COUNTDOWN" -> MpsqBossbarManager.startCountdown(data.get("title").getAsString(), data.get("duration").getAsInt(), event.get("created_at").getAsString(),barColor(data));

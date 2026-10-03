@@ -22,8 +22,8 @@ public final class MpsqActionSetupScreen extends Screen {
     private ButtonWidget barColorButton;
     private static final String[] BAR_COLORS={"purple","pink","red"};
     private static final String[] BAR_COLOR_LABELS={"Violett (Standard)","Pink (#ec2f53)","Rot (#cf2020)"};
-    private static final String[] QUICK_ACTIONS={"TOGGLE_AUDIO","TOGGLE_COUNTDOWN","TOGGLE_BOSSBAR"};
-    private static final String[] BLOCK_ACTIONS={"TOGGLE_AUDIO","TOGGLE_COUNTDOWN","TOGGLE_BOSSBAR","SHOW_DIALOGUE","OPEN_LINK"};
+    private static final String[] QUICK_ACTIONS={"TOGGLE_AUDIO","TOGGLE_COUNTDOWN","TOGGLE_BOSSBAR","SWITCH_SYSTEM"};
+    private static final String[] BLOCK_ACTIONS={"TOGGLE_AUDIO","TOGGLE_COUNTDOWN","TOGGLE_BOSSBAR","SHOW_DIALOGUE","OPEN_LINK","SWITCH_SYSTEM"};
     private final String[] actions;
     private List<LocalScreenStore.LocalScreenData> linkScreens=List.of();
     private int action, linkScreenIndex, barColor;
@@ -71,7 +71,7 @@ public final class MpsqActionSetupScreen extends Screen {
         duration.visible=countdown;duration.active=countdown;
         barColorButton.visible=countdown||bossbar;barColorButton.active=countdown||bossbar;
         linkScreenButton.visible=link;linkScreenButton.active=link&&!linkScreens.isEmpty();
-        value.setPlaceholder(Text.literal(link?"HTTPS-Link für den Bildschirm":audio?"Minecraft-Sound-ID oder MPSQ-MP3/MP4-ID":"Text oder Titel (Farben mit &c etc.)"));
+        value.setPlaceholder(Text.literal(link?"HTTPS-Link für den Bildschirm":audio?"Minecraft-Sound-ID oder MPSQ-MP3/MP4-ID":"SWITCH_SYSTEM".equals(selected)?"System-ID, z. B. bewegungssensor":"Text oder Titel (Farben mit &c etc.)"));
     }
 
     private void save() {
@@ -81,6 +81,11 @@ public final class MpsqActionSetupScreen extends Screen {
                 String sound=value.getText().trim();
                 if(sound.isEmpty()||sound.length()>128||!sound.matches("[a-zA-Z0-9_.:/-]+")){status="Minecraft-Sound-ID oder MPSQ-Datei-ID eingeben.";return;}
                 data.addProperty("sourceType","auto");data.addProperty("sound",sound);
+            }
+            case "SWITCH_SYSTEM" -> {
+                String systemId=value.getText().trim().toLowerCase(java.util.Locale.ROOT);
+                if(!systemId.matches("[a-z0-9_-]{1,64}")){status="System-ID: 1–64 Zeichen, a–z, 0–9, _ oder -";return;}
+                data.addProperty("systemId",systemId);
             }
             case "TOGGLE_BOSSBAR" -> {data.addProperty("title",value.getText());data.addProperty("color",BAR_COLORS[barColor]);}
             case "TOGGLE_COUNTDOWN" -> {
@@ -119,6 +124,7 @@ public final class MpsqActionSetupScreen extends Screen {
         c.drawCenteredTextWithShadow(textRenderer,title,width/2,24,MpsqTheme.TEXT_TITEL);
         String selected=actions[action];
         String hint="OPEN_LINK".equals(selected)?"HTTPS-Link auf dem ausgewählten MPSQ-Redstone-Bildschirm":
+                "SWITCH_SYSTEM".equals(selected)?"Gleiche ID stoppt; andere ID ersetzt das aktive System":
                 "SHOW_DIALOGUE".equals(selected)?"Textseiten mit || trennen":
                 "TOGGLE_AUDIO".equals(selected)?"Minecraft-Sound-ID oder MPSQ-MP3/MP4-ID":
                 "TOGGLE_COUNTDOWN".equals(selected)?"Countdown-Dauer in Sekunden":"&0–&f Farben: &chellrot, &egelb, &r zurücksetzen";
@@ -128,6 +134,7 @@ public final class MpsqActionSetupScreen extends Screen {
     private static String actionLabel(String action){return switch(action){
         case "TOGGLE_AUDIO"->"Musik / Ton umschalten";case "TOGGLE_COUNTDOWN"->"Countdown umschalten";
         case "TOGGLE_BOSSBAR"->"Bossbar umschalten";
+        case "SWITCH_SYSTEM"->"Aktion / System starten oder wechseln";
         case "SHOW_DIALOGUE"->"Dialog (F zum Weitergehen)";case "OPEN_LINK"->"Link öffnen";default->action;};}
     @Override public boolean shouldPause(){return false;}
 }
