@@ -24,7 +24,7 @@ public final class ScreenSyncManager {
     public static CompletableFuture<Void> refresh() {
         String server=MpsqActionSync.server(),world=MpsqActionSync.world();
         String path="/screens?server="+URLEncoder.encode(server,StandardCharsets.UTF_8)+"&world="+URLEncoder.encode(world,StandardCharsets.UTF_8);
-        return MpsqApiClient.get(path).thenAccept(json -> {
+        return MpsqApiClient.get(path).thenCompose(json -> {
             List<LocalScreenStore.LocalScreenData> screens = new ArrayList<>(); Map<UUID, String> codes = new HashMap<>(); Map<UUID, LocalScreenStore.LocalGroupData> groups = new HashMap<>(); Set<UUID> owned = new HashSet<>(),triggerLinkedOnly=new HashSet<>(); Map<UUID, CinemaPlaybackStore.PlaybackState> playbackStates = new HashMap<>();
             for (JsonElement item : json.getAsJsonArray()) {
                 JsonObject row = item.getAsJsonObject(); UUID id = UUID.fromString(row.get("id").getAsString());
@@ -72,12 +72,15 @@ public final class ScreenSyncManager {
                 }
                 screens.add(new LocalScreenStore.LocalScreenData(id, p1, p2, row.get("name").getAsString(), new Vec3d(p1.getX(), p1.getY(), p1.getZ()), mode, row.get("cinema_url").getAsString(), firstCameraId, groupId));
             }
+            CompletableFuture<Void> applied = new CompletableFuture<>();
             MinecraftClient.getInstance().execute(() -> {
                 LocalScreenStore.replaceAll(screens);
                 ScreenAccessStore.replace(codes, groups, owned, triggerLinkedOnly);
                 CinemaPlaybackStore.replace(playbackStates);
                 CinemaBrowserManager.synchronize();
+                applied.complete(null);
             });
+            return applied;
         });
     }
 }
