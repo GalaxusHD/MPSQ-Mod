@@ -101,6 +101,7 @@ public final class MpsqTriggerManager {
                 POWERED.remove(pos);
                 continue;
             }
+            if (isClickActivatedSystem(row, kind)) continue;
             if (kind.usesPowerEdge()) {
                 Boolean changedTo = stateTransition(pos, MpsqTriggerBlockPolicy.isActivated(state, kind));
                 if (changedTo != null && (kind.followsPowerState() || changedTo)) dispatchLocal(row, kind, changedTo);
@@ -122,6 +123,7 @@ public final class MpsqTriggerManager {
                 disableStale(trigger);
                 continue;
             }
+            if (isClickActivatedSystem(trigger, kind)) continue;
             if (kind.usesPowerEdge()) {
                 Boolean changedTo = stateTransition(trigger.position(), MpsqTriggerBlockPolicy.isActivated(state, kind));
                 if (changedTo != null && (kind.followsPowerState() || changedTo)) {
@@ -136,6 +138,52 @@ public final class MpsqTriggerManager {
         Boolean previous = POWERED.put(pos.toImmutable(), powered);
         // Seed without emitting an event on join; report subsequent state changes.
         return previous == null || previous == powered ? null : powered;
+    }
+
+    /** Button presses are short pulses; trigger system switches from the actual interaction. */
+    public static void onRightClick() {
+        MinecraftClient client = MinecraftClient.getInstance();
+        if (client.player == null || client.world == null || client.currentScreen != null
+                || !TeamVisibilitySettings.visible()
+                || !(client.crosshairTarget instanceof net.minecraft.util.hit.BlockHitResult hit)) return;
+        BlockPos pos = hit.getBlockPos();
+        var state = client.world.getBlockState(pos);
+        if (MpsqTriggerBlockPolicy.classify(state, client.world, pos) != MpsqTriggerBlockPolicy.Kind.BUTTON) return;
+
+        boolean localWorld = MpsqActionSync.server().isBlank() && client.getServer() != null;
+        if (localWorld) {
+            for (var element : MpsqLocalActionStore.load()) {
+                if (!element.isJsonObject()) continue;
+                JsonObject row = element.getAsJsonObject();
+                if (!row.has("x") || !row.has("y") || !row.has("z")
+                        || row.get("x").getAsInt() != pos.getX()
+                        || row.get("y").getAsInt() != pos.getY()
+                        || row.get("z").getAsInt() != pos.getZ()
+                        || !isClickActivatedSystem(row, MpsqTriggerBlockPolicy.Kind.BUTTON)) continue;
+                String blockId = Registries.BLOCK.getId(state.getBlock()).toString();
+                if (!blockId.equals(row.get("blockId").getAsString())) return;
+                dispatchLocal(row, MpsqTriggerBlockPolicy.Kind.BUTTON, true);
+                return;
+            }
+            return;
+        }
+
+        String worldId = MpsqActionSync.world();
+        for (MpsqTrigger trigger : TRIGGERS) {
+            if (!trigger.position().equals(pos) || !trigger.worldId().equals(worldId)
+                    || !"SWITCH_SYSTEM".equals(trigger.actionType())) continue;
+            fire(trigger.id(), null, true);
+            return;
+        }
+    }
+
+    private static boolean isClickActivatedSystem(JsonObject row, MpsqTriggerBlockPolicy.Kind kind) {
+        return kind == MpsqTriggerBlockPolicy.Kind.BUTTON
+                && row.has("actionType") && "SWITCH_SYSTEM".equals(row.get("actionType").getAsString());
+    }
+
+    private static boolean isClickActivatedSystem(MpsqTrigger trigger, MpsqTriggerBlockPolicy.Kind kind) {
+        return kind == MpsqTriggerBlockPolicy.Kind.BUTTON && "SWITCH_SYSTEM".equals(trigger.actionType());
     }
 
     private static void dispatchLocal(JsonObject row, MpsqTriggerBlockPolicy.Kind kind, boolean powered) {

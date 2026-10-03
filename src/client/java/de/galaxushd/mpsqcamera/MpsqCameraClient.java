@@ -39,6 +39,7 @@ public class MpsqCameraClient implements ClientModInitializer {
         MpsqBossbarHud.initialize();
         MpsqAudioManager.initialize();
         MpsqActionSync.initialize();
+        MpsqMovementSensorSystem.initialize();
         MpsqDialogueManager.initialize();
         MpsqKickAnimationManager.initialize();
         MpsqTemplateAudio.initialize();

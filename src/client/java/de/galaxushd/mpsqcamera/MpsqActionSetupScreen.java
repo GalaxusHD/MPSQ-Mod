@@ -132,7 +132,7 @@ public final class MpsqActionSetupScreen extends Screen {
         position.addProperty("x",pos.getX());position.addProperty("y",pos.getY());position.addProperty("z",pos.getZ());
         body.add("position",position);body.addProperty("serverId",server);body.addProperty("worldId",world);
         body.addProperty("blockId",block);body.addProperty("objectType",blockKind.name());body.addProperty("actionType",actions[action]);body.add("actionData",data);
-        body.addProperty("minimumRank","OPEN_LINK".equals(actions[action])?"vip":"offizier");
+        body.addProperty("minimumRank","OPEN_LINK".equals(actions[action])?"vip":"SWITCH_SYSTEM".equals(actions[action])?"soldat":"offizier");
         if(MpsqActionSync.server().isBlank()&&client.getServer()!=null){
             boolean saved=MpsqLocalActionStore.set(pos,block,blockKind.name(),actions[action],data);
             status=saved?"Aktion in dieser Einzelspielerwelt gespeichert.":"Lokale Aktion konnte nicht gespeichert werden.";return;
