@@ -39,6 +39,8 @@ public final class TeamCommandManager {
                             body.addProperty("serverId", server);
                             body.addProperty("worldId", world);
                             MpsqApiClient.post("/kick-animation", body);
+                        } else if (TeamVisibilitySettings.visible()) {
+                            MpsqMediaAudioManager.playBundledMp3("/assets/mpsqcamera/sounds/kick.mp3", 0.28f);
                         }
                     }
                 });
@@ -75,3 +77,4 @@ public final class TeamCommandManager {
             }, () -> { if (client.player != null) client.player.sendMessage(Text.translatable("gui.mpsqcamera.team.command.denied"), true); });
     }
 }
+

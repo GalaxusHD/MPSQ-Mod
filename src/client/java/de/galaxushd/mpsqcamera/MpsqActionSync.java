@@ -117,7 +117,7 @@ public final class MpsqActionSync {
             case "STOP_AUDIO" -> {MpsqAudioManager.stop();MpsqMediaAudioManager.stop();}
             case "SWITCH_SYSTEM" -> MpsqSystemController.onTrigger(data.get("systemId").getAsString(), stateDriven, powered);
             case "SHOW_DIALOGUE" -> MpsqDialogueManager.start(data);
-            case "KICK_ANIMATION" -> { MpsqKickAnimationManager.start(data.get("targetName").getAsString()); MpsqMediaAudioManager.playBundledMp3("/assets/mpsqcamera/sounds/kick.mp3",0.28f); }
+            case "KICK_ANIMATION" -> { MpsqKickAnimationManager.start(data.get("targetName").getAsString()); if (TeamVisibilitySettings.visible()) MpsqMediaAudioManager.playBundledMp3("/assets/mpsqcamera/sounds/kick.mp3",0.28f); }
             case "START_COUNTDOWN" -> MpsqBossbarManager.startCountdown(data.get("title").getAsString(), data.get("duration").getAsInt(), event.get("created_at").getAsString(),barColor(data));
             case "SHOW_BOSSBAR" -> MpsqBossbarManager.apply(new MpsqBossbarState("event",data.get("title").getAsString(),barColor(data),1,true));
             case "HIDE_BOSSBAR" -> MpsqBossbarManager.remove("event");
@@ -159,6 +159,7 @@ public final class MpsqActionSync {
         } catch(RuntimeException ignored) { }
     }
 }
+
 
 
 
