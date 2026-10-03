@@ -105,10 +105,9 @@ final class MpsqNpcSkinRenderer {
         state.hasOutline = false;
         client.getEntityRenderDispatcher().render(state, 0.0, 0.0, 0.0, matrices, consumers, light);
         if (glowing) {
-            // Let the player renderer select its outline-capable render layers. The
-            // OutlineVertexConsumerProvider records the mask; Minecraft composites it
-            // later as a rim, while the regular pass above keeps the skin unchanged.
-            state.hasOutline = true;
+            // The outline consumer creates the silhouette. Keep vanilla's entity outline
+            // flag off here, otherwise the player renderer may route/tint the body itself.
+            state.hasOutline = false;
             var outline = client.getBufferBuilders().getOutlineVertexConsumers();
             outline.setColor((outlineColor >> 16) & 255, (outlineColor >> 8) & 255,
                     outlineColor & 255, 255);
@@ -119,20 +118,6 @@ final class MpsqNpcSkinRenderer {
         }
         state.hasOutline = false;
         matrices.pop();
-    }
-
-    /** Compatibility overload for callers using the previous color-string API. */
-    static void render(PlayerEntityRenderState state, double x, double y, double z, float scale,
-                       String glowColor, net.minecraft.client.util.math.MatrixStack matrices,
-                       VertexConsumerProvider consumers, int light) {
-        boolean glowing = "minecraft:glowing".equals(glowColor)
-                || (glowColor != null && glowColor.matches("#[0-9a-fA-F]{6}"));
-        int outlineColor = 0xFFFFFF;
-        if (glowColor != null && glowColor.matches("#[0-9a-fA-F]{6}")) {
-            outlineColor = Integer.parseInt(glowColor.substring(1), 16);
-        }
-        state.hasOutline = glowing;
-        render(state, x, y, z, scale, matrices, consumers, light, outlineColor);
     }
 
     private static String key(String url, boolean slim) {
@@ -177,20 +162,12 @@ final class MpsqNpcSkinRenderer {
         return state;
     }
 
-    /** Creates a state with separate body and relative head yaw while retaining the colored outline. */
+    /** Creates an NPC player state with separately controlled body and head yaw. */
     static PlayerEntityRenderState createState(Skin skin, float bodyYaw, float relativeHeadYaw, float pitch, float age, boolean glowing) {
         PlayerEntityRenderState state = createState(skin, bodyYaw, pitch, age, glowing);
         state.relativeHeadYaw = relativeHeadYaw;
         return state;
     }
-
-    /** Compatibility overload retaining the head-yaw input used by NPC render callers. */
-    static PlayerEntityRenderState createState(Skin skin, float yaw, float headYaw, float pitch, float age) {
-        PlayerEntityRenderState state = createState(skin, yaw, pitch, age, false);
-        state.relativeHeadYaw = headYaw;
-        return state;
-    }
-
     static void clear(MinecraftClient client) {
         for (Skin skin : SKINS.values()) client.getTextureManager().destroyTexture(skin.texture());
         SKINS.clear();
