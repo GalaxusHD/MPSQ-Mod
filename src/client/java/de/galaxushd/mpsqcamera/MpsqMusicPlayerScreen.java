@@ -133,8 +133,8 @@ public final class MpsqMusicPlayerScreen extends Screen {
     }
 
     @Override
-    public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        renderBackground(context, mouseX, mouseY, delta);
+    public void renderBackground(DrawContext context, int mouseX, int mouseY, float delta) {
+        super.renderBackground(context, mouseX, mouseY, delta);
         int panelWidth = Math.min(430, width - 32);
         int panelHeight = panelHeight();
         int left = (width - panelWidth) / 2;
@@ -172,6 +172,11 @@ public final class MpsqMusicPlayerScreen extends Screen {
                     top + panelHeight - 75 + count * 13, 0xFFBFC3CF);
         }
         context.drawTextWithShadow(textRenderer, status, left + 16, top + panelHeight - 40, 0xFFBFC3CF);
+
+    }
+
+    @Override
+    public void render(DrawContext context, int mouseX, int mouseY, float delta) {
         super.render(context, mouseX, mouseY, delta);
     }
 
