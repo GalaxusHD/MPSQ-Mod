@@ -11,7 +11,7 @@ import net.minecraft.text.Text;
  * Einstellungs-Screen mit drei Bereichen:
  *  1. Aktivierungs-Item  – Item-ID für das Erstellungs-Werkzeug
  *  2. Tasten-Belegung    – Öffnet Minecraft-Steuerungsmenü (eigene Kategorie)
- *  3. Lautstärke-Slider  – Globale Wiedergabe-Lautstärke (0 – 100 %)
+ *  3. Lautstärke-Slider  – Kino-Lautstärke (0 – 100 %)
  */
 public class ModSettingsScreen extends Screen {
 
@@ -111,7 +111,7 @@ public class ModSettingsScreen extends Screen {
 
         y += 36;
         context.drawTextWithShadow(this.textRenderer,
-                Text.translatable("gui.mpsqcamera.einstellungen.lautstaerke_label"),
+                Text.literal("Kinolautstärke"),
                 cx - btnW / 2, y - 11, MpsqTheme.TEXT_NORMAL);
     }
 
@@ -131,13 +131,12 @@ public class ModSettingsScreen extends Screen {
 
         @Override
         protected void updateMessage() {
-            setMessage(Text.literal("Lautstärke: " + (int) (this.value * 100) + " %"));
+            setMessage(Text.literal("Kinolautstärke: " + (int) (this.value * 100) + " %"));
         }
 
         @Override
         protected void applyValue() {
             ModConfig.volume = (float) this.value;
-            MpsqAudioManager.setVolume(ModConfig.volume);
         }
     }
 }

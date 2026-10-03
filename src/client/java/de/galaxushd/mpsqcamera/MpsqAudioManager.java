@@ -4,7 +4,9 @@ import java.util.List;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.sound.PositionedSoundInstance;
-import net.minecraft.sound.SoundEvent;
+import net.minecraft.client.sound.SoundInstance;
+import net.minecraft.sound.SoundCategory;
+import net.minecraft.util.math.random.Random;
 import net.minecraft.util.Identifier;
 
 /** Resource-pack audio, played at the listener rather than a world position. */
@@ -24,11 +26,16 @@ public final class MpsqAudioManager {
         });
     }
     public static void startPlaylist(String name, List<String> tracks) {
+        Identifier firstTrack = tracks == null || tracks.isEmpty() ? null : Identifier.tryParse(tracks.get(0));
+        startPlaylist(name, tracks, categoryForSoundId(firstTrack));
+    }
+    public static void startPlaylist(String name, List<String> tracks, SoundCategory category) {
         stop();
         List<String> valid = tracks == null ? List.of() : tracks.stream()
                 .filter(id -> id != null && Identifier.tryParse(id) != null).toList();
         MpsqPlaylistManager.start(name, valid);
         trackIndex = 0;
+        soundCategory = category == null ? SoundCategory.BLOCKS : category;
         playing = !valid.isEmpty();
         playCurrent();
     }
@@ -43,7 +50,8 @@ public final class MpsqAudioManager {
             stop();
             return;
         }
-        sound = PositionedSoundInstance.music(SoundEvent.of(id), volume);
+        sound = new PositionedSoundInstance(id, soundCategory, volume, 1.0f, Random.create(), false, 0,
+                SoundInstance.AttenuationType.NONE, 0.0, 0.0, 0.0, true);
         manager.play(sound);
         startupTicks = 20;
     }
@@ -69,5 +77,9 @@ public final class MpsqAudioManager {
         trackIndex++;
         if (trackIndex >= MpsqPlaylistManager.tracks().size()) { stop(); return; }
         playCurrent();
+    }
+    private static SoundCategory soundCategory = SoundCategory.BLOCKS;
+    public static SoundCategory categoryForSoundId(Identifier id) {
+        return id != null && id.getPath().startsWith("entity.") ? SoundCategory.NEUTRAL : SoundCategory.BLOCKS;
     }
 }

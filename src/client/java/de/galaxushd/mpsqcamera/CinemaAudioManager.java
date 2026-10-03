@@ -2,6 +2,8 @@ package de.galaxushd.mpsqcamera;
 
 import com.cinemamod.mcef.MCEF;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.sound.SoundCategory;
 import org.cef.browser.CefBrowser;
 import org.cef.handler.CefAudioHandler;
 import org.cef.misc.CefAudioParameters;
@@ -25,6 +27,8 @@ public final class CinemaAudioManager {
     // reports params=null. Playing that at 48 kHz makes voices too high.
     private static final int FALLBACK_SAMPLE_RATE = 44_100;
     private static final Map<CefBrowser, AudioStream> STREAMS = new ConcurrentHashMap<>();
+    private static final Map<CefBrowser, AudioRoute> BROWSER_ROUTES = new ConcurrentHashMap<>();
+    private static volatile AudioRoute lastRegisteredRoute = AudioRoute.CINEMA;
     /* Some MCEF/JCEF builds call audio callbacks without the browser or parameters. */
     private static final AtomicReference<AudioStream> FALLBACK_STREAM = new AtomicReference<>();
     private static final AtomicLong LAST_AUDIBLE_AUDIO_NANOS = new AtomicLong();
@@ -53,6 +57,8 @@ public final class CinemaAudioManager {
             stream.close();
         }
         STREAMS.clear();
+        BROWSER_ROUTES.clear();
+        lastRegisteredRoute = AudioRoute.CINEMA;
         AudioStream fallback = FALLBACK_STREAM.getAndSet(null);
         if (fallback != null) fallback.close();
         LAST_AUDIBLE_AUDIO_NANOS.set(0L);
@@ -67,6 +73,34 @@ public final class CinemaAudioManager {
     /** Stops all MCEF audio immediately. Required for MCEF builds whose callback has no browser identity. */
     public static void stopAll() {
         clear();
+    }
+
+    /** Associates a hidden MCEF browser with the Minecraft volume category it should follow. */
+    public static void registerBrowser(CefBrowser browser, AudioRoute route) {
+        if (browser == null || route == null) return;
+        BROWSER_ROUTES.put(browser, route);
+        lastRegisteredRoute = route;
+        AudioStream stream = STREAMS.get(browser);
+        if (stream != null) stream.setRoute(route);
+        AudioStream fallback = FALLBACK_STREAM.get();
+        if (fallback != null) fallback.setRoute(route);
+    }
+
+    /** Removes a browser's route and stops its stream when MCEF supplied browser identity. */
+    public static void unregisterBrowser(CefBrowser browser) {
+        if (browser == null) return;
+        BROWSER_ROUTES.remove(browser);
+        AudioStream stream = STREAMS.remove(browser);
+        if (stream != null) stream.close();
+        if (BROWSER_ROUTES.isEmpty()) {
+            lastRegisteredRoute = AudioRoute.CINEMA;
+            AudioStream fallback = FALLBACK_STREAM.getAndSet(null);
+            if (fallback != null) fallback.close();
+        } else {
+            lastRegisteredRoute = BROWSER_ROUTES.values().stream().reduce((first, second) -> second).orElse(AudioRoute.CINEMA);
+            AudioStream fallback = FALLBACK_STREAM.get();
+            if (fallback != null) fallback.setRoute(lastRegisteredRoute);
+        }
     }
 
     private static void tick() {
@@ -89,7 +123,8 @@ public final class CinemaAudioManager {
         @Override
         public void onAudioStreamStarted(CefBrowser browser, CefAudioParameters params, int channels) {
             int sampleRate = params == null ? FALLBACK_SAMPLE_RATE : params.sampleRate;
-            AudioStream next = new AudioStream(sampleRate, channels);
+            AudioRoute route = browser == null ? lastRegisteredRoute : BROWSER_ROUTES.getOrDefault(browser, lastRegisteredRoute);
+            AudioStream next = new AudioStream(sampleRate, channels, route);
             if (browser == null) {
                 AudioStream previous = FALLBACK_STREAM.getAndSet(next);
                 if (previous != null) previous.close();
@@ -126,13 +161,19 @@ public final class CinemaAudioManager {
     private static final class AudioStream {
         private final int sampleRate;
         private final int channels;
+        private volatile AudioRoute route;
         private final ConcurrentLinkedQueue<ByteBuffer> pendingPackets = new ConcurrentLinkedQueue<>();
         private int sourceId;
         private boolean closed;
 
-        private AudioStream(int sampleRate, int channels) {
+        private AudioStream(int sampleRate, int channels, AudioRoute route) {
             this.sampleRate = Math.max(8_000, sampleRate);
             this.channels = Math.max(1, channels);
+            this.route = route == null ? AudioRoute.CINEMA : route;
+        }
+
+        private void setRoute(AudioRoute route) {
+            if (route != null) this.route = route;
         }
 
         private void accept(DataPointer data, int frames) {
@@ -172,7 +213,6 @@ public final class CinemaAudioManager {
             try {
                 if (sourceId == 0) {
                     sourceId = AL10.alGenSources();
-                    AL10.alSourcef(sourceId, AL10.AL_GAIN, Math.max(0.0f, Math.min(1.0f, ModConfig.volume)));
                     AL10.alSourcei(sourceId, AL10.AL_SOURCE_RELATIVE, AL10.AL_TRUE);
                 }
 
@@ -200,8 +240,9 @@ public final class CinemaAudioManager {
                 close();
             }
 
-                // Keep the mod slider effective after the source was created.
-                AL10.alSourcef(sourceId, AL10.AL_GAIN, Math.max(0.0f, Math.min(1.0f, ModConfig.volume)));
+                // Raw MCEF/OpenAL audio bypasses Minecraft's mixer, so apply the
+                // master and selected category sliders here on every client tick.
+                AL10.alSourcef(sourceId, AL10.AL_GAIN, routeGain(route));
         }
 
         private void close() {
@@ -228,4 +269,18 @@ public final class CinemaAudioManager {
             return (short) Math.round(clamped * Short.MAX_VALUE);
         }
     }
+
+    private static float routeGain(AudioRoute route) {
+        MinecraftClient client = MinecraftClient.getInstance();
+        if (client.options == null) return 0.0f;
+        float master = client.options.getSoundVolume(SoundCategory.MASTER);
+        float category = switch (route) {
+            case CINEMA -> ModConfig.volume;
+            case AMBIENT -> client.options.getSoundVolume(SoundCategory.AMBIENT);
+            case BLOCKS -> client.options.getSoundVolume(SoundCategory.BLOCKS);
+        };
+        return Math.max(0.0f, Math.min(1.0f, master * category));
+    }
+
+    public enum AudioRoute { CINEMA, AMBIENT, BLOCKS }
 }

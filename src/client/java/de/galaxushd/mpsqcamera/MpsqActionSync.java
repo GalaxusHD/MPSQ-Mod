@@ -111,7 +111,7 @@ public final class MpsqActionSync {
                 String source=data.has("sourceType")?data.get("sourceType").getAsString():("TOGGLE_AUDIO".equals(actionType)?"auto":"minecraft");
                 if(source.equals("mp3")||source.equals("mp4")){MpsqAudioManager.stop();MpsqMediaAudioManager.play(source,tracks);}
                 else if(source.equals("auto")){MpsqAudioManager.stop();for(String track:tracks)MpsqMediaAudioManager.playAuto(track);}
-                else {MpsqMediaAudioManager.stop();MpsqAudioManager.startPlaylist("MPSQ",tracks);}
+                else {MpsqMediaAudioManager.stop();var firstSound=tracks.isEmpty()?null:net.minecraft.util.Identifier.tryParse(tracks.get(0));MpsqAudioManager.startPlaylist("MPSQ",tracks,MpsqAudioManager.categoryForSoundId(firstSound));}
             }
             case "STOP_AUDIO" -> {MpsqAudioManager.stop();MpsqMediaAudioManager.stop();}
             case "SHOW_DIALOGUE" -> MpsqDialogueManager.start(data);
@@ -125,7 +125,7 @@ public final class MpsqActionSync {
         }
     }
     private static String barColor(JsonObject data){return MpsqBossbarManager.normalizeColor(data.has("color")&&!data.get("color").isJsonNull()?data.get("color").getAsString():"purple");}
-    private static void startTriggerAudio(JsonObject data){String source=data.has("sourceType")?data.get("sourceType").getAsString():"auto";String sound=data.has("sound")?data.get("sound").getAsString():"";if(source.equals("mp3")||source.equals("mp4")){MpsqAudioManager.stop();MpsqMediaAudioManager.play(source,java.util.List.of(sound));}else if(source.equals("auto")){MpsqAudioManager.stop();MpsqMediaAudioManager.playAuto(sound);}else{MpsqMediaAudioManager.stop();MpsqAudioManager.startPlaylist("MPSQ",java.util.List.of(sound));}}
+    private static void startTriggerAudio(JsonObject data){String source=data.has("sourceType")?data.get("sourceType").getAsString():"auto";String sound=data.has("sound")?data.get("sound").getAsString():"";if(source.equals("mp3")||source.equals("mp4")){MpsqAudioManager.stop();MpsqMediaAudioManager.play(source,java.util.List.of(sound));}else if(source.equals("auto")){MpsqAudioManager.stop();MpsqMediaAudioManager.playAuto(sound);}else{MpsqMediaAudioManager.stop();var id=net.minecraft.util.Identifier.tryParse(sound);MpsqAudioManager.startPlaylist("MPSQ",java.util.List.of(sound),MpsqAudioManager.categoryForSoundId(id));}}
     private static void openLinkOnScreen(JsonObject data, String triggerId) {
         try {
             var screenId=java.util.UUID.fromString(data.get("screenId").getAsString());

@@ -43,7 +43,7 @@ public final class MpsqMediaAudioManager {
         if (value.isEmpty() || value.length()>128 || !value.matches("[a-zA-Z0-9_.:/-]+")) return;
         if (value.contains(":")) {
             Identifier identifier=Identifier.tryParse(value);
-            if (identifier!=null) { MpsqAudioManager.startPlaylist("MPSQ", List.of(identifier.toString())); return; }
+            if (identifier!=null) { MpsqAudioManager.startPlaylist("MPSQ", List.of(identifier.toString()), MpsqAudioManager.categoryForSoundId(identifier)); return; }
         }
         long request=++generation;
         MpsqApiClient.get("/sounds/"+value).whenComplete((json,error)->MinecraftClient.getInstance().execute(()->{
@@ -55,7 +55,7 @@ public final class MpsqMediaAudioManager {
                 if ((type.equals("mp3")||type.equals("mp4"))&&safeHttps(url)) { openPlayer(List.of(url),1.0f); return; }
             }
             Identifier identifier=Identifier.tryParse(value);
-            if(identifier!=null) MpsqAudioManager.startPlaylist("MPSQ",List.of(identifier.toString()));
+            if(identifier!=null) MpsqAudioManager.startPlaylist("MPSQ",List.of(identifier.toString()), MpsqAudioManager.categoryForSoundId(identifier));
             else MpsqCameraClient.LOGGER.warn("MPSQ-Sound-ID ist weder eine verfügbare Datei noch eine Minecraft-Sound-ID: {}",value);
         }));
     }
@@ -102,6 +102,7 @@ public final class MpsqMediaAudioManager {
             String page="data:text/html;base64,"+Base64.getEncoder().encodeToString(html.getBytes(StandardCharsets.UTF_8));
             closeEffectBrowser();
             effectBrowser=MCEF.createBrowser(page,false);
+            CinemaAudioManager.registerBrowser(effectBrowser, CinemaAudioManager.AudioRoute.AMBIENT);
             effectBrowser.setFocus(false);
             effectBrowser.resize(64,64);
             effectExpiresAt=System.currentTimeMillis()+8_000L;
@@ -123,6 +124,7 @@ public final class MpsqMediaAudioManager {
         String page = "data:text/html;base64," + Base64.getEncoder().encodeToString(html.getBytes(StandardCharsets.UTF_8));
         try {
             browser = MCEF.createBrowser(page, false);
+            CinemaAudioManager.registerBrowser(browser, CinemaAudioManager.AudioRoute.AMBIENT);
             // The hidden audio browser must never capture Minecraft mouse or camera input.
             browser.setFocus(false);
             browser.resize(64, 64);
@@ -152,6 +154,7 @@ public final class MpsqMediaAudioManager {
         MCEFBrowser current = browser;
         browser = null;
         if (current != null) {
+            CinemaAudioManager.unregisterBrowser(current);
             try { current.close(); }
             catch (RuntimeException exception) { MpsqCameraClient.LOGGER.debug("MPSQ-Medienbrowser ließ sich nicht schließen", exception); }
             finally { CinemaBrowserManager.requestGameMouseRestore(); }
@@ -161,6 +164,6 @@ public final class MpsqMediaAudioManager {
     private static void closeEffectBrowser() {
         MCEFBrowser current=effectBrowser;
         effectBrowser=null;effectExpiresAt=0L;
-        if(current!=null)try{current.close();}catch(RuntimeException exception){MpsqCameraClient.LOGGER.debug("MPSQ-Effektbrowser ließ sich nicht schließen",exception);}finally{CinemaBrowserManager.requestGameMouseRestore();}
+        if(current!=null){CinemaAudioManager.unregisterBrowser(current);try{current.close();}catch(RuntimeException exception){MpsqCameraClient.LOGGER.debug("MPSQ-Effektbrowser ließ sich nicht schließen",exception);}finally{CinemaBrowserManager.requestGameMouseRestore();}}
     }
 }

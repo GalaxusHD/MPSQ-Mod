@@ -89,6 +89,7 @@ public final class CinemaBrowserManager {
 
             BrowserSession current = BROWSERS.get(screen.id());
             if (current != null && current.revision() == playback.revision()) {
+                CinemaAudioManager.registerBrowser(current.browser(), audioRoute(screen));
                 wanted.add(screen.id());
                 continue;
             }
@@ -103,6 +104,7 @@ public final class CinemaBrowserManager {
             close(screen.id());
             try {
                 MCEFBrowser browser = MCEF.createBrowser(url, false);
+                CinemaAudioManager.registerBrowser(browser, audioRoute(screen));
                 // This browser is a texture source only. Never let its Chromium
                 // view take focus from Minecraft's mouse and camera controls.
                 browser.setFocus(false);
@@ -136,6 +138,12 @@ public final class CinemaBrowserManager {
     private static boolean isVideoScreen(LocalScreenStore.LocalScreenData screen) {
         return screen.inputType() == LocalScreenStore.ScreenInputType.LINK
                 || screen.inputType() == LocalScreenStore.ScreenInputType.REDSTONE;
+    }
+
+    private static CinemaAudioManager.AudioRoute audioRoute(LocalScreenStore.LocalScreenData screen) {
+        return screen.inputType() == LocalScreenStore.ScreenInputType.REDSTONE
+                ? CinemaAudioManager.AudioRoute.BLOCKS
+                : CinemaAudioManager.AudioRoute.CINEMA;
     }
 
     /**
@@ -176,6 +184,7 @@ public final class CinemaBrowserManager {
     private static void close(UUID screenId) {
         BrowserSession session = BROWSERS.remove(screenId);
         if (session != null) {
+            CinemaAudioManager.unregisterBrowser(session.browser());
             try {
                 session.browser().close();
             } finally {
@@ -185,7 +194,6 @@ public final class CinemaBrowserManager {
         // Some MCEF versions report browser=null in their audio callbacks, so we
         // cannot associate a stream with a screen. Once the last cinema browser
         // has closed, force-close the fallback source as well.
-        if (BROWSERS.isEmpty()) CinemaAudioManager.stopAll();
     }
 
     /** MCEF can alter GLFW cursor capture while initializing a hidden browser. */
