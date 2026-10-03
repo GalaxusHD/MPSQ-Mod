@@ -1,6 +1,7 @@
 package de.galaxushd.mpsqcamera.mixin.client;
 
 import de.galaxushd.mpsqcamera.MpsqAccessoryRenderer;
+import de.galaxushd.mpsqcamera.MpsqMovementSensorSystem;
 import net.minecraft.client.render.Camera;
 import net.minecraft.client.render.Frustum;
 import net.minecraft.client.render.WorldRenderer;
@@ -17,7 +18,7 @@ abstract class MpsqNpcGlowPostprocessorMixin {
     @Inject(method = "getEntitiesToRender", at = @At("RETURN"), cancellable = true)
     private void mpsq$includeNpcOutlines(Camera camera, Frustum frustum, List<Entity> entities,
                                          CallbackInfoReturnable<Boolean> cir) {
-        if (!cir.getReturnValueZ() && MpsqAccessoryRenderer.hasGlowingNpcs()) {
+        if (!cir.getReturnValueZ() && (MpsqAccessoryRenderer.hasGlowingNpcs() || MpsqMovementSensorSystem.isActive())) {
             cir.setReturnValue(true);
         }
     }

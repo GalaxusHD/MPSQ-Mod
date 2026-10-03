@@ -23,6 +23,10 @@ public final class MouseMixin {
         if (button == GLFW.GLFW_MOUSE_BUTTON_RIGHT && action == GLFW.GLFW_PRESS
                 && (MpsqNpcManager.handleRightClick() || MpsqFurnitureManager.handleRightClick())) {
             ci.cancel();
+            return;
+        }
+        if (button == GLFW.GLFW_MOUSE_BUTTON_RIGHT && action == GLFW.GLFW_PRESS) {
+            de.galaxushd.mpsqcamera.MpsqTriggerManager.onRightClick();
         }
     }
 
