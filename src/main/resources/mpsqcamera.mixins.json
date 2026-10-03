@@ -14,6 +14,7 @@
     "ChatScreenMixin",
     "ChatInputSuggestorMixin",
     "ItemModelManagerMixin",
+    "PlayerEntityModelMixin",
     "MpsqNpcGlowPostprocessorMixin",
     "SoundSystemMixin"
   ],
