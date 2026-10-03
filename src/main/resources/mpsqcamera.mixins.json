@@ -7,7 +7,6 @@
     "MouseMixin",
     "GameRendererMixin",
     "KeyboardMixin",
-    "SoundSystemMixin",
     "InGameHudMixin",
     "EntityRendererMixin",
     "PlayerEntityRendererMixin",
@@ -15,7 +14,8 @@
     "ChatScreenMixin",
     "ChatInputSuggestorMixin",
     "ItemModelManagerMixin",
-    "MpsqNpcGlowPostprocessorMixin"
+    "MpsqNpcGlowPostprocessorMixin",
+    "SoundSystemMixin"
   ],
   "injectors": {
     "defaultRequire": 1
