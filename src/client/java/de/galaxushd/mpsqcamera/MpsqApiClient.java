@@ -68,47 +68,6 @@ public final class MpsqApiClient {
     public static CompletableFuture<JsonElement> post(String path, JsonObject body) { return request("POST", path, body, true); }
     public static CompletableFuture<JsonElement> patch(String path, JsonObject body) { return request("PATCH", path, body, true); }
     public static CompletableFuture<JsonElement> delete(String path) { return request("DELETE", path, null, true); }
-    /** Loads all MPSQ redstone triggers visible in the current server scope. */
-    public static CompletableFuture<List<MpsqTrigger>> loadTriggers() {
-        String server = java.net.URLEncoder.encode(MpsqActionSync.server(), StandardCharsets.UTF_8);
-        return get("/triggers?server=" + server).thenApply(json -> {
-            List<MpsqTrigger> result = new ArrayList<>();
-            if (!json.isJsonArray()) return result;
-            for (JsonElement value : json.getAsJsonArray()) {
-                JsonObject row = value.getAsJsonObject();
-                result.add(new MpsqTrigger(UUID.fromString(row.get("id").getAsString()), row.get("world_id").getAsString(),
-                        new BlockPos(row.get("pos_x").getAsInt(), row.get("pos_y").getAsInt(), row.get("pos_z").getAsInt()),
-                        row.get("block_id").getAsString(), row.has("object_type") ? row.get("object_type").getAsString() : "TRIGGER",
-                        row.get("action_type").getAsString(), Map.of()));
-            }
-            return result;
-        });
-    }
-
-    public static CompletableFuture<JsonElement> fireTrigger(UUID triggerId) {
-        return fireTrigger(triggerId, null, false);
-    }
-
-    public static CompletableFuture<JsonElement> fireTrigger(UUID triggerId, Boolean powered) {
-        return fireTrigger(triggerId, powered, false);
-    }
-
-    public static CompletableFuture<JsonElement> fireTrigger(UUID triggerId, Boolean powered, boolean pulse) {
-        JsonObject body = new JsonObject();
-        body.addProperty("serverId", MpsqActionSync.server());
-        body.addProperty("worldId", MpsqActionSync.world());
-        if (powered != null) {
-            body.addProperty("powered", powered);
-            body.addProperty("pulse", pulse);
-        }
-        return post("/triggers/" + triggerId + "/fire", body);
-    }
-
-    public static CompletableFuture<JsonElement> redeemCode(String code) {
-        JsonObject body = new JsonObject();
-        body.addProperty("code", code);
-        return post("/redeem", body);
-    }
 
     /** Uploads one frame directly to R2 using a short-lived, camera-scoped URL. */
     public static CompletableFuture<JsonElement> postCameraFrame(UUID cameraId, byte[] png) {
@@ -207,6 +166,7 @@ public final class MpsqApiClient {
                 String modeValue = row.get("mode").getAsString();
                 LocalScreenStore.ScreenInputType mode = "CAMERA".equals(modeValue)
                         ? LocalScreenStore.ScreenInputType.CAMERA
+                        : "MPSQ_REDSTONE".equals(modeValue) ? LocalScreenStore.ScreenInputType.MPSQ_REDSTONE
                         : LocalScreenStore.ScreenInputType.LINK;
                 UUID cameraId = null;
                 if (row.has("mpsq_screen_cameras") && row.get("mpsq_screen_cameras").isJsonArray()) {

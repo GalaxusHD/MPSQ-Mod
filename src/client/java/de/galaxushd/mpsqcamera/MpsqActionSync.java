@@ -134,7 +134,7 @@ public final class MpsqActionSync {
             var screen=LocalScreenStore.findById(screenId).orElse(null);
             String url=data.get("url").getAsString();
             java.net.URI uri=java.net.URI.create(url);
-            if(screen==null||screen.inputType()!=LocalScreenStore.ScreenInputType.LINK
+            if(screen==null||(screen.inputType()!=LocalScreenStore.ScreenInputType.LINK && screen.inputType()!=LocalScreenStore.ScreenInputType.MPSQ_REDSTONE)
                     ||!"https".equalsIgnoreCase(uri.getScheme())||uri.getHost()==null
                     ||uri.getUserInfo()!=null||url.length()>2048)return;
             var old=CinemaPlaybackStore.get(screenId);
@@ -147,7 +147,7 @@ public final class MpsqActionSync {
                 if (old.updatedAtMs()>0L) position+=Math.max(0L,now-old.updatedAtMs());
                 CinemaPlaybackStore.set(screenId,new CinemaPlaybackStore.PlaybackState(false,position,old.revision()+1L,now));
             } else {
-                if (!sameVideo) LocalScreenStore.updateConfig(screenId,LocalScreenStore.ScreenInputType.LINK,url,null);
+                if (!sameVideo) LocalScreenStore.updateConfig(screenId,screen.inputType(),url,null);
                 long position=sameTrigger&&sameVideo?old.positionMs():0L;
                 CinemaPlaybackStore.set(screenId,new CinemaPlaybackStore.PlaybackState(true,position,old.revision()+1L,now));
             }

@@ -70,10 +70,10 @@ public final class CinemaBrowserManager {
     /** Human-readable state used by the screen renderer while no browser image is available. */
     public static ScreenStatus status(LocalScreenStore.LocalScreenData screen) {
         if (!isVideoScreen(screen)) return ScreenStatus.NONE;
-        if (screen.url().isBlank()) return ScreenStatus.NO_LINK;
+        if (screen.url().isBlank()) return screen.inputType() == LocalScreenStore.ScreenInputType.MPSQ_REDSTONE ? ScreenStatus.REDSTONE_OFFLINE : ScreenStatus.NO_LINK;
         if (normalizeHttpUrl(screen.url()) == null || FAILED_BROWSERS.contains(screen.id())) return ScreenStatus.ERROR;
         if (!MCEF.isInitialized()) return ScreenStatus.LOADING;
-        if (!CinemaPlaybackStore.get(screen.id()).playing()) return ScreenStatus.OFFLINE;
+        if (!CinemaPlaybackStore.get(screen.id()).playing()) return screen.inputType() == LocalScreenStore.ScreenInputType.MPSQ_REDSTONE ? ScreenStatus.REDSTONE_OFFLINE : ScreenStatus.OFFLINE;
         return texture(screen.id()) == null ? ScreenStatus.LOADING : ScreenStatus.NONE;
     }
 
@@ -136,7 +136,7 @@ public final class CinemaBrowserManager {
     }
 
     private static boolean isVideoScreen(LocalScreenStore.LocalScreenData screen) {
-        return screen.inputType() == LocalScreenStore.ScreenInputType.LINK;
+        return screen.inputType() == LocalScreenStore.ScreenInputType.LINK || screen.inputType() == LocalScreenStore.ScreenInputType.MPSQ_REDSTONE;
     }
 
     private static CinemaAudioManager.AudioRoute audioRoute(LocalScreenStore.LocalScreenData screen) {
@@ -325,6 +325,7 @@ public final class CinemaBrowserManager {
         NONE("", 0, 0, 0),
         NO_LINK("KEIN LINK", 140, 140, 140),
         OFFLINE("OFFLINE", 155, 155, 155),
+        REDSTONE_OFFLINE("REDSTONE OFFLINE", 155, 155, 155),
         BLOCKED("BLOCKIERT", 210, 60, 55),
         LOADING("LAEDT", 225, 180, 55),
         ERROR("FEHLER", 210, 60, 55);

@@ -20,10 +20,6 @@ public final class MpsqActionSetupScreen extends Screen {
     private TextFieldWidget value, duration;
     private ButtonWidget linkScreenButton;
     private ButtonWidget barColorButton;
-    private ButtonWidget soundTypeButton;
-    private int soundType;
-    private static final String[] SOUND_TYPES={"minecraft","mp3"};
-    private static final String[] SOUND_TYPE_LABELS={"Minecraft-Sound-ID","Hochgeladene MP3-ID"};
     private static final String[] BAR_COLORS={"purple","pink","red"};
     private static final String[] BAR_COLOR_LABELS={"Violett (Standard)","Pink (#ec2f53)","Rot (#cf2020)"};
     private static final String[] QUICK_ACTIONS={"TOGGLE_AUDIO","TOGGLE_COUNTDOWN","TOGGLE_BOSSBAR","SWITCH_SYSTEM"};
@@ -46,16 +42,11 @@ public final class MpsqActionSetupScreen extends Screen {
     @Override protected void init() {
         int x=width/2-130,y=35;
         linkScreens=LocalScreenStore.getAllScreens().stream()
-                .filter(s->s.inputType()==LocalScreenStore.ScreenInputType.LINK).toList();
+                .filter(s->s.inputType()==LocalScreenStore.ScreenInputType.MPSQ_REDSTONE).toList();
         addDrawableChild(ButtonWidget.builder(Text.literal(actionLabel(actions[action])),b->{
             action=(action+1)%actions.length; b.setMessage(Text.literal(actionLabel(actions[action]))); updateVisibility();
         }).dimensions(x,y,260,20).build());
-        soundTypeButton=addDrawableChild(ButtonWidget.builder(Text.literal(SOUND_TYPE_LABELS[soundType]),b->{
-            soundType=(soundType+1)%SOUND_TYPES.length;
-            b.setMessage(Text.literal(SOUND_TYPE_LABELS[soundType]));
-            updateVisibility();
-        }).dimensions(x,y+23,260,20).build());
-        value=addDrawableChild(new TextFieldWidget(textRenderer,x,y+23,260,20,Text.literal("Text, Titel oder URL")));
+        value=addDrawableChild(new TextFieldWidget(textRenderer,x,y+23,260,20,Text.literal("Text, Titel, Sound-ID oder URL")));
         value.setMaxLength(3072);
         barColorButton=addDrawableChild(ButtonWidget.builder(Text.literal(BAR_COLOR_LABELS[barColor]),b->{
             barColor=(barColor+1)%BAR_COLORS.length;b.setMessage(Text.literal(BAR_COLOR_LABELS[barColor]));
@@ -76,10 +67,10 @@ public final class MpsqActionSetupScreen extends Screen {
                 linkScreensLoading=false;
                 if (error==null) {
                     linkScreens=LocalScreenStore.getAllScreens().stream()
-                            .filter(s->s.inputType()==LocalScreenStore.ScreenInputType.LINK).toList();
+                            .filter(s->s.inputType()==LocalScreenStore.ScreenInputType.MPSQ_REDSTONE).toList();
                     linkScreenIndex=linkScreens.isEmpty()?0:Math.floorMod(linkScreenIndex,linkScreens.size());
                 } else {
-                    status="Kino-Bildschirme konnten nicht geladen werden.";
+                    status="MPSQ-Redstone-Bildschirme konnten nicht geladen werden.";
                 }
                 linkScreenButton.setMessage(Text.literal(screenLabel()));
                 updateVisibility();
@@ -88,7 +79,7 @@ public final class MpsqActionSetupScreen extends Screen {
     }
 
     private String screenLabel(){
-        if(linkScreensLoading)return "Kino-Bildschirme werden geladen …";
+        if(linkScreensLoading)return "MPSQ-Redstone-Bildschirme werden geladen …";
         if(linkScreens.isEmpty())return "Kein Kino-Bildschirm geladen";
         return "Bildschirm: "+linkScreens.get(Math.floorMod(linkScreenIndex,linkScreens.size())).name();
     }
@@ -96,12 +87,10 @@ public final class MpsqActionSetupScreen extends Screen {
         String selected=actions[action];
         boolean audio="TOGGLE_AUDIO".equals(selected), countdown="TOGGLE_COUNTDOWN".equals(selected), link="OPEN_LINK".equals(selected);
         boolean bossbar="TOGGLE_BOSSBAR".equals(selected);
-        soundTypeButton.visible=audio;soundTypeButton.active=audio;
-        value.setPosition(width/2-130,35+(audio?49:23));
         duration.visible=countdown;duration.active=countdown;
         barColorButton.visible=countdown||bossbar;barColorButton.active=countdown||bossbar;
         linkScreenButton.visible=link;linkScreenButton.active=link&&!linkScreensLoading&&!linkScreens.isEmpty();
-        value.setPlaceholder(Text.literal(link?"HTTPS-Link für den Bildschirm":audio?("mp3".equals(SOUND_TYPES[soundType])?"Hochgeladene MP3-ID":"Minecraft-Sound-ID, z. B. minecraft:entity.cat.ambient"):"SWITCH_SYSTEM".equals(selected)?"System-ID, z. B. bewegungssensor":"Text oder Titel (Farben mit &c etc.)"));
+        value.setPlaceholder(Text.literal(link?"HTTPS-Link für den Bildschirm":audio?"Minecraft-Sound-ID oder MPSQ-MP3/MP4-ID":"SWITCH_SYSTEM".equals(selected)?"System-ID, z. B. bewegungssensor":"Text oder Titel (Farben mit &c etc.)"));
     }
 
     private void save() {
@@ -109,10 +98,8 @@ public final class MpsqActionSetupScreen extends Screen {
         switch(actions[action]) {
             case "TOGGLE_AUDIO" -> {
                 String sound=value.getText().trim();
-                if(sound.isEmpty()||sound.length()>128||!sound.matches("[a-zA-Z0-9_.:/-]+")){status="Eine gültige Sound-ID eingeben.";return;}
-                String sourceType=SOUND_TYPES[soundType];
-                if("minecraft".equals(sourceType)&&net.minecraft.util.Identifier.tryParse(sound)==null){status="Ungültige Minecraft-Sound-ID.";return;}
-                data.addProperty("sourceType",sourceType);data.addProperty("sound",sound);
+                if(sound.isEmpty()||sound.length()>128||!sound.matches("[a-zA-Z0-9_.:/-]+")){status="Minecraft-Sound-ID oder MPSQ-Datei-ID eingeben.";return;}
+                data.addProperty("sourceType","auto");data.addProperty("sound",sound);
             }
             case "SWITCH_SYSTEM" -> {
                 String systemId=value.getText().trim().toLowerCase(java.util.Locale.ROOT);
@@ -159,7 +146,7 @@ public final class MpsqActionSetupScreen extends Screen {
         String hint="OPEN_LINK".equals(selected)?"HTTPS-Link auf dem ausgewählten Kino-Bildschirm":
                 "SWITCH_SYSTEM".equals(selected)?"Gleiche ID stoppt; andere ID ersetzt das aktive System":
                 "SHOW_DIALOGUE".equals(selected)?"Textseiten mit || trennen":
-                "TOGGLE_AUDIO".equals(selected)?"Minecraft-Sound-ID oder hochgeladene MP3-ID":
+                "TOGGLE_AUDIO".equals(selected)?"Minecraft-Sound-ID oder MPSQ-MP3/MP4-ID":
                 "TOGGLE_COUNTDOWN".equals(selected)?"Countdown-Dauer in Sekunden":"&0–&f Farben: &chellrot, &egelb, &r zurücksetzen";
         c.drawTextWithShadow(textRenderer,hint,width/2-130,176,0xFFFFFFFF);
         c.drawCenteredTextWithShadow(textRenderer,Text.literal(status),width/2,height-24,0xFFFFFFFF);

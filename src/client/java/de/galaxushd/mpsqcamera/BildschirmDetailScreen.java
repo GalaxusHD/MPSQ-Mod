@@ -23,7 +23,7 @@ public final class BildschirmDetailScreen extends Screen {
     private final UUID screenId;
     private final boolean isCreator;
 
-    private boolean cameraMode;
+    private LocalScreenStore.ScreenInputType screenMode = LocalScreenStore.ScreenInputType.LINK;
     private String activationCode = "------";
     private String streamUrl = "";
     private boolean preserveUnsavedStreamUrl;
@@ -58,7 +58,7 @@ public final class BildschirmDetailScreen extends Screen {
 
         if (isCreator) {
             addDrawableChild(ButtonWidget.builder(
-                            Text.literal("Modus: " + (cameraMode ? "Kamera" : "Kino")),
+                            Text.literal("Modus: " + screenMode.text().getString()),
                             button -> toggleMode()
                     )
                     .dimensions(x, y, BUTTON_WIDTH, BUTTON_HEIGHT)
@@ -75,7 +75,7 @@ public final class BildschirmDetailScreen extends Screen {
             y += ROW_GAP;
             contentY += ROW_GAP;
 
-            if (cameraMode) {
+            if (screenMode == LocalScreenStore.ScreenInputType.CAMERA) {
                 addDrawableChild(ButtonWidget.builder(
                                 Text.literal("Kameras verwalten..."),
                                 button -> client.setScreen(new CameraAssignmentScreen(this, screenId))
@@ -135,7 +135,7 @@ public final class BildschirmDetailScreen extends Screen {
                     .build());
             y += ROW_GAP;
             contentY += ROW_GAP;
-        } else if (!cameraMode) {
+        } else if (screenMode != LocalScreenStore.ScreenInputType.CAMERA) {
             CinemaPlaybackStore.PlaybackState state = CinemaPlaybackStore.get(screenId);
 
             addDrawableChild(ButtonWidget.builder(
@@ -237,26 +237,29 @@ public final class BildschirmDetailScreen extends Screen {
         LocalScreenStore.LocalScreenData screen = LocalScreenStore.findById(screenId).orElse(null);
 
         if (screen != null) {
-            cameraMode = screen.inputType() == LocalScreenStore.ScreenInputType.CAMERA;
+            screenMode = screen.inputType();
             streamUrl = screen.url() == null ? "" : screen.url();
         }
     }
 
     private void toggleMode() {
-        if (cameraMode && ScreenCameraStore.hasCameras(screenId)) {
+        if (screenMode == LocalScreenStore.ScreenInputType.CAMERA && ScreenCameraStore.hasCameras(screenId)) {
             showStatus("Entferne zuerst alle Kameras von diesem Bildschirm.");
             return;
         }
 
-        if (!cameraMode && !streamUrl.isBlank()) {
+        LocalScreenStore.ScreenInputType nextMode = switch (screenMode) {
+            case CAMERA -> LocalScreenStore.ScreenInputType.LINK;
+            case LINK -> LocalScreenStore.ScreenInputType.MPSQ_REDSTONE;
+            case MPSQ_REDSTONE -> LocalScreenStore.ScreenInputType.CAMERA;
+        };
+        if (nextMode == LocalScreenStore.ScreenInputType.CAMERA && !streamUrl.isBlank()) {
             showStatus("Setze zuerst den Kino-Link zurück.");
             return;
         }
 
-        boolean newCameraMode = !cameraMode;
-
         JsonObject body = new JsonObject();
-        body.addProperty("mode", newCameraMode ? "CAMERA" : "KINO");
+        body.addProperty("mode", apiMode(nextMode));
 
         MpsqApiClient.patch("/screens/" + screenId, body)
                 .thenCompose(ignored -> ScreenSyncManager.refresh())
@@ -269,6 +272,8 @@ public final class BildschirmDetailScreen extends Screen {
                 }));
     }
 
+    private static String apiMode(LocalScreenStore.ScreenInputType mode) { return mode == LocalScreenStore.ScreenInputType.CAMERA ? "CAMERA" : mode == LocalScreenStore.ScreenInputType.MPSQ_REDSTONE ? "MPSQ_REDSTONE" : "KINO"; }
+
     private void saveCinemaLink() {
         String url = CinemaBrowserManager.normalizeHttpUrl(streamUrlField.getText());
 
@@ -278,7 +283,7 @@ public final class BildschirmDetailScreen extends Screen {
         }
 
         JsonObject body = new JsonObject();
-        body.addProperty("mode", "KINO");
+        body.addProperty("mode", apiMode(screenMode));
         body.addProperty("cinemaUrl", url);
         streamUrl = url;
         preserveUnsavedStreamUrl = false;
@@ -420,13 +425,13 @@ public final class BildschirmDetailScreen extends Screen {
         );
         context.fill(centerX - 130, 44, centerX + 130, 45, 0x44FFFFFF);
 
-        if (!cameraMode) {
+        if (screenMode != LocalScreenStore.ScreenInputType.CAMERA) {
             LocalScreenStore.LocalScreenData screen = LocalScreenStore.findById(screenId).orElse(null);
 
             if (screen != null) {
                 CinemaBrowserManager.ScreenStatus status = CinemaBrowserManager.status(screen);
                 String label = status == CinemaBrowserManager.ScreenStatus.NONE
-                        ? "Kino bereit"
+                        ? (screenMode == LocalScreenStore.ScreenInputType.MPSQ_REDSTONE ? "MPSQ Redstone bereit" : "Kino bereit")
                         : status.label();
 
                 int color = status == CinemaBrowserManager.ScreenStatus.NONE
