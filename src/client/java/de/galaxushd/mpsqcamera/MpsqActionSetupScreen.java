@@ -27,6 +27,7 @@ public final class MpsqActionSetupScreen extends Screen {
     private final String[] actions;
     private List<LocalScreenStore.LocalScreenData> linkScreens=List.of();
     private int action, linkScreenIndex, barColor;
+    private boolean linkScreensLoading;
     private String status="";
 
     public MpsqActionSetupScreen(BlockPos pos,String block,String blockName,MpsqTriggerBlockPolicy.Kind blockKind,String properties) {
@@ -41,7 +42,7 @@ public final class MpsqActionSetupScreen extends Screen {
     @Override protected void init() {
         int x=width/2-130,y=35;
         linkScreens=LocalScreenStore.getAllScreens().stream()
-                .filter(s->s.inputType()==LocalScreenStore.ScreenInputType.REDSTONE).toList();
+                .filter(s->s.inputType()==LocalScreenStore.ScreenInputType.LINK).toList();
         addDrawableChild(ButtonWidget.builder(Text.literal(actionLabel(actions[action])),b->{
             action=(action+1)%actions.length; b.setMessage(Text.literal(actionLabel(actions[action]))); updateVisibility();
         }).dimensions(x,y,260,20).build());
@@ -58,10 +59,28 @@ public final class MpsqActionSetupScreen extends Screen {
         addDrawableChild(ButtonWidget.builder(Text.literal(block.isEmpty()?"Auslösen":"Speichern"),b->save()).dimensions(x,y+107,125,20).build());
         addDrawableChild(ButtonWidget.builder(Text.literal("Abbrechen"),b->close()).dimensions(x+135,y+107,125,20).build());
         updateVisibility();
+        if (MpsqActionSync.isMpsqServer()) {
+            linkScreensLoading=true;
+            linkScreenButton.setMessage(Text.literal(screenLabel()));
+            updateVisibility();
+            ScreenSyncManager.refresh().whenComplete((ignored,error)->client.execute(()->{
+                linkScreensLoading=false;
+                if (error==null) {
+                    linkScreens=LocalScreenStore.getAllScreens().stream()
+                            .filter(s->s.inputType()==LocalScreenStore.ScreenInputType.LINK).toList();
+                    linkScreenIndex=linkScreens.isEmpty()?0:Math.floorMod(linkScreenIndex,linkScreens.size());
+                } else {
+                    status="Kino-Bildschirme konnten nicht geladen werden.";
+                }
+                linkScreenButton.setMessage(Text.literal(screenLabel()));
+                updateVisibility();
+            }));
+        }
     }
 
     private String screenLabel(){
-        if(linkScreens.isEmpty())return "Kein MPSQ-Redstone-Bildschirm geladen";
+        if(linkScreensLoading)return "Kino-Bildschirme werden geladen …";
+        if(linkScreens.isEmpty())return "Kein Kino-Bildschirm geladen";
         return "Bildschirm: "+linkScreens.get(Math.floorMod(linkScreenIndex,linkScreens.size())).name();
     }
     private void updateVisibility(){
@@ -70,7 +89,7 @@ public final class MpsqActionSetupScreen extends Screen {
         boolean bossbar="TOGGLE_BOSSBAR".equals(selected);
         duration.visible=countdown;duration.active=countdown;
         barColorButton.visible=countdown||bossbar;barColorButton.active=countdown||bossbar;
-        linkScreenButton.visible=link;linkScreenButton.active=link&&!linkScreens.isEmpty();
+        linkScreenButton.visible=link;linkScreenButton.active=link&&!linkScreensLoading&&!linkScreens.isEmpty();
         value.setPlaceholder(Text.literal(link?"HTTPS-Link für den Bildschirm":audio?"Minecraft-Sound-ID oder MPSQ-MP3/MP4-ID":"SWITCH_SYSTEM".equals(selected)?"System-ID, z. B. bewegungssensor":"Text oder Titel (Farben mit &c etc.)"));
     }
 
@@ -98,7 +117,8 @@ public final class MpsqActionSetupScreen extends Screen {
                 String url=value.getText().trim();
                 try{URI uri=URI.create(url);if(!"https".equalsIgnoreCase(uri.getScheme())||uri.getHost()==null||uri.getUserInfo()!=null||url.length()>2048)throw new IllegalArgumentException();}
                 catch(IllegalArgumentException e){status="Bitte einen gültigen HTTPS-Link eingeben.";return;}
-                if(linkScreens.isEmpty()){status="Es wurde kein MPSQ-Redstone-Bildschirm geladen.";return;}
+                if(linkScreensLoading){status="Kino-Bildschirme werden noch geladen.";return;}
+                if(linkScreens.isEmpty()){status="Es wurde kein Kino-Bildschirm geladen.";return;}
                 data.addProperty("url",url);data.addProperty("screenId",linkScreens.get(linkScreenIndex).id().toString());
             }
             case "SHOW_DIALOGUE" -> {JsonArray pages=new JsonArray();for(String line:value.getText().split("\\|\\|",-1)){line=line.trim();if(line.isEmpty()||line.length()>240||pages.size()>=12){status="1–12 Textseiten mit höchstens 240 Zeichen, getrennt mit ||";return;}pages.add(line);}data.add("pages",pages);}
@@ -123,7 +143,7 @@ public final class MpsqActionSetupScreen extends Screen {
         super.render(c,x,y,d);
         c.drawCenteredTextWithShadow(textRenderer,title,width/2,24,MpsqTheme.TEXT_TITEL);
         String selected=actions[action];
-        String hint="OPEN_LINK".equals(selected)?"HTTPS-Link auf dem ausgewählten MPSQ-Redstone-Bildschirm":
+        String hint="OPEN_LINK".equals(selected)?"HTTPS-Link auf dem ausgewählten Kino-Bildschirm":
                 "SWITCH_SYSTEM".equals(selected)?"Gleiche ID stoppt; andere ID ersetzt das aktive System":
                 "SHOW_DIALOGUE".equals(selected)?"Textseiten mit || trennen":
                 "TOGGLE_AUDIO".equals(selected)?"Minecraft-Sound-ID oder MPSQ-MP3/MP4-ID":

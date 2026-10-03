@@ -136,14 +136,11 @@ public final class CinemaBrowserManager {
     }
 
     private static boolean isVideoScreen(LocalScreenStore.LocalScreenData screen) {
-        return screen.inputType() == LocalScreenStore.ScreenInputType.LINK
-                || screen.inputType() == LocalScreenStore.ScreenInputType.REDSTONE;
+        return screen.inputType() == LocalScreenStore.ScreenInputType.LINK;
     }
 
     private static CinemaAudioManager.AudioRoute audioRoute(LocalScreenStore.LocalScreenData screen) {
-        return screen.inputType() == LocalScreenStore.ScreenInputType.REDSTONE
-                ? CinemaAudioManager.AudioRoute.BLOCKS
-                : CinemaAudioManager.AudioRoute.CINEMA;
+        return CinemaAudioManager.AudioRoute.CINEMA;
     }
 
     /**

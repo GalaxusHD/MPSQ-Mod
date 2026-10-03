@@ -24,7 +24,6 @@ public final class BildschirmDetailScreen extends Screen {
     private final boolean isCreator;
 
     private boolean cameraMode;
-    private boolean redstoneMode;
     private String activationCode = "------";
     private String streamUrl = "";
     private boolean preserveUnsavedStreamUrl;
@@ -58,7 +57,6 @@ public final class BildschirmDetailScreen extends Screen {
         int y = contentY - scrollOffset;
 
         if (isCreator) {
-            if (!redstoneMode) {
             addDrawableChild(ButtonWidget.builder(
                             Text.literal("Modus: " + (cameraMode ? "Kamera" : "Kino")),
                             button -> toggleMode()
@@ -67,7 +65,6 @@ public final class BildschirmDetailScreen extends Screen {
                     .build());
             y += ROW_GAP;
             contentY += ROW_GAP;
-            }
 
             addDrawableChild(ButtonWidget.builder(
                             Text.literal("Umbenennen..."),
@@ -87,7 +84,7 @@ public final class BildschirmDetailScreen extends Screen {
                         .build());
                 y += ROW_GAP;
                 contentY += ROW_GAP;
-            } else if (!redstoneMode) {
+            } else {
                 y = addCinemaControls(x, y);
                 contentY += ROW_GAP * 3;
             }
@@ -138,7 +135,7 @@ public final class BildschirmDetailScreen extends Screen {
                     .build());
             y += ROW_GAP;
             contentY += ROW_GAP;
-        } else if (!cameraMode && !redstoneMode) {
+        } else if (!cameraMode) {
             CinemaPlaybackStore.PlaybackState state = CinemaPlaybackStore.get(screenId);
 
             addDrawableChild(ButtonWidget.builder(
@@ -241,7 +238,6 @@ public final class BildschirmDetailScreen extends Screen {
 
         if (screen != null) {
             cameraMode = screen.inputType() == LocalScreenStore.ScreenInputType.CAMERA;
-            redstoneMode = screen.inputType() == LocalScreenStore.ScreenInputType.REDSTONE;
             streamUrl = screen.url() == null ? "" : screen.url();
         }
     }
@@ -424,7 +420,7 @@ public final class BildschirmDetailScreen extends Screen {
         );
         context.fill(centerX - 130, 44, centerX + 130, 45, 0x44FFFFFF);
 
-        if (!cameraMode && !redstoneMode) {
+        if (!cameraMode) {
             LocalScreenStore.LocalScreenData screen = LocalScreenStore.findById(screenId).orElse(null);
 
             if (screen != null) {

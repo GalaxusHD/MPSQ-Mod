@@ -76,7 +76,7 @@ public final class BildschirmErstellenScreen extends Screen {
     private void createScreen() {
         if (client == null || client.player == null || client.world == null || !createButton.active) return;
         String name = nameField.getText().trim(); LocalScreenStore.ScreenInputType mode = modeButton.getValue(); String url = mode == LocalScreenStore.ScreenInputType.LINK ? urlField.getText().trim() : "";
-        String apiMode = switch (mode) { case CAMERA -> "CAMERA"; case REDSTONE -> "REDSTONE"; case LINK -> "KINO"; };
+        String apiMode = mode == LocalScreenStore.ScreenInputType.CAMERA ? "CAMERA" : "KINO";
         JsonObject body = new JsonObject(); body.addProperty("name", name); body.addProperty("mode", apiMode); body.addProperty("dimension", client.world.getRegistryKey().getValue().toString()); body.add("pos1", position(pos1)); body.add("pos2", position(pos2)); body.addProperty("front", clickedSide.asString().toUpperCase()); body.addProperty("cinemaUrl", url);
         status = "Bildschirm wird gespeichert ..."; createButton.active = false;
         MpsqApiClient.post("/screens", body).thenCompose(created -> {
