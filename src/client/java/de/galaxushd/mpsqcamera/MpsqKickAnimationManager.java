@@ -21,7 +21,7 @@ public final class MpsqKickAnimationManager {
     private static final Map<String,CloneRecord> CLONES=new ConcurrentHashMap<>();
     private static int nextCloneEntityId=-1_800_000_000;
     private MpsqKickAnimationManager(){}
-    public static void initialize(){ClientTickEvents.END_CLIENT_TICK.register(client->{long now=System.currentTimeMillis();if(!TeamVisibilitySettings.visible()||client.world==null){for(CloneRecord record:CLONES.values())if(!record.clone.isRemoved())record.clone.discard();CLONES.clear();ACTIVE.clear();return;}ACTIVE.entrySet().removeIf(e->now-e.getValue()>DURATION_MS);CLONES.entrySet().removeIf(e->{CloneRecord record=e.getValue();if(now-record.startedAt<=DURATION_MS)return false;if(!record.clone.isRemoved())record.clone.discard();ACTIVE.remove(record.animationKey);return true;});});}
+    public static void initialize(){ClientTickEvents.END_CLIENT_TICK.register(client->{long now=System.currentTimeMillis();if(!TeamVisibilitySettings.visible()||client.world==null){for(CloneRecord record:CLONES.values())if(!record.playerCopy.isRemoved())record.playerCopy.discard();CLONES.clear();ACTIVE.clear();return;}ACTIVE.entrySet().removeIf(e->now-e.getValue()>DURATION_MS);CLONES.entrySet().removeIf(e->{CloneRecord record=e.getValue();if(now-record.startedAt<=DURATION_MS)return false;if(!record.playerCopy.isRemoved())record.playerCopy.discard();ACTIVE.remove(record.animationKey);return true;});});}
     public static void start(String player){if(player!=null&&!player.isBlank())ACTIVE.put(player.toLowerCase(Locale.ROOT),System.currentTimeMillis());}
     /** Creates a short-lived client-side copy at the target's pre-teleport position. */
     public static void startClone(String targetName,JsonObject data,AbstractClientPlayerEntity localSource){
@@ -44,8 +44,8 @@ public final class MpsqKickAnimationManager {
         long now=System.currentTimeMillis();CloneRecord record=new CloneRecord(clone,animationKey,now);
         CLONES.put(cloneId,record);ACTIVE.put(animationKey,now);
     }
-    public static boolean isClone(AbstractClientPlayerEntity player){for(CloneRecord record:CLONES.values())if(record.clone==player)return true;return false;}
-    public static String animationKey(AbstractClientPlayerEntity player){for(CloneRecord record:CLONES.values())if(record.clone==player)return record.animationKey;return player.getGameProfile().getName();}
+    public static boolean isClone(AbstractClientPlayerEntity player){for(CloneRecord record:CLONES.values())if(record.playerCopy==player)return true;return false;}
+    public static String animationKey(AbstractClientPlayerEntity player){for(CloneRecord record:CLONES.values())if(record.playerCopy==player)return record.animationKey;return player.getGameProfile().getName();}
     public static float elapsedSeconds(String player){if(!TeamVisibilitySettings.visible()||player==null)return -1;Long start=ACTIVE.get(player.toLowerCase(Locale.ROOT));if(start==null)return -1;float elapsed=(System.currentTimeMillis()-start)/1000f;if(elapsed>DURATION_MS/1000f){ACTIVE.remove(player.toLowerCase(Locale.ROOT));return -1;}return elapsed;}
     public static float rootPitchDegrees(String player){float t=elapsedSeconds(player);if(t<0)return 0;return sample(t,new float[][]{{0,0,0,0},{.1667f,-30,0,0},{.3333f,-90,0,0},{.5417f,-90,0,0}})[0];}
     /** Rotation channels are the supplied model's degree keyframes mapped onto vanilla player parts. */
@@ -60,5 +60,5 @@ public final class MpsqKickAnimationManager {
     }
     private static float[] sample(float time,float[][] frames){if(time<=frames[0][0])return new float[]{frames[0][1],frames[0][2],frames[0][3]};for(int i=1;i<frames.length;i++){float[] b=frames[i],a=frames[i-1];if(time<=b[0]){float p=(time-a[0])/(b[0]-a[0]);return new float[]{lerp(a[1],b[1],p),lerp(a[2],b[2],p),lerp(a[3],b[3],p)};}}float[] last=frames[frames.length-1];return new float[]{last[1],last[2],last[3]};}
     private static float lerp(float a,float b,float p){return a+(b-a)*p;}
-    private record CloneRecord(OtherClientPlayerEntity clone,String animationKey,long startedAt){}
+    private record CloneRecord(OtherClientPlayerEntity playerCopy,String animationKey,long startedAt){}
 }
