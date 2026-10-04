@@ -1,6 +1,7 @@
 package de.galaxushd.mpsqcamera.mixin.client;
 
 import de.galaxushd.mpsqcamera.MpsqNametags;
+import de.galaxushd.mpsqcamera.MpsqKickAnimationManager;
 import de.galaxushd.mpsqcamera.NametagRenderContext;
 import de.galaxushd.mpsqcamera.TeamVisibilitySettings;
 import net.minecraft.client.network.AbstractClientPlayerEntity;
@@ -21,6 +22,12 @@ public abstract class PlayerEntityRendererMixin {
     private void mpsq$replaceServerRank(AbstractClientPlayerEntity player, PlayerEntityRenderState state,
                                       float tickDelta, CallbackInfo ci) {
         NametagRenderContext.clear();
+        if (MpsqKickAnimationManager.isClone(player)) {
+            state.name = MpsqKickAnimationManager.animationKey(player);
+            state.displayName = null;
+            state.playerName = null;
+            return;
+        }
         if (!TeamVisibilitySettings.visible()) return;
         state.playerName = null;
         // Respect vanilla visibility (distance, sneaking, invisibility, etc.).
