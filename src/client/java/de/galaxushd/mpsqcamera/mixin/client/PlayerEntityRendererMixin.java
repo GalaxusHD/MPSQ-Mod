@@ -26,6 +26,14 @@ public abstract class PlayerEntityRendererMixin {
             state.name = MpsqKickAnimationManager.animationKey(player);
             state.displayName = null;
             state.playerName = null;
+            var cloneSkin = MpsqKickAnimationManager.skinTextures(player);
+            if (cloneSkin != null) state.skinTextures = cloneSkin;
+            state.hatVisible = player.isPartVisible(net.minecraft.entity.player.PlayerModelPart.HAT);
+            state.jacketVisible = player.isPartVisible(net.minecraft.entity.player.PlayerModelPart.JACKET);
+            state.leftSleeveVisible = player.isPartVisible(net.minecraft.entity.player.PlayerModelPart.LEFT_SLEEVE);
+            state.rightSleeveVisible = player.isPartVisible(net.minecraft.entity.player.PlayerModelPart.RIGHT_SLEEVE);
+            state.leftPantsLegVisible = player.isPartVisible(net.minecraft.entity.player.PlayerModelPart.LEFT_PANTS_LEG);
+            state.rightPantsLegVisible = player.isPartVisible(net.minecraft.entity.player.PlayerModelPart.RIGHT_PANTS_LEG);
             return;
         }
         if (!TeamVisibilitySettings.visible()) return;
