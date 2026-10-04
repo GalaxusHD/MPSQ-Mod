@@ -21,8 +21,6 @@ public final class MpsqMovementSensorSystem {
     private static final Map<UUID, Sample> SAMPLES = new HashMap<>();
     private static final Map<UUID, Long> ACTIVE_UNTIL = new HashMap<>();
     private static volatile boolean active;
-    private static boolean wasAttackPressed;
-    private static boolean wasUsePressed;
 
     private MpsqMovementSensorSystem() { }
 
@@ -45,8 +43,6 @@ public final class MpsqMovementSensorSystem {
         active = true;
         SAMPLES.clear();
         ACTIVE_UNTIL.clear();
-        wasAttackPressed = false;
-        wasUsePressed = false;
         seedSamples(MinecraftClient.getInstance());
     }
 
@@ -54,8 +50,6 @@ public final class MpsqMovementSensorSystem {
         active = false;
         SAMPLES.clear();
         ACTIVE_UNTIL.clear();
-        wasAttackPressed = false;
-        wasUsePressed = false;
     }
 
     private static void tick(MinecraftClient client) {
@@ -72,12 +66,11 @@ public final class MpsqMovementSensorSystem {
             Vec3d position = player.getPos();
             boolean sneaking = player.isSneaking();
             boolean swinging = player.handSwinging;
-            Sample previous = SAMPLES.put(id, new Sample(position, sneaking, swinging));
+            Sample previous = SAMPLES.put(id, new Sample(position));
             if (previous == null) continue;
 
             if (position.squaredDistanceTo(previous.position) > 0.00001D
-                    || sneaking != previous.sneaking
-                    || (swinging && !previous.swinging)) {
+                    || sneaking || swinging || player.hurtTime > 0) {
                 markActive(id);
             }
         }
@@ -86,18 +79,16 @@ public final class MpsqMovementSensorSystem {
 
         boolean attackPressed = client.options.attackKey.isPressed();
         boolean usePressed = client.options.useKey.isPressed();
-        if ((attackPressed && !wasAttackPressed) || (usePressed && !wasUsePressed)) {
+        if (attackPressed || usePressed) {
             markActive(client.player.getUuid());
         }
-        wasAttackPressed = attackPressed;
-        wasUsePressed = usePressed;
     }
 
     private static void seedSamples(MinecraftClient client) {
         if (client.world == null) return;
         for (PlayerEntity entity : client.world.getPlayers()) {
             if (!(entity instanceof AbstractClientPlayerEntity player)) continue;
-            SAMPLES.put(player.getUuid(), new Sample(player.getPos(), player.isSneaking(), player.handSwinging));
+            SAMPLES.put(player.getUuid(), new Sample(player.getPos()));
         }
     }
 
@@ -105,5 +96,5 @@ public final class MpsqMovementSensorSystem {
         ACTIVE_UNTIL.put(playerId, System.currentTimeMillis() + ACTIVITY_GLOW_MS);
     }
 
-    private record Sample(Vec3d position, boolean sneaking, boolean swinging) { }
+    private record Sample(Vec3d position) { }
 }
