@@ -22,18 +22,22 @@ public abstract class PlayerEntityRendererMixin {
     private void mpsq$replaceServerRank(AbstractClientPlayerEntity player, PlayerEntityRenderState state,
                                       float tickDelta, CallbackInfo ci) {
         NametagRenderContext.clear();
+        MpsqKickAnimationManager.rememberSourceModelParts(player, state);
         if (MpsqKickAnimationManager.isClone(player)) {
             state.name = MpsqKickAnimationManager.animationKey(player);
             state.displayName = null;
             state.playerName = null;
             var cloneSkin = MpsqKickAnimationManager.skinTextures(player);
             if (cloneSkin != null) state.skinTextures = cloneSkin;
-            state.hatVisible = player.isPartVisible(net.minecraft.entity.player.PlayerModelPart.HAT);
-            state.jacketVisible = player.isPartVisible(net.minecraft.entity.player.PlayerModelPart.JACKET);
-            state.leftSleeveVisible = player.isPartVisible(net.minecraft.entity.player.PlayerModelPart.LEFT_SLEEVE);
-            state.rightSleeveVisible = player.isPartVisible(net.minecraft.entity.player.PlayerModelPart.RIGHT_SLEEVE);
-            state.leftPantsLegVisible = player.isPartVisible(net.minecraft.entity.player.PlayerModelPart.LEFT_PANTS_LEG);
-            state.rightPantsLegVisible = player.isPartVisible(net.minecraft.entity.player.PlayerModelPart.RIGHT_PANTS_LEG);
+            boolean[] parts = MpsqKickAnimationManager.sourceModelParts(player);
+            if (parts != null) {
+                state.hatVisible = parts[0];
+                state.jacketVisible = parts[1];
+                state.leftSleeveVisible = parts[2];
+                state.rightSleeveVisible = parts[3];
+                state.leftPantsLegVisible = parts[4];
+                state.rightPantsLegVisible = parts[5];
+            }
             return;
         }
         if (!TeamVisibilitySettings.visible()) return;
@@ -41,6 +45,18 @@ public abstract class PlayerEntityRendererMixin {
         // Respect vanilla visibility (distance, sneaking, invisibility, etc.).
         // The server label need not contain the account name to be replaceable.
         if (state.displayName != null) state.displayName = MpsqNametags.forPlayer(player.getGameProfile().getName());
+    }
+
+    @Inject(method = "setupTransforms", at = @At("TAIL"))
+    private void mpsq$applyKickFall(PlayerEntityRenderState state, MatrixStack matrices,
+                                    float bodyYaw, float scale, CallbackInfo ci) {
+        float fall = MpsqKickAnimationManager.rootPitchDegrees(state.name);
+        if (fall == 0.0f) return;
+        // Apply the fall after Minecraft's normal standing/yaw transforms so the
+        // entire copied player (including both skin layers) tips as one body.
+        matrices.translate(0.0, 0.95, 0.0);
+        matrices.multiply(net.minecraft.util.math.RotationAxis.POSITIVE_X.rotationDegrees(fall));
+        matrices.translate(0.0, -0.95, 0.0);
     }
 
     @ModifyVariable(method = "renderLabelIfPresent(Lnet/minecraft/client/render/entity/state/PlayerEntityRenderState;Lnet/minecraft/text/Text;Lnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/VertexConsumerProvider;I)V",
