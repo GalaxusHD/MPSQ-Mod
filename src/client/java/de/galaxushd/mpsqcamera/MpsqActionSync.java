@@ -139,7 +139,11 @@ public final class MpsqActionSync {
             case "SHOW_DIALOGUE" -> MpsqDialogueManager.start(data);
             case "KICK_ANIMATION" -> {
                 String targetName = data.get("targetName").getAsString();
-                MpsqKickAnimationManager.start(targetName);
+                if (data.has("clone") && data.get("clone").isJsonObject()) {
+                    MpsqKickAnimationManager.startClone(targetName, data.getAsJsonObject("clone"), null);
+                } else {
+                    MpsqKickAnimationManager.start(targetName);
+                }
                 if (TeamVisibilitySettings.visible()) {
                     if (!consumeLocalKickSound(targetName)) MpsqMediaAudioManager.playBundledMp3("/assets/mpsqcamera/sounds/kick.mp3", 0.28f);
                     MinecraftClient client = MinecraftClient.getInstance();

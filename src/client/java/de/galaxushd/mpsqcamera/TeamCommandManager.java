@@ -6,6 +6,8 @@ import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.message.v1.ClientSendMessageEvents;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.network.AbstractClientPlayerEntity;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 
@@ -30,7 +32,10 @@ public final class TeamCommandManager {
             String normalized = command.startsWith("/") ? command.substring(1) : command;
             if (normalized.regionMatches(true, 0, "p kick ", 0, 7)) {
                 String target = normalized.substring(7).trim().split("\\s+", 2)[0];
-                if (!target.isBlank()) MpsqKickAnimationManager.start(target);
+                AbstractClientPlayerEntity targetEntity = findOnlinePlayer(target);
+                JsonObject clone = targetEntity == null ? null : createKickCloneData(targetEntity);
+                if (clone != null) MpsqKickAnimationManager.startClone(target, clone, targetEntity);
+                else if (!target.isBlank()) MpsqKickAnimationManager.start(target);
                 TeamStateStore.self().ifPresent(profile -> {
                     if (profile.canOpenTeamArea() && !target.isBlank()) {
                         JsonObject body = new JsonObject();
@@ -39,6 +44,7 @@ public final class TeamCommandManager {
                         if (!server.isBlank() && !world.isBlank()) {
                             body.addProperty("serverId", server);
                             body.addProperty("worldId", world);
+                            if (clone != null) body.add("clone", clone);
                             MpsqActionSync.playKickSoundLocally(target);
                             MpsqApiClient.post("/kick-animation", body);
                         } else if (TeamVisibilitySettings.visible()) {
@@ -53,6 +59,28 @@ public final class TeamCommandManager {
             submit(normalized.length() > 5 ? normalized.substring(5) : "");
             return false;
         });
+    }
+
+    private static AbstractClientPlayerEntity findOnlinePlayer(String name) {
+        MinecraftClient client = MinecraftClient.getInstance();
+        if (name == null || client.world == null) return null;
+        for (PlayerEntity player : client.world.getPlayers()) {
+            if (player instanceof AbstractClientPlayerEntity remote
+                    && remote.getGameProfile().getName().equalsIgnoreCase(name)) return remote;
+        }
+        return null;
+    }
+
+    /** Capture the player's pre-teleport pose; the event distributes it to every mod client. */
+    private static JsonObject createKickCloneData(AbstractClientPlayerEntity player) {
+        JsonObject clone = new JsonObject();
+        clone.addProperty("cloneId", java.util.UUID.randomUUID().toString());
+        clone.addProperty("x", player.getX());
+        clone.addProperty("y", player.getY());
+        clone.addProperty("z", player.getZ());
+        clone.addProperty("yaw", player.getYaw());
+        clone.addProperty("pitch", player.getPitch());
+        return clone;
     }
 
 

@@ -21,11 +21,11 @@ public final class MpsqKickAnimationManager {
     private static final Map<String,CloneRecord> CLONES=new ConcurrentHashMap<>();
     private static int nextCloneEntityId=-1_800_000_000;
     private MpsqKickAnimationManager(){}
-    public static void initialize(){ClientTickEvents.END_CLIENT_TICK.register(client->{long now=System.currentTimeMillis();ACTIVE.entrySet().removeIf(e->now-e.getValue()>DURATION_MS);CLONES.entrySet().removeIf(e->{CloneRecord record=e.getValue();if(now-record.startedAt<=DURATION_MS)return false;if(!record.clone.isRemoved())record.clone.discard();ACTIVE.remove(record.animationKey);return true;});});}
+    public static void initialize(){ClientTickEvents.END_CLIENT_TICK.register(client->{long now=System.currentTimeMillis();if(!TeamVisibilitySettings.visible()||client.world==null){for(CloneRecord record:CLONES.values())if(!record.clone.isRemoved())record.clone.discard();CLONES.clear();ACTIVE.clear();return;}ACTIVE.entrySet().removeIf(e->now-e.getValue()>DURATION_MS);CLONES.entrySet().removeIf(e->{CloneRecord record=e.getValue();if(now-record.startedAt<=DURATION_MS)return false;if(!record.clone.isRemoved())record.clone.discard();ACTIVE.remove(record.animationKey);return true;});});}
     public static void start(String player){if(player!=null&&!player.isBlank())ACTIVE.put(player.toLowerCase(Locale.ROOT),System.currentTimeMillis());}
     /** Creates a short-lived client-side copy at the target's pre-teleport position. */
     public static void startClone(String targetName,JsonObject data,AbstractClientPlayerEntity localSource){
-        if(targetName==null||targetName.isBlank()||data==null||!data.has("cloneId"))return;
+        if(!TeamVisibilitySettings.visible()||targetName==null||targetName.isBlank()||data==null||!data.has("cloneId"))return;
         String cloneId=data.get("cloneId").getAsString();if(cloneId.isBlank()||CLONES.containsKey(cloneId))return;
         if(!data.has("x")||!data.has("y")||!data.has("z")||!data.has("yaw")||!data.has("pitch"))return;
         MinecraftClient client=MinecraftClient.getInstance();if(client.world==null)return;
