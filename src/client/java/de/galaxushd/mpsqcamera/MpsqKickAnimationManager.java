@@ -8,6 +8,7 @@ import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.network.OtherClientPlayerEntity;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.client.util.SkinTextures;
+import net.minecraft.client.render.entity.state.PlayerEntityRenderState;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.entity.player.PlayerEntity;
 import java.util.Locale;
@@ -21,9 +22,11 @@ public final class MpsqKickAnimationManager {
     private static final Map<String,Long> ACTIVE=new ConcurrentHashMap<>();
     private static final Map<String,CloneRecord> CLONES=new ConcurrentHashMap<>();
     private static final Map<UUID,SkinTextures> CLONE_SKINS=new ConcurrentHashMap<>();
+    private static final Map<UUID,UUID> CLONE_SOURCE_UUIDS=new ConcurrentHashMap<>();
+    private static final Map<UUID,boolean[]> SOURCE_MODEL_PARTS=new ConcurrentHashMap<>();
     private static int nextCloneEntityId=-1_800_000_000;
     private MpsqKickAnimationManager(){}
-    public static void initialize(){ClientTickEvents.END_CLIENT_TICK.register(client->{long now=System.currentTimeMillis();if(!TeamVisibilitySettings.visible()||client.world==null){for(CloneRecord record:CLONES.values())if(!record.playerCopy.isRemoved())record.playerCopy.discard();CLONES.clear();CLONE_SKINS.clear();ACTIVE.clear();return;}ACTIVE.entrySet().removeIf(e->now-e.getValue()>DURATION_MS);CLONES.entrySet().removeIf(e->{CloneRecord record=e.getValue();if(now-record.startedAt<=DURATION_MS)return false;if(!record.playerCopy.isRemoved())record.playerCopy.discard();ACTIVE.remove(normalize(record.animationKey));CLONE_SKINS.remove(record.playerCopy.getUuid());return true;});});}
+    public static void initialize(){ClientTickEvents.END_CLIENT_TICK.register(client->{long now=System.currentTimeMillis();if(!TeamVisibilitySettings.visible()||client.world==null){for(CloneRecord record:CLONES.values())if(!record.playerCopy.isRemoved())record.playerCopy.discard();CLONES.clear();CLONE_SKINS.clear();CLONE_SOURCE_UUIDS.clear();SOURCE_MODEL_PARTS.clear();ACTIVE.clear();return;}ACTIVE.entrySet().removeIf(e->now-e.getValue()>DURATION_MS);CLONES.entrySet().removeIf(e->{CloneRecord record=e.getValue();if(now-record.startedAt<=DURATION_MS)return false;if(!record.playerCopy.isRemoved())record.playerCopy.discard();ACTIVE.remove(normalize(record.animationKey));CLONE_SKINS.remove(record.playerCopy.getUuid());CLONE_SOURCE_UUIDS.remove(record.playerCopy.getUuid());return true;});});}
     public static void start(String player){if(player!=null&&!player.isBlank())ACTIVE.put(player.toLowerCase(Locale.ROOT),System.currentTimeMillis());}
     /** Creates a short-lived client-side copy at the target's pre-teleport position. */
     public static void startClone(String targetName,JsonObject data,AbstractClientPlayerEntity localSource){
@@ -41,7 +44,7 @@ public final class MpsqKickAnimationManager {
         GameProfile profile=new GameProfile(UUID.randomUUID(),targetName);
         if(skinSource!=null)profile.getProperties().putAll(skinSource.getGameProfile().getProperties());
         OtherClientPlayerEntity clone=new OtherClientPlayerEntity((ClientWorld)client.world,profile);
-        if(skinSource!=null)CLONE_SKINS.put(profile.getId(),skinSource.getSkinTextures());
+        if(skinSource!=null){CLONE_SKINS.put(profile.getId(),skinSource.getSkinTextures());CLONE_SOURCE_UUIDS.put(profile.getId(),skinSource.getUuid());}
         clone.setId(nextCloneEntityId--);clone.setNoGravity(true);clone.refreshPositionAndAngles(x,y,z,yaw,pitch);
         client.world.addEntity(clone);
         long now=System.currentTimeMillis();CloneRecord record=new CloneRecord(clone,animationKey,now);
@@ -50,6 +53,8 @@ public final class MpsqKickAnimationManager {
     public static boolean isClone(AbstractClientPlayerEntity player){for(CloneRecord record:CLONES.values())if(record.playerCopy==player)return true;return false;}
     public static String animationKey(AbstractClientPlayerEntity player){for(CloneRecord record:CLONES.values())if(record.playerCopy==player)return record.animationKey;return player.getGameProfile().getName();}
     public static SkinTextures skinTextures(AbstractClientPlayerEntity player){return player==null?null:CLONE_SKINS.get(player.getUuid());}
+    public static void rememberSourceModelParts(AbstractClientPlayerEntity player,PlayerEntityRenderState state){if(player==null||state==null||isClone(player))return;SOURCE_MODEL_PARTS.put(player.getUuid(),new boolean[]{state.hatVisible,state.jacketVisible,state.leftSleeveVisible,state.rightSleeveVisible,state.leftPantsLegVisible,state.rightPantsLegVisible});}
+    public static boolean[] sourceModelParts(AbstractClientPlayerEntity player){UUID source=player==null?null:CLONE_SOURCE_UUIDS.get(player.getUuid());boolean[] parts=source==null?null:SOURCE_MODEL_PARTS.get(source);return parts==null?null:parts.clone();}
     private static String normalize(String value){return value==null?"":value.toLowerCase(Locale.ROOT);}
     public static float elapsedSeconds(String player){if(!TeamVisibilitySettings.visible()||player==null)return -1;String key=normalize(player);Long start=ACTIVE.get(key);if(start==null)return -1;float elapsed=(System.currentTimeMillis()-start)/1000f;if(elapsed>DURATION_MS/1000f){ACTIVE.remove(key);return -1;}return elapsed;}
     public static float rootPitchDegrees(String player){float t=elapsedSeconds(player);if(t<0)return 0;return sample(t,new float[][]{{0,0,0,0},{.1667f,-30,0,0},{.3333f,-90,0,0},{.5417f,-90,0,0}})[0];}
