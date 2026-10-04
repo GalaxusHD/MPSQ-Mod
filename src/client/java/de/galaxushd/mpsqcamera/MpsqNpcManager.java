@@ -22,12 +22,40 @@ public final class MpsqNpcManager {
         if (player == null || client.world == null || client.currentScreen != null || !TeamVisibilitySettings.visible()) return false;
         JsonObject npc = targeted(player);
         if (npc == null) return false;
+        if (MpsqAccessoryRenderer.WUMPUS_ASSET_ID.equals(str(npc, "asset_id", ""))) {
+            MpsqWumpusBehavior.wave(str(npc, "id", ""));
+            MinecraftClient.getInstance().setScreen(new MpsqWumpusDiscordScreen(null));
+            return true;
+        }
         if (player.isSneaking() && isOfficer()) {
             client.setScreen(new MpsqNpcConfiguratorScreen(null, npc));
         } else {
             interact(npc);
         }
         return true;
+    }
+
+    /** Consumes a left-click only when the crosshair is aimed at the Wumpus. */
+    public static boolean handleLeftClick() {
+        MinecraftClient client = MinecraftClient.getInstance();
+        var player = client.player;
+        if (player == null || client.world == null || client.currentScreen != null || !TeamVisibilitySettings.visible()) return false;
+        JsonObject npc = targeted(player);
+        if (npc == null || !MpsqAccessoryRenderer.WUMPUS_ASSET_ID.equals(str(npc, "asset_id", ""))) return false;
+        MpsqWumpusBehavior.leftClick(str(npc, "id", ""));
+        return true;
+    }
+
+    /** Used by the renderer so gaze reactions use the same click volume as interaction. */
+    public static boolean isLookingAt(JsonObject npc) {
+        MinecraftClient client = MinecraftClient.getInstance();
+        if (client.player == null || client.world == null || !TeamVisibilitySettings.visible()) return false;
+        JsonObject selected = targeted(client.player);
+        return selected != null && str(selected, "id", "").equals(str(npc, "id", ""));
+    }
+
+    private static String str(JsonObject object, String key, String fallback) {
+        return object.has(key) && !object.get(key).isJsonNull() ? object.get(key).getAsString() : fallback;
     }
 
     private static JsonObject targeted(net.minecraft.entity.player.PlayerEntity player) {
@@ -41,10 +69,11 @@ public final class MpsqNpcManager {
             double z=npc.has("world_z")?npc.get("world_z").getAsDouble():npc.get("z").getAsDouble()+0.5;
             double size=npc.has("scale")?npc.get("scale").getAsDouble():1;
             String category=npc.has("category")?npc.get("category").getAsString():"npc_model";
-            double height=category.startsWith("npc_skin_")?1.8*size:size;
+            boolean wumpus=MpsqAccessoryRenderer.WUMPUS_ASSET_ID.equals(str(npc,"asset_id",""));
+            double height=category.startsWith("npc_skin_")?1.8*size:wumpus?1.45*size:size;
             // Keep the click volume centered on the same world-space anchor used by
             // the renderer, and cover the full standing skin with a small margin.
-            double halfWidth=category.startsWith("npc_skin_")?0.36*size:0.45*size;
+            double halfWidth=category.startsWith("npc_skin_")?0.36*size:wumpus?0.62*size:0.45*size;
             double verticalMargin=0.08*size;
             Box hitbox=new Box(x-halfWidth,y-verticalMargin,z-halfWidth,
                     x+halfWidth,y+height+verticalMargin,z+halfWidth);
