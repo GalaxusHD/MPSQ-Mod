@@ -20,6 +20,11 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public final class MouseMixin {
     @Inject(method = "onMouseButton", at = @At("HEAD"), cancellable = true)
     private void mpsq$interactWithNpc(long window, int button, int action, int mods, CallbackInfo ci) {
+        if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && action == GLFW.GLFW_PRESS
+                && MpsqNpcManager.handleLeftClick()) {
+            ci.cancel();
+            return;
+        }
         if (button == GLFW.GLFW_MOUSE_BUTTON_RIGHT && action == GLFW.GLFW_PRESS
                 && (MpsqNpcManager.handleRightClick() || MpsqFurnitureManager.handleRightClick())) {
             ci.cancel();
