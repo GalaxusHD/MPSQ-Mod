@@ -4,12 +4,10 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.AbstractClientPlayerEntity;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.SpawnReason;
 import net.minecraft.entity.passive.VillagerEntity;
-import net.minecraft.world.Heightmap;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Box;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -28,7 +26,6 @@ public final class MpsqMovementSensorSystem {
     private static volatile boolean active;
     private static BlockPos testVillagerAnchor;
     private static VillagerEntity testVillager;
-    private static int nextFakeEntityId = -1_900_000_000;
 
     private MpsqMovementSensorSystem() { }
 
@@ -44,7 +41,7 @@ public final class MpsqMovementSensorSystem {
 
     public static boolean isActive() { return active; }
 
-    /** The built-in villager is a temporary visible test actor for this system. */
+    /** Selects a nearby manually placed villager as the visible test actor. */
     public static void setTestVillagerAnchor(BlockPos anchor) {
         testVillagerAnchor = anchor == null ? null : anchor.toImmutable();
     }
@@ -65,7 +62,7 @@ public final class MpsqMovementSensorSystem {
         SAMPLES.clear();
         ACTIVE_UNTIL.clear();
         seedSamples(MinecraftClient.getInstance());
-        spawnTestVillager(MinecraftClient.getInstance());
+        findTestVillager(MinecraftClient.getInstance());
     }
 
     private static synchronized void deactivate() {
@@ -81,7 +78,7 @@ public final class MpsqMovementSensorSystem {
             return;
         }
 
-        keepTestVillagerStill(client);
+        if (testVillager == null || testVillager.isRemoved() || testVillager.getWorld() != client.world) findTestVillager(client);
 
         Set<UUID> seen = new HashSet<>();
         for (PlayerEntity entity : client.world.getPlayers()) {
@@ -121,37 +118,18 @@ public final class MpsqMovementSensorSystem {
         ACTIVE_UNTIL.put(playerId, System.currentTimeMillis() + ACTIVITY_GLOW_MS);
     }
 
-    private static void spawnTestVillager(MinecraftClient client) {
+    private static void findTestVillager(MinecraftClient client) {
+        testVillager = null;
         BlockPos anchor = testVillagerAnchor;
-        removeTestVillager();
-        if (client.world == null || anchor == null) return;
-        BlockPos candidate = anchor.east(4);
-        if (!client.world.isChunkLoaded(candidate)) return;
-        int surfaceY = client.world.getTopY(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, candidate.getX(), candidate.getZ());
-        VillagerEntity villager = EntityType.VILLAGER.create(client.world, SpawnReason.COMMAND);
-        if (villager == null) return;
-        villager.setId(nextFakeEntityId++);
-        villager.setNoGravity(true);
-        villager.refreshPositionAndAngles(candidate.getX() + 0.5, surfaceY, candidate.getZ() + 0.5, 180.0F, 0.0F);
-        client.world.addEntity(villager);
-        testVillager = villager;
-    }
-
-    private static void keepTestVillagerStill(MinecraftClient client) {
-        VillagerEntity villager = testVillager;
-        if (villager == null) return;
-        if (villager.getWorld() != client.world || villager.isRemoved()) {
-            testVillager = null;
-            return;
-        }
-        villager.setVelocity(Vec3d.ZERO);
-        villager.setNoGravity(true);
+        if (!active || client.world == null || anchor == null) return;
+        Box search = new Box(anchor).expand(24.0D);
+        testVillager = client.world.getEntitiesByClass(VillagerEntity.class, search, entity -> !entity.isRemoved())
+                .stream().min(java.util.Comparator.comparingDouble(entity -> entity.squaredDistanceTo(anchor.toCenterPos())))
+                .orElse(null);
     }
 
     private static void removeTestVillager() {
-        VillagerEntity villager = testVillager;
         testVillager = null;
-        if (villager != null && !villager.isRemoved()) villager.discard();
         testVillagerAnchor = null;
     }
 

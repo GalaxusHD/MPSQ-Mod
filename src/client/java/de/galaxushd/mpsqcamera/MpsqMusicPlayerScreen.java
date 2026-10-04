@@ -62,11 +62,21 @@ public final class MpsqMusicPlayerScreen extends Screen {
                         if (!element.isJsonObject()) continue;
                         JsonObject row = element.getAsJsonObject();
                         if (!row.has("id") || !row.has("name") || !row.has("tracks") || !row.get("tracks").isJsonArray()) continue;
-                        List<String> tracks = new ArrayList<>();
-                        row.getAsJsonArray("tracks").forEach(track -> { if (track.isJsonPrimitive()) tracks.add(track.getAsString()); });
                         List<String> names = new ArrayList<>();
                         if (row.has("trackNames") && row.get("trackNames").isJsonArray()) {
                             row.getAsJsonArray("trackNames").forEach(name -> { if (name.isJsonPrimitive()) names.add(name.getAsString()); });
+                        }
+                        List<String> tracks = new ArrayList<>();
+                        for (JsonElement track : row.getAsJsonArray("tracks")) {
+                            if (track.isJsonPrimitive()) tracks.add(track.getAsString());
+                            else if (track.isJsonObject()) {
+                                JsonObject item = track.getAsJsonObject();
+                                String id = firstString(item,"id","assetId","asset_id","soundId","sound_id","url");
+                                if (!id.isBlank()) {
+                                    tracks.add(id);
+                                    if (names.size() < tracks.size()) names.add(firstString(item,"title","name","display_name"));
+                                }
+                            }
                         }
                         while (names.size() < tracks.size()) names.add(tracks.get(names.size()));
                         if (!tracks.isEmpty()) playlists.add(new Playlist(row.get("id").getAsString(), row.get("name").getAsString(), tracks, names));
@@ -239,6 +249,8 @@ public final class MpsqMusicPlayerScreen extends Screen {
     public void close() { MinecraftClient.getInstance().setScreen(null); }
 
     private int panelHeight() { return Math.min(height - 36, 390); }
+
+    private static String firstString(JsonObject object,String... keys){for(String key:keys)if(object.has(key)&&object.get(key).isJsonPrimitive())return object.get(key).getAsString();return "";}
 
     private record Playlist(String id, String name, List<String> tracks, List<String> trackNames) { }
 }

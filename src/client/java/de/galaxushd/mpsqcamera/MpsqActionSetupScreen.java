@@ -21,14 +21,17 @@ public final class MpsqActionSetupScreen extends Screen {
     private ButtonWidget linkScreenButton;
     private ButtonWidget barColorButton;
     private ButtonWidget systemButton;
+    private ButtonWidget playlistButton;
     private static final String[] BAR_COLORS={"purple","pink","red"};
     private static final String[] BAR_COLOR_LABELS={"Violett (Standard)","Pink (#ec2f53)","Rot (#cf2020)"};
-    private static final String[] QUICK_ACTIONS={"TOGGLE_AUDIO","TOGGLE_COUNTDOWN","TOGGLE_BOSSBAR","SWITCH_SYSTEM"};
-    private static final String[] BLOCK_ACTIONS={"TOGGLE_AUDIO","TOGGLE_COUNTDOWN","TOGGLE_BOSSBAR","SHOW_DIALOGUE","OPEN_LINK","SWITCH_SYSTEM"};
+    private static final String[] QUICK_ACTIONS={"TOGGLE_AUDIO","START_PLAYLIST","TOGGLE_COUNTDOWN","TOGGLE_BOSSBAR","SWITCH_SYSTEM"};
+    private static final String[] BLOCK_ACTIONS={"TOGGLE_AUDIO","START_PLAYLIST","TOGGLE_COUNTDOWN","TOGGLE_BOSSBAR","SHOW_DIALOGUE","OPEN_LINK","SWITCH_SYSTEM"};
     private final String[] actions;
     private List<LocalScreenStore.LocalScreenData> linkScreens=List.of();
+    private List<PlaylistOption> playlists=List.of();
     private int action, linkScreenIndex, barColor, systemIndex;
-    private boolean linkScreensLoading;
+    private int playlistIndex;
+    private boolean linkScreensLoading,playlistsLoading;
     private String status="";
 
     public MpsqActionSetupScreen(BlockPos pos,String block,String blockName,MpsqTriggerBlockPolicy.Kind blockKind,String properties) {
@@ -53,18 +56,22 @@ public final class MpsqActionSetupScreen extends Screen {
             List<MpsqSystemController.SystemOption> systems=MpsqSystemController.availableSystems();
             if(!systems.isEmpty()){systemIndex=(systemIndex+1)%systems.size();b.setMessage(Text.literal(systemLabel()));}
         }).dimensions(x,y+23,260,20).build());
+        playlistButton=addDrawableChild(ButtonWidget.builder(Text.literal(playlistLabel()),b->{
+            if(!playlists.isEmpty()){playlistIndex=(playlistIndex+1)%playlists.size();b.setMessage(Text.literal(playlistLabel()));}
+        }).dimensions(x,y+49,260,20).build());
         barColorButton=addDrawableChild(ButtonWidget.builder(Text.literal(BAR_COLOR_LABELS[barColor]),b->{
             barColor=(barColor+1)%BAR_COLORS.length;b.setMessage(Text.literal(BAR_COLOR_LABELS[barColor]));
-        }).dimensions(x,y+49,260,20).build());
-        duration=addDrawableChild(new TextFieldWidget(textRenderer,x,y+75,260,20,Text.literal("Sekunden")));
+        }).dimensions(x,y+75,260,20).build());
+        duration=addDrawableChild(new TextFieldWidget(textRenderer,x,y+101,260,20,Text.literal("Sekunden")));
         duration.setText("30");
         linkScreenButton=addDrawableChild(ButtonWidget.builder(Text.literal(screenLabel()),b->{
             if(!linkScreens.isEmpty()){linkScreenIndex=(linkScreenIndex+1)%linkScreens.size();b.setMessage(Text.literal(screenLabel()));}
-        }).dimensions(x,y+75,260,20).build());
-        addDrawableChild(ButtonWidget.builder(Text.literal(block.isEmpty()?"Auslösen":"Speichern"),b->save()).dimensions(x,y+107,125,20).build());
-        addDrawableChild(ButtonWidget.builder(Text.literal("Abbrechen"),b->close()).dimensions(x+135,y+107,125,20).build());
+        }).dimensions(x,y+101,260,20).build());
+        addDrawableChild(ButtonWidget.builder(Text.literal(block.isEmpty()?"Auslösen":"Speichern"),b->save()).dimensions(x,y+133,125,20).build());
+        addDrawableChild(ButtonWidget.builder(Text.literal("Abbrechen"),b->close()).dimensions(x+135,y+133,125,20).build());
         updateVisibility();
         if (MpsqActionSync.isMpsqServer()) {
+            loadPlaylists();
             linkScreensLoading=true;
             linkScreenButton.setMessage(Text.literal(screenLabel()));
             updateVisibility();
@@ -93,16 +100,42 @@ public final class MpsqActionSetupScreen extends Screen {
         boolean audio="TOGGLE_AUDIO".equals(selected), countdown="TOGGLE_COUNTDOWN".equals(selected), link="OPEN_LINK".equals(selected);
         boolean bossbar="TOGGLE_BOSSBAR".equals(selected);
         boolean switchSystem="SWITCH_SYSTEM".equals(selected);
+        boolean playlist="START_PLAYLIST".equals(selected);
         List<MpsqSystemController.SystemOption> systems=MpsqSystemController.availableSystems();
         if(!systems.isEmpty())systemIndex=Math.floorMod(systemIndex,systems.size());else systemIndex=0;
         systemButton.setMessage(Text.literal(systemLabel()));
         systemButton.visible=switchSystem;systemButton.active=switchSystem&&!systems.isEmpty();
-        value.visible=!switchSystem;value.active=!switchSystem;
+        playlistButton.visible=playlist;playlistButton.active=playlist&&!playlistsLoading&&!playlists.isEmpty();
+        value.visible=!switchSystem&&!playlist;value.active=!switchSystem&&!playlist;
         duration.visible=countdown;duration.active=countdown;
         barColorButton.visible=countdown||bossbar;barColorButton.active=countdown||bossbar;
         linkScreenButton.visible=link;linkScreenButton.active=link&&!linkScreensLoading&&!linkScreens.isEmpty();
         value.setPlaceholder(Text.literal(link?"HTTPS-Link für den Bildschirm":audio?"minecraft:entity.cat.ambient oder MPSQ-Sound-ID":"Text oder Titel (Farben mit &c etc.)"));
     }
+
+    private void loadPlaylists(){
+        playlistsLoading=true;
+        MpsqApiClient.get("/playlists").whenComplete((json,error)->client.execute(()->{
+            playlistsLoading=false;
+            if(error==null&&json!=null&&json.isJsonArray()){
+                java.util.ArrayList<PlaylistOption> loaded=new java.util.ArrayList<>();
+                for(var element:json.getAsJsonArray()){
+                    if(!element.isJsonObject())continue;JsonObject row=element.getAsJsonObject();
+                    if(!row.has("name")||!row.has("tracks")||!row.get("tracks").isJsonArray())continue;
+                    JsonArray tracks=row.getAsJsonArray("tracks");java.util.ArrayList<String> ids=new java.util.ArrayList<>();
+                    for(var track:tracks){
+                        if(track.isJsonPrimitive())ids.add(track.getAsString());
+                        else if(track.isJsonObject()){JsonObject item=track.getAsJsonObject();String id=firstString(item,"id","assetId","asset_id","soundId","sound_id","url");if(!id.isBlank())ids.add(id);}
+                    }
+                    if(!ids.isEmpty())loaded.add(new PlaylistOption(row.get("name").getAsString(),ids));
+                }
+                playlists=List.copyOf(loaded);playlistIndex=playlists.isEmpty()?0:Math.floorMod(playlistIndex,playlists.size());
+            }else status="Playlists konnten nicht geladen werden.";
+            playlistButton.setMessage(Text.literal(playlistLabel()));updateVisibility();
+        }));
+    }
+    private String playlistLabel(){if(playlistsLoading)return "Playlists werden geladen …";if(playlists.isEmpty())return "Keine Playlists verfügbar";return "Playlist: "+playlists.get(Math.floorMod(playlistIndex,playlists.size())).name();}
+    private static String firstString(JsonObject object,String... keys){for(String key:keys)if(object.has(key)&&object.get(key).isJsonPrimitive())return object.get(key).getAsString();return "";}
 
     private String systemLabel(){
         List<MpsqSystemController.SystemOption> systems=MpsqSystemController.availableSystems();
@@ -131,6 +164,13 @@ public final class MpsqActionSetupScreen extends Screen {
                 MpsqSystemController.SystemOption selected=systems.get(Math.floorMod(systemIndex,systems.size()));
                 data.addProperty("systemId",selected.id());
                 if("red_light_green_light".equals(selected.id()))data.addProperty("testEntityId","minecraft:villager");
+            }
+            case "START_PLAYLIST" -> {
+                if(playlistsLoading){status="Playlists werden noch geladen.";return;}
+                if(playlists.isEmpty()){status="Keine abspielbare Playlist verfügbar.";return;}
+                PlaylistOption selected=playlists.get(Math.floorMod(playlistIndex,playlists.size()));
+                JsonArray tracks=new JsonArray();selected.tracks().forEach(tracks::add);
+                data.addProperty("sourceType","mp3");data.addProperty("playlistName",selected.name());data.add("tracks",tracks);
             }
             case "TOGGLE_BOSSBAR" -> {data.addProperty("title",value.getText());data.addProperty("color",BAR_COLORS[barColor]);}
             case "TOGGLE_COUNTDOWN" -> {
@@ -174,13 +214,14 @@ public final class MpsqActionSetupScreen extends Screen {
                 "SHOW_DIALOGUE".equals(selected)?"Textseiten mit || trennen":
                 "TOGGLE_AUDIO".equals(selected)?"Minecraft-ID: minecraft:pfad · MPSQ-ID: ohne Namespace":
                 "TOGGLE_COUNTDOWN".equals(selected)?"Countdown-Dauer in Sekunden":"&0–&f Farben: &chellrot, &egelb, &r zurücksetzen";
-        c.drawTextWithShadow(textRenderer,hint,width/2-130,176,0xFFFFFFFF);
+        if(height>210)c.drawTextWithShadow(textRenderer,hint,width/2-130,202,0xFFFFFFFF);
         c.drawCenteredTextWithShadow(textRenderer,Text.literal(status),width/2,height-24,0xFFFFFFFF);
     }
     private static String actionLabel(String action){return switch(action){
-        case "TOGGLE_AUDIO"->"Musik / Ton umschalten";case "TOGGLE_COUNTDOWN"->"Countdown umschalten";
+        case "TOGGLE_AUDIO"->"Musik / Ton umschalten";case "START_PLAYLIST"->"Playlist abspielen";case "TOGGLE_COUNTDOWN"->"Countdown umschalten";
         case "TOGGLE_BOSSBAR"->"Bossbar umschalten";
         case "SWITCH_SYSTEM"->"Aktion / System starten oder wechseln";
         case "SHOW_DIALOGUE"->"Dialog (F zum Weitergehen)";case "OPEN_LINK"->"Link öffnen";default->action;};}
     @Override public boolean shouldPause(){return false;}
+    private record PlaylistOption(String name,List<String> tracks){}
 }

@@ -66,6 +66,10 @@ public final class MpsqMediaAudioManager {
         long request = ++generation;
         List<java.util.concurrent.CompletableFuture<String>> lookups = new ArrayList<>();
         for (String id : assetIds) {
+            if (id != null && safeHttps(id)) {
+                lookups.add(java.util.concurrent.CompletableFuture.completedFuture(id));
+                continue;
+            }
             if (id == null || !id.matches("[a-zA-Z0-9_-]{1,64}")) {
                 MpsqCameraClient.LOGGER.warn("Ungültige MPSQ-Playlist-ID übersprungen: {}", id);
                 continue;
