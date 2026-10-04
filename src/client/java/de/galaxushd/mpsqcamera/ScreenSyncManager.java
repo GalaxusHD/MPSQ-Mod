@@ -37,7 +37,7 @@ public final class ScreenSyncManager {
                 String modeValue = row.get("mode").getAsString();
                 LocalScreenStore.ScreenInputType mode = "CAMERA".equals(modeValue)
                         ? LocalScreenStore.ScreenInputType.CAMERA
-                        : "MPSQ_REDSTONE".equals(modeValue) ? LocalScreenStore.ScreenInputType.MPSQ_REDSTONE
+                        : ("REDSTONE".equals(modeValue) || "MPSQ_REDSTONE".equals(modeValue)) ? LocalScreenStore.ScreenInputType.MPSQ_REDSTONE
                         : LocalScreenStore.ScreenInputType.LINK;
                 List<UUID> cameraIds = new ArrayList<>();
                 if (row.has("mpsq_screen_cameras") && row.get("mpsq_screen_cameras").isJsonArray()) {

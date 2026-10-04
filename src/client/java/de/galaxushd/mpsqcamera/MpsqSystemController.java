@@ -1,7 +1,9 @@
 package de.galaxushd.mpsqcamera;
 
 import java.util.Locale;
+import java.util.List;
 import java.util.Map;
+import java.util.Comparator;
 import java.util.concurrent.ConcurrentHashMap;
 
 /** Coordinates mutually exclusive custom game systems selected by Redstone actions. */
@@ -12,17 +14,40 @@ public final class MpsqSystemController {
     }
 
     private static final Map<String, Listener> LISTENERS = new ConcurrentHashMap<>();
+    private static final Map<String, String> SYSTEM_LABELS = new ConcurrentHashMap<>();
     private static volatile String activeSystemId = "";
 
     private MpsqSystemController() { }
 
     /** Registers a future/custom system implementation under its Redstone System-ID. */
     public static void register(String systemId, Listener listener) {
+        register(systemId, systemId, listener);
+    }
+
+    public static void register(String systemId, String label, Listener listener) {
+        String id = normalize(systemId);
+        if (id.isEmpty() || listener == null) throw new IllegalArgumentException("System-ID und Listener sind erforderlich.");
+        LISTENERS.put(id, listener);
+        SYSTEM_LABELS.put(id, label == null || label.isBlank() ? id : label.trim());
+        if (id.equals(activeSystemId)) listener.onActivated();
+    }
+
+    /** Keeps old saved Redstone IDs working without showing a duplicate choice in the selector. */
+    public static void registerLegacyAlias(String systemId, Listener listener) {
         String id = normalize(systemId);
         if (id.isEmpty() || listener == null) throw new IllegalArgumentException("System-ID und Listener sind erforderlich.");
         LISTENERS.put(id, listener);
         if (id.equals(activeSystemId)) listener.onActivated();
     }
+
+    public static List<SystemOption> availableSystems() {
+        return SYSTEM_LABELS.entrySet().stream()
+                .map(entry -> new SystemOption(entry.getKey(), entry.getValue()))
+                .sorted(Comparator.comparing(SystemOption::label, String.CASE_INSENSITIVE_ORDER))
+                .toList();
+    }
+
+    public record SystemOption(String id, String label) { }
 
     public static void unregister(String systemId, Listener listener) {
         String id = normalize(systemId);

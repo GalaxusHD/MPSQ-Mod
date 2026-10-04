@@ -20,13 +20,14 @@ public final class MpsqActionSetupScreen extends Screen {
     private TextFieldWidget value, duration;
     private ButtonWidget linkScreenButton;
     private ButtonWidget barColorButton;
+    private ButtonWidget systemButton;
     private static final String[] BAR_COLORS={"purple","pink","red"};
     private static final String[] BAR_COLOR_LABELS={"Violett (Standard)","Pink (#ec2f53)","Rot (#cf2020)"};
     private static final String[] QUICK_ACTIONS={"TOGGLE_AUDIO","TOGGLE_COUNTDOWN","TOGGLE_BOSSBAR","SWITCH_SYSTEM"};
     private static final String[] BLOCK_ACTIONS={"TOGGLE_AUDIO","TOGGLE_COUNTDOWN","TOGGLE_BOSSBAR","SHOW_DIALOGUE","OPEN_LINK","SWITCH_SYSTEM"};
     private final String[] actions;
     private List<LocalScreenStore.LocalScreenData> linkScreens=List.of();
-    private int action, linkScreenIndex, barColor;
+    private int action, linkScreenIndex, barColor, systemIndex;
     private boolean linkScreensLoading;
     private String status="";
 
@@ -48,6 +49,10 @@ public final class MpsqActionSetupScreen extends Screen {
         }).dimensions(x,y,260,20).build());
         value=addDrawableChild(new TextFieldWidget(textRenderer,x,y+23,260,20,Text.literal("Text, Titel, Sound-ID oder URL")));
         value.setMaxLength(3072);
+        systemButton=addDrawableChild(ButtonWidget.builder(Text.literal(systemLabel()),b->{
+            List<MpsqSystemController.SystemOption> systems=MpsqSystemController.availableSystems();
+            if(!systems.isEmpty()){systemIndex=(systemIndex+1)%systems.size();b.setMessage(Text.literal(systemLabel()));}
+        }).dimensions(x,y+23,260,20).build());
         barColorButton=addDrawableChild(ButtonWidget.builder(Text.literal(BAR_COLOR_LABELS[barColor]),b->{
             barColor=(barColor+1)%BAR_COLORS.length;b.setMessage(Text.literal(BAR_COLOR_LABELS[barColor]));
         }).dimensions(x,y+49,260,20).build());
@@ -80,17 +85,30 @@ public final class MpsqActionSetupScreen extends Screen {
 
     private String screenLabel(){
         if(linkScreensLoading)return "MPSQ-Redstone-Bildschirme werden geladen …";
-        if(linkScreens.isEmpty())return "Kein Kino-Bildschirm geladen";
+        if(linkScreens.isEmpty())return "Kein MPSQ-Redstone-Bildschirm geladen";
         return "Bildschirm: "+linkScreens.get(Math.floorMod(linkScreenIndex,linkScreens.size())).name();
     }
     private void updateVisibility(){
         String selected=actions[action];
         boolean audio="TOGGLE_AUDIO".equals(selected), countdown="TOGGLE_COUNTDOWN".equals(selected), link="OPEN_LINK".equals(selected);
         boolean bossbar="TOGGLE_BOSSBAR".equals(selected);
+        boolean switchSystem="SWITCH_SYSTEM".equals(selected);
+        List<MpsqSystemController.SystemOption> systems=MpsqSystemController.availableSystems();
+        if(!systems.isEmpty())systemIndex=Math.floorMod(systemIndex,systems.size());else systemIndex=0;
+        systemButton.setMessage(Text.literal(systemLabel()));
+        systemButton.visible=switchSystem;systemButton.active=switchSystem&&!systems.isEmpty();
+        value.visible=!switchSystem;value.active=!switchSystem;
         duration.visible=countdown;duration.active=countdown;
         barColorButton.visible=countdown||bossbar;barColorButton.active=countdown||bossbar;
         linkScreenButton.visible=link;linkScreenButton.active=link&&!linkScreensLoading&&!linkScreens.isEmpty();
-        value.setPlaceholder(Text.literal(link?"HTTPS-Link für den Bildschirm":audio?"minecraft:entity.cat.ambient oder MPSQ-Sound-ID":"SWITCH_SYSTEM".equals(selected)?"System-ID, z. B. bewegungssensor":"Text oder Titel (Farben mit &c etc.)"));
+        value.setPlaceholder(Text.literal(link?"HTTPS-Link für den Bildschirm":audio?"minecraft:entity.cat.ambient oder MPSQ-Sound-ID":"Text oder Titel (Farben mit &c etc.)"));
+    }
+
+    private String systemLabel(){
+        List<MpsqSystemController.SystemOption> systems=MpsqSystemController.availableSystems();
+        if(systems.isEmpty())return "Kein MPSQ-System registriert";
+        MpsqSystemController.SystemOption selected=systems.get(Math.floorMod(systemIndex,systems.size()));
+        return selected.label()+" · Testfigur: minecraft:villager";
     }
 
     private void save() {
@@ -108,9 +126,11 @@ public final class MpsqActionSetupScreen extends Screen {
                 data.addProperty("sourceType","auto");data.addProperty("sound",sound);
             }
             case "SWITCH_SYSTEM" -> {
-                String systemId=value.getText().trim().toLowerCase(java.util.Locale.ROOT);
-                if(!systemId.matches("[a-z0-9_-]{1,64}")){status="System-ID: 1–64 Zeichen, a–z, 0–9, _ oder -";return;}
-                data.addProperty("systemId",systemId);
+                List<MpsqSystemController.SystemOption> systems=MpsqSystemController.availableSystems();
+                if(systems.isEmpty()){status="Es ist kein MPSQ-System registriert.";return;}
+                MpsqSystemController.SystemOption selected=systems.get(Math.floorMod(systemIndex,systems.size()));
+                data.addProperty("systemId",selected.id());
+                if("red_light_green_light".equals(selected.id()))data.addProperty("testEntityId","minecraft:villager");
             }
             case "TOGGLE_BOSSBAR" -> {data.addProperty("title",value.getText());data.addProperty("color",BAR_COLORS[barColor]);}
             case "TOGGLE_COUNTDOWN" -> {
@@ -132,7 +152,7 @@ public final class MpsqActionSetupScreen extends Screen {
         position.addProperty("x",pos.getX());position.addProperty("y",pos.getY());position.addProperty("z",pos.getZ());
         body.add("position",position);body.addProperty("serverId",server);body.addProperty("worldId",world);
         body.addProperty("blockId",block);body.addProperty("objectType",blockKind.name());body.addProperty("actionType",actions[action]);body.add("actionData",data);
-        body.addProperty("minimumRank","OPEN_LINK".equals(actions[action])?"vip":"SWITCH_SYSTEM".equals(actions[action])?"arbeiter":"offizier");
+        body.addProperty("minimumRank","OPEN_LINK".equals(actions[action])?"vip":"SWITCH_SYSTEM".equals(actions[action])?"soldat":"offizier");
         if(MpsqActionSync.server().isBlank()&&client.getServer()!=null){
             boolean saved=MpsqLocalActionStore.set(pos,block,blockKind.name(),actions[action],data);
             status=saved?"Aktion in dieser Einzelspielerwelt gespeichert.":"Lokale Aktion konnte nicht gespeichert werden.";return;
@@ -150,7 +170,7 @@ public final class MpsqActionSetupScreen extends Screen {
         c.drawCenteredTextWithShadow(textRenderer,title,width/2,24,MpsqTheme.TEXT_TITEL);
         String selected=actions[action];
         String hint="OPEN_LINK".equals(selected)?"HTTPS-Link auf dem ausgewählten Kino-Bildschirm":
-                "SWITCH_SYSTEM".equals(selected)?"Gleiche ID stoppt; andere ID ersetzt das aktive System":
+                "SWITCH_SYSTEM".equals(selected)?"Knopf schaltet Systeme durch; Red Light, Green Light nutzt testweise minecraft:villager":
                 "SHOW_DIALOGUE".equals(selected)?"Textseiten mit || trennen":
                 "TOGGLE_AUDIO".equals(selected)?"Minecraft-ID: minecraft:pfad · MPSQ-ID: ohne Namespace":
                 "TOGGLE_COUNTDOWN".equals(selected)?"Countdown-Dauer in Sekunden":"&0–&f Farben: &chellrot, &egelb, &r zurücksetzen";

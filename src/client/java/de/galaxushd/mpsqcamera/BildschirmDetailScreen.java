@@ -272,7 +272,7 @@ public final class BildschirmDetailScreen extends Screen {
                 }));
     }
 
-    private static String apiMode(LocalScreenStore.ScreenInputType mode) { return mode == LocalScreenStore.ScreenInputType.CAMERA ? "CAMERA" : mode == LocalScreenStore.ScreenInputType.MPSQ_REDSTONE ? "MPSQ_REDSTONE" : "KINO"; }
+    private static String apiMode(LocalScreenStore.ScreenInputType mode) { return mode == LocalScreenStore.ScreenInputType.CAMERA ? "CAMERA" : mode == LocalScreenStore.ScreenInputType.MPSQ_REDSTONE ? "REDSTONE" : "KINO"; }
 
     private void saveCinemaLink() {
         String url = CinemaBrowserManager.normalizeHttpUrl(streamUrlField.getText());

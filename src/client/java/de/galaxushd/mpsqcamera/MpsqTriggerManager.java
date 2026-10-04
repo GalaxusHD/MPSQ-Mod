@@ -29,6 +29,12 @@ public final class MpsqTriggerManager {
 
     private MpsqTriggerManager() { }
 
+    public static BlockPos position(UUID triggerId) {
+        if (triggerId == null) return null;
+        return TRIGGERS.stream().filter(trigger -> trigger.id().equals(triggerId))
+                .map(MpsqTrigger::position).findFirst().orElse(null);
+    }
+
     public static void initialize() {
         ClientTickEvents.END_CLIENT_TICK.register(MpsqTriggerManager::tick);
         refresh();
@@ -189,6 +195,11 @@ public final class MpsqTriggerManager {
     private static void dispatchLocal(JsonObject row, MpsqTriggerBlockPolicy.Kind kind, boolean powered) {
         JsonObject event = new JsonObject();
         event.addProperty("action_type", row.get("actionType").getAsString());
+        JsonObject triggerPosition = new JsonObject();
+        triggerPosition.addProperty("x", row.get("x").getAsInt());
+        triggerPosition.addProperty("y", row.get("y").getAsInt());
+        triggerPosition.addProperty("z", row.get("z").getAsInt());
+        event.add("trigger_position", triggerPosition);
         JsonObject data = row.getAsJsonObject("actionData").deepCopy();
         if (kind.followsPowerState()) data.addProperty("redstone_powered", powered);
         event.add("action_data", data);

@@ -4,7 +4,12 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.AbstractClientPlayerEntity;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.entity.EntityType;
+import net.minecraft.entity.SpawnReason;
+import net.minecraft.entity.passive.VillagerEntity;
+import net.minecraft.world.Heightmap;
 import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.math.BlockPos;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -12,44 +17,62 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-/** Client-side movement sensor used by the MPSQ Redstone SWITCH_SYSTEM action. */
+/** Client-side Red Light, Green Light system used by the MPSQ Redstone SWITCH_SYSTEM action. */
 public final class MpsqMovementSensorSystem {
-    public static final String SYSTEM_ID = "bewegungssensor";
+    public static final String SYSTEM_ID = "red_light_green_light";
     private static final long ACTIVITY_GLOW_MS = 900L;
     private static final int RESTING_GLOW = 0xFFFFFF;
     private static final int ACTIVE_GLOW = 0xFF5555;
     private static final Map<UUID, Sample> SAMPLES = new HashMap<>();
     private static final Map<UUID, Long> ACTIVE_UNTIL = new HashMap<>();
     private static volatile boolean active;
+    private static BlockPos testVillagerAnchor;
+    private static VillagerEntity testVillager;
+    private static int nextFakeEntityId = -1_900_000_000;
 
     private MpsqMovementSensorSystem() { }
 
     public static void initialize() {
-        MpsqSystemController.register(SYSTEM_ID, new MpsqSystemController.Listener() {
+        MpsqSystemController.Listener listener = new MpsqSystemController.Listener() {
             @Override public void onActivated() { activate(); }
             @Override public void onDeactivated() { deactivate(); }
-        });
+        };
+        MpsqSystemController.register(SYSTEM_ID, "Red Light, Green Light", listener);
+        MpsqSystemController.registerLegacyAlias("bewegungssensor", listener);
         ClientTickEvents.END_CLIENT_TICK.register(MpsqMovementSensorSystem::tick);
     }
 
     public static boolean isActive() { return active; }
+
+    /** The built-in villager is a temporary visible test actor for this system. */
+    public static void setTestVillagerAnchor(BlockPos anchor) {
+        testVillagerAnchor = anchor == null ? null : anchor.toImmutable();
+    }
+
+    public static boolean isTestVillager(net.minecraft.entity.Entity entity) {
+        return testVillager != null && entity == testVillager;
+    }
 
     public static int outlineColor(AbstractClientPlayerEntity player) {
         Long until = ACTIVE_UNTIL.get(player.getUuid());
         return until != null && System.currentTimeMillis() < until ? ACTIVE_GLOW : RESTING_GLOW;
     }
 
+    public static int testVillagerOutlineColor() { return 0x55FF55; }
+
     private static synchronized void activate() {
         active = true;
         SAMPLES.clear();
         ACTIVE_UNTIL.clear();
         seedSamples(MinecraftClient.getInstance());
+        spawnTestVillager(MinecraftClient.getInstance());
     }
 
     private static synchronized void deactivate() {
         active = false;
         SAMPLES.clear();
         ACTIVE_UNTIL.clear();
+        removeTestVillager();
     }
 
     private static void tick(MinecraftClient client) {
@@ -57,6 +80,8 @@ public final class MpsqMovementSensorSystem {
             if (active && (!TeamVisibilitySettings.visible() || client.world == null)) deactivate();
             return;
         }
+
+        keepTestVillagerStill(client);
 
         Set<UUID> seen = new HashSet<>();
         for (PlayerEntity entity : client.world.getPlayers()) {
@@ -94,6 +119,40 @@ public final class MpsqMovementSensorSystem {
 
     private static synchronized void markActive(UUID playerId) {
         ACTIVE_UNTIL.put(playerId, System.currentTimeMillis() + ACTIVITY_GLOW_MS);
+    }
+
+    private static void spawnTestVillager(MinecraftClient client) {
+        BlockPos anchor = testVillagerAnchor;
+        removeTestVillager();
+        if (client.world == null || anchor == null) return;
+        BlockPos candidate = anchor.east(4);
+        if (!client.world.isChunkLoaded(candidate)) return;
+        int surfaceY = client.world.getTopY(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, candidate.getX(), candidate.getZ());
+        VillagerEntity villager = EntityType.VILLAGER.create(client.world, SpawnReason.COMMAND);
+        if (villager == null) return;
+        villager.setId(nextFakeEntityId++);
+        villager.setNoGravity(true);
+        villager.refreshPositionAndAngles(candidate.getX() + 0.5, surfaceY, candidate.getZ() + 0.5, 180.0F, 0.0F);
+        client.world.addEntity(villager);
+        testVillager = villager;
+    }
+
+    private static void keepTestVillagerStill(MinecraftClient client) {
+        VillagerEntity villager = testVillager;
+        if (villager == null) return;
+        if (villager.getWorld() != client.world || villager.isRemoved()) {
+            testVillager = null;
+            return;
+        }
+        villager.setVelocity(Vec3d.ZERO);
+        villager.setNoGravity(true);
+    }
+
+    private static void removeTestVillager() {
+        VillagerEntity villager = testVillager;
+        testVillager = null;
+        if (villager != null && !villager.isRemoved()) villager.discard();
+        testVillagerAnchor = null;
     }
 
     private record Sample(Vec3d position) { }

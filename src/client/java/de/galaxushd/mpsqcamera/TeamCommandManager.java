@@ -39,6 +39,7 @@ public final class TeamCommandManager {
                         if (!server.isBlank() && !world.isBlank()) {
                             body.addProperty("serverId", server);
                             body.addProperty("worldId", world);
+                            MpsqActionSync.playKickSoundLocally(target);
                             MpsqApiClient.post("/kick-animation", body);
                         } else if (TeamVisibilitySettings.visible()) {
                             MpsqMediaAudioManager.playBundledMp3("/assets/mpsqcamera/sounds/kick.mp3", 0.28f);
