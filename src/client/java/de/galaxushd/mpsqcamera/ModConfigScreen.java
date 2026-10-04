@@ -23,6 +23,7 @@ public class ModConfigScreen extends Screen {
     private static final int LICENSE_MARGIN = 6;
     private static final int LICENSE_WIDTH = 60;
     private static final int ACCESSORY_WIDTH = 76;
+    private static final int PET_WIDTH = 48;
     private static final int SYSTEM_MARGIN = 8;
 
     private TextFieldWidget codeInputField;
@@ -69,6 +70,9 @@ public class ModConfigScreen extends Screen {
         int accessoryWidth = Math.min(ACCESSORY_WIDTH, Math.max(60, width / 3));
         addDrawableChild(ButtonWidget.builder(Text.literal("Accessoires"), b -> client.setScreen(new MpsqAccessoriesScreen(this)))
                 .dimensions(width-LICENSE_MARGIN-accessoryWidth,8,accessoryWidth,BUTTON_HEIGHT).build());
+        int petWidth = Math.min(PET_WIDTH, Math.max(42, width / 5));
+        addDrawableChild(ButtonWidget.builder(Text.literal("Pets"), b -> client.setScreen(new MpsqPetMenuScreen(this)))
+                .dimensions(width-LICENSE_MARGIN-accessoryWidth-petWidth-4,8,petWidth,BUTTON_HEIGHT).build());
         boolean canManageModels=TeamStateStore.self().map(p->p.permissionRank().level()>=TeamRank.OFFICER.level()).orElse(false);
         if(canManageModels) {
             addDrawableChild(ButtonWidget.builder(Text.literal("System"), b -> client.setScreen(new MpsqActionSetupScreen()))
