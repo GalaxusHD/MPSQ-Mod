@@ -7,10 +7,16 @@ import net.minecraft.text.Text;
 /** Temporary tutorial destination until collection help content is ready. */
 public final class MpsqCollectionTutorialScreen extends Screen {
     private final Screen parent;
+    private final String topic;
 
     public MpsqCollectionTutorialScreen(Screen parent) {
-        super(Text.literal("Sammlung · Tutorial"));
+        this(parent, "Accessoires & Pets");
+    }
+
+    public MpsqCollectionTutorialScreen(Screen parent, String topic) {
+        super(Text.literal(topic + " · Tutorial"));
         this.parent = parent;
+        this.topic = topic;
     }
 
     @Override
@@ -30,7 +36,7 @@ public final class MpsqCollectionTutorialScreen extends Screen {
         context.fill(left + 3, top + 4, left + panelWidth + 3, top + panelHeight + 4, 0x99000000);
         context.fill(left, top, left + panelWidth, top + panelHeight, 0xEE101014);
         context.fill(left, top, left + panelWidth, top + 3, 0xFFFF1764);
-        context.drawCenteredTextWithShadow(textRenderer, "Tutorial · Accessoires & Pets",
+        context.drawCenteredTextWithShadow(textRenderer, "Tutorial · " + topic,
                 centerX, top + 24, 0xFFF4F0F2);
         context.drawCenteredTextWithShadow(textRenderer, "Kommt bald",
                 centerX, top + 48, 0xFFFF4F83);
