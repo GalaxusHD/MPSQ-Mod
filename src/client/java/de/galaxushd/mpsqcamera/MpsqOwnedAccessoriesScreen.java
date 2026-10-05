@@ -14,7 +14,7 @@ import net.minecraft.util.Identifier;
 /** Player collection view; the Accessories NPC shop remains in MpsqAccessoriesScreen. */
 public final class MpsqOwnedAccessoriesScreen extends Screen {
     private static final int ART_WIDTH = 352;
-    private static final int ART_HEIGHT = 442;
+    private static final int ART_HEIGHT = 250;
     private static final int GRID_LEFT = 14;
     private static final int GRID_TOP = 70;
     private static final int SLOT_SIZE = 36;

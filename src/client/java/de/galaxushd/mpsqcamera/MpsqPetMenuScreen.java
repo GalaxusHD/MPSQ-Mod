@@ -11,7 +11,7 @@ import java.util.List;
 /** Shared inventory-style screen for the player's Mini-Me and animal pets. */
 public final class MpsqPetMenuScreen extends Screen {
     private static final int ART_WIDTH = 352;
-    private static final int ART_HEIGHT = 252;
+    private static final int ART_HEIGHT = 250;
     private static final int GRID_LEFT = 14;
     private static final int GRID_TOP = 70;
     private static final int SLOT_SIZE = 36;

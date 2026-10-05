@@ -9,7 +9,7 @@ import net.minecraft.util.Identifier;
 /** Main collection hub for the player's owned accessories and pets. */
 public final class MpsqCollectionScreen extends Screen {
     private static final int ART_WIDTH = 352;
-    private static final int ART_HEIGHT = 254;
+    private static final int ART_HEIGHT = 250;
     private static final Identifier BACKGROUND = Identifier.of(
             MpsqCameraClient.MOD_ID, "textures/gui/mpsq_collection.png");
 
