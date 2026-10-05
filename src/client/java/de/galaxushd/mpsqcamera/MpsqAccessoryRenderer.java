@@ -61,6 +61,8 @@ public final class MpsqAccessoryRenderer {
     private static boolean localCatalogRequested;
     private static boolean localAccessoryCatalogRequested;
     private static String tryOnUrl;
+    private static String menuPreviewUrl;
+    private static boolean menuPlayerPreviewActive;
     private static net.minecraft.util.math.Vec3d tryOnStart;
     private static final java.util.BitSet pressedKeys=new java.util.BitSet();
     private static final HttpClient HTTP=HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
@@ -277,6 +279,22 @@ public final class MpsqAccessoryRenderer {
     private static void mapCatalog(JsonArray values,String fallback){for(JsonElement value:values){if(!value.isJsonObject())continue;JsonObject asset=value.getAsJsonObject();if(asset.has("id")&&asset.has("url")){String id=asset.get("id").getAsString();localAssetUrls.put(id,asset.get("url").getAsString());localAssetCategories.put(id,str(asset,"category",fallback));}}}
     private static void applyLocalEquippedAccessory(JsonArray values){String id=MpsqLocalWorldStore.equipped();var player=MinecraftClient.getInstance().player;if(id==null||player==null)return;for(JsonElement e:values){if(!e.isJsonObject())continue;JsonObject row=e.getAsJsonObject();if(id.equals(str(row,"accessory_id",""))&&row.has("url")&&!row.get("url").isJsonNull()){wearers.put(player.getName().getString().toLowerCase(Locale.ROOT),row.get("url").getAsString());return;}}}
     public static void tryOn(String url){tryOnUrl=url;tryOnStart=MinecraftClient.getInstance().player==null?null:MinecraftClient.getInstance().player.getPos();pressedKeys.clear();if(url!=null&&MinecraftClient.getInstance().player!=null)MinecraftClient.getInstance().player.sendMessage(net.minecraft.text.Text.literal("Vorschau aktiv · Bewegung oder eine Taste beendet sie (F5 bleibt erlaubt)."),true);}
+    /** Temporarily scopes accessory rendering to the player rendered inside the collection GUI. */
+    public static void beginMenuPlayerPreview(String url){menuPreviewUrl=url;menuPlayerPreviewActive=true;}
+    public static void endMenuPlayerPreview(){menuPlayerPreviewActive=false;}
+    public static void renderMenuPlayerPreviewAccessory(net.minecraft.client.render.entity.state.PlayerEntityRenderState state,MatrixStack matrices,VertexConsumerProvider consumers){
+        if(!menuPlayerPreviewActive||menuPreviewUrl==null||menuPreviewUrl.isBlank())return;
+        Model model=models.get(menuPreviewUrl);
+        if(model==null){if((WUMPUS_MODEL_URL.equals(menuPreviewUrl)||MpsqApiClient.isReady())&&models.size()+loading.size()<64)load(menuPreviewUrl,generation);return;}
+        matrices.push();
+        matrices.translate(0.0,1.62,0.0);
+        matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(-state.relativeHeadYaw));
+        matrices.multiply(RotationAxis.POSITIVE_X.rotationDegrees(state.pitch));
+        matrices.translate(-0.5,-0.25,-0.5);
+        matrices.scale(1f/16f,1f/16f,1f/16f);
+        drawBbModel(model,matrices,consumers,0xFFFFFFFF);
+        matrices.pop();
+    }
     private static void clearTryOn(){tryOnUrl=null;tryOnStart=null;pressedKeys.clear();}
     /** Draws a compact isometric model thumbnail with texture-derived face colors. */
     public static void drawGuiPreview(net.minecraft.client.gui.DrawContext context,String url,int x,int y,float size){int px=Math.max(20,Math.min(64,Math.round(20*size)));Model model=models.get(url);if(model==null){if(url!=null&&(WUMPUS_MODEL_URL.equals(url)||MpsqApiClient.isReady())&&models.size()+loading.size()<64)load(url,generation);context.fill(x-px/2-1,y-px/2-1,x+px/2+1,y+px/2+1,0xAA222222);return;}Identifier preview=previews.computeIfAbsent(url,key->bakePreview(key,model));context.fill(x-px/2-1,y-px/2-1,x+px/2+1,y+px/2+1,0xFF151820);if(preview!=null)context.drawTexturedQuad(preview,x-px/2,y-px/2,px,px,0,0,1,1);}

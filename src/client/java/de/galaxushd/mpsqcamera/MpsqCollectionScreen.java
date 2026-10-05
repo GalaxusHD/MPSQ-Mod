@@ -55,7 +55,7 @@ public final class MpsqCollectionScreen extends Screen {
         // The blue and green 3x3 card faces each act as one single button.
         // There are intentionally no individual slot widgets or hover glows.
         if (inside(guiX, guiY, 52, 107, 105, 105)) {
-            client.setScreen(new MpsqAccessoriesScreen(this));
+            client.setScreen(new MpsqOwnedAccessoriesScreen(this));
             return true;
         }
         if (inside(guiX, guiY, 196, 107, 105, 105)) {
