@@ -11,7 +11,7 @@ import net.minecraft.util.Util;
 
 import java.net.URI;
 
-/** Inventory-style Discord invitation with a raised, clickable button. */
+/** Inventory-style Discord invitation banner; its image contains the clickable button. */
 public final class MpsqWumpusDiscordScreen extends Screen {
     private static final Identifier BANNER = Identifier.of("mpsqcamera", "textures/gui/wumpus_discord_banner.png");
     private static final String INVITE_URL = "https://discord.gg/x8xTsxtVS9";
@@ -48,36 +48,6 @@ public final class MpsqWumpusDiscordScreen extends Screen {
         Layout layout = layout();
         context.drawTexture(RenderPipelines.GUI_TEXTURED, BANNER, layout.imageLeft(), layout.imageTop(), 0, 0,
                 layout.imageWidth(), layout.imageHeight(), IMAGE_WIDTH, IMAGE_HEIGHT, IMAGE_WIDTH, IMAGE_HEIGHT);
-        drawRaisedButton(context, layout, mouseX, mouseY);
-    }
-
-    private void drawRaisedButton(DrawContext context, Layout layout, int mouseX, int mouseY) {
-        int x = layout.imageLeft() + Math.round(layout.imageWidth() * 0.30f);
-        int y = layout.imageTop() + Math.round(layout.imageHeight() * 0.735f);
-        int w = Math.round(layout.imageWidth() * 0.40f);
-        int h = Math.max(24, Math.round(layout.imageHeight() * 0.19f));
-        boolean hovered = mouseX >= x && mouseX < x + w && mouseY >= y && mouseY < y + h;
-        int lift = hovered ? 2 : 4;
-        // Offset dark extrusion gives the button a visible 3D edge over the flat banner art.
-        context.fill(x + 2, y + lift, x + w + 2, y + h + lift, 0xFF090518);
-        context.fill(x, y + 3, x + w, y + h + 3, 0xFF21004E);
-        context.fill(x + 3, y, x + w - 3, y + h - 2, 0xFF160A36);
-        context.fill(x + 5, y + 3, x + w - 5, y + h - 5, hovered ? 0xFF6516D5 : 0xFF5210B8);
-        context.fill(x + 7, y + 4, x + w - 7, y + 7, 0xFF9D55FF);
-        context.fill(x + 7, y + h - 7, x + w - 7, y + h - 5, 0xFF351078);
-
-        int iconSize = Math.max(11, h / 3);
-        int iconX = x + Math.round(w * 0.19f) - iconSize / 2;
-        int centerY = y + h / 2;
-        context.fill(iconX + 2, centerY - iconSize / 3, iconX + iconSize - 2, centerY + iconSize / 3, 0xFFE0C9FF);
-        context.fill(iconX, centerY - iconSize / 6, iconX + 3, centerY + iconSize / 4, 0xFFE0C9FF);
-        context.fill(iconX + iconSize - 3, centerY - iconSize / 6, iconX + iconSize, centerY + iconSize / 4, 0xFFE0C9FF);
-        context.fill(iconX + iconSize / 3, centerY - 1, iconX + iconSize / 3 + 2, centerY + 1, 0xFF3B1878);
-        context.fill(iconX + iconSize * 2 / 3 - 1, centerY - 1, iconX + iconSize * 2 / 3 + 1, centerY + 1, 0xFF3B1878);
-
-        Text label = Text.literal("Joine hier");
-        context.drawCenteredTextWithShadow(textRenderer, label, x + Math.round(w * 0.59f), centerY - 4,
-                hovered ? 0xFFFFFFFF : 0xFFE2D2FF);
     }
 
     private Layout layout() {

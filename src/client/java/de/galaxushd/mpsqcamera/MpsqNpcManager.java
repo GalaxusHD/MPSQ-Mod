@@ -22,16 +22,16 @@ public final class MpsqNpcManager {
         if (player == null || client.world == null || client.currentScreen != null || !TeamVisibilitySettings.visible()) return false;
         JsonObject npc = targeted(player);
         if (npc == null) return false;
+        if (player.isSneaking() && isOfficer()) {
+            client.setScreen(new MpsqNpcConfiguratorScreen(null, npc));
+            return true;
+        }
         if (MpsqAccessoryRenderer.WUMPUS_ASSET_ID.equals(str(npc, "asset_id", ""))) {
             MpsqWumpusBehavior.wave(str(npc, "id", ""));
             MinecraftClient.getInstance().setScreen(new MpsqWumpusDiscordScreen(null));
             return true;
         }
-        if (player.isSneaking() && isOfficer()) {
-            client.setScreen(new MpsqNpcConfiguratorScreen(null, npc));
-        } else {
-            interact(npc);
-        }
+        interact(npc);
         return true;
     }
 
