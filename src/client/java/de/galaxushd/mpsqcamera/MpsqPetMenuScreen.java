@@ -1,10 +1,12 @@
 package de.galaxushd.mpsqcamera;
 
-import net.minecraft.client.gl.RenderPipelines;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gl.RenderPipelines;
+import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
+import net.minecraft.util.math.RotationAxis;
 
 import java.util.List;
 
@@ -78,19 +80,36 @@ public final class MpsqPetMenuScreen extends Screen {
             int row = index / PET_COLUMNS;
             int x = drawLeft + Math.round((GRID_LEFT + column * SLOT_SIZE) * drawScale);
             int y = drawTop + Math.round((GRID_TOP + row * SLOT_SIZE) * drawScale);
-            int iconSize = Math.max(1, Math.round(24 * drawScale));
-            int iconX = x + Math.round((SLOT_SIZE - 24) * drawScale / 2);
-            int iconY = y + Math.round((SLOT_SIZE - 24) * drawScale / 2);
 
-            drawHead(context, pet, iconX, iconY, iconSize);
+            drawPetModel(context, pet, x, y);
         }
     }
 
-    private void drawHead(DrawContext context, MpsqPetCatalog.Pet pet, int x, int y, int size) {
-        context.drawTexture(RenderPipelines.GUI_TEXTURED, pet.textureId(), x, y, 8, 8,
-                size, size, 64, pet.textureHeight(), 64, pet.textureHeight());
-        context.drawTexture(RenderPipelines.GUI_TEXTURED, pet.textureId(), x, y, 40, 8,
-                size, size, 64, pet.textureHeight(), 64, pet.textureHeight());
+    private void drawPetModel(DrawContext context, MpsqPetCatalog.Pet pet, int slotX, int slotY) {
+        if (client == null) return;
+        MpsqNpcSkinRenderer.Skin skin = MpsqPetRenderer.skinFor(pet);
+        if (skin == null) return;
+
+        float scale = Math.max(4.0f, 10.0f * drawScale);
+        float age = (System.currentTimeMillis() % 100_000L) / 50.0f;
+        var state = MpsqNpcSkinRenderer.createState(skin, 180.0f, 0.0f, age, false);
+        int left = slotX + Math.round(3 * drawScale);
+        int right = slotX + Math.round((SLOT_SIZE - 3) * drawScale);
+        int bottom = slotY + Math.round((SLOT_SIZE - 2) * drawScale);
+
+        // Render every preset and the live skin with the same 3D player model,
+        // letting Minecraft apply the correct normal or slim arm geometry.
+        context.draw();
+        var matrices = context.getMatrices();
+        VertexConsumerProvider.Immediate consumers = client.getBufferBuilders().getEntityVertexConsumers();
+        matrices.push();
+        matrices.translate((left + right) * 0.5f, bottom, 120.0f);
+        matrices.scale(scale, -scale, scale);
+        matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(180.0f));
+        client.getEntityRenderDispatcher().render(state, 0.0, 0.0, 0.0,
+                matrices, consumers, 0xF000F0);
+        consumers.draw();
+        matrices.pop();
     }
 
     @Override

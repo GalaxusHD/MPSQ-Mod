@@ -25,6 +25,7 @@ public final class MpsqAccessoryRenderer {
     private static final String WUMPUS_MODEL_URL="builtin://mpsq/wumpus";
     public static final String DISCORD_HAT_ASSET_ID="discord_hat";
     private static final String DISCORD_HAT_MODEL_URL="builtin://mpsq/discord_hat";
+    private static final float WUMPUS_WAVE_FACING_OFFSET=190f;
     private static boolean isBuiltinModel(String url){return WUMPUS_MODEL_URL.equals(url)||DISCORD_HAT_MODEL_URL.equals(url);}
     public static String assetPreviewUrl(String assetId,String fallback){if(WUMPUS_ASSET_ID.equals(assetId))return WUMPUS_MODEL_URL;if(DISCORD_HAT_ASSET_ID.equalsIgnoreCase(assetId))return DISCORD_HAT_MODEL_URL;return fallback;}
     private record RenderFace(Identifier texture,float[][] vertices,float nx,float ny,float nz){}
@@ -207,7 +208,7 @@ public final class MpsqAccessoryRenderer {
                 float bodyYaw=configuredYaw,targetYaw=bodyYaw;
                 boolean waveTurn=wumpus&&"wave".equals(clip);
                 boolean trackingPlayer=client.player!=null&&(wumpus||face&&client.player.squaredDistanceTo(x,y+npcHeight*0.5,z)<=900);
-                if(wumpus&&client.player!=null){if(waveTurn){LookAngles look=calculateVillagerLookAngles(x,y,z,size,false,client.player);targetYaw=look.yaw()+configuredYaw+180f;}else targetYaw=client.player.getYaw()+configuredYaw;pitch=0f;}
+                if(wumpus&&client.player!=null){if(waveTurn){LookAngles look=calculateVillagerLookAngles(x,y,z,size,false,client.player);targetYaw=look.yaw()+configuredYaw+WUMPUS_WAVE_FACING_OFFSET;}else targetYaw=client.player.getYaw()+configuredYaw;pitch=0f;}
                 else if(trackingPlayer){LookAngles look=calculateVillagerLookAngles(x,y,z,size,playerSkin,client.player);targetYaw=look.yaw();pitch=look.pitch();}
                 String rotationKey=o.has("id")?o.get("id").getAsString():x+":"+y+":"+z;
                 if(trackingPlayer){if(wumpus)bodyYaw=smoothFullBodyYaw(rotationKey,bodyYaw,targetYaw);else{float[] smoothed=smoothNpcRotation(rotationKey,bodyYaw,targetYaw,pitch);bodyYaw=smoothed[0];relativeHeadYaw=smoothed[1];pitch=smoothed[2];}}

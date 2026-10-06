@@ -17,6 +17,7 @@ public final class MpsqPetCatalog {
     }
 
     private static final List<Pet> PETS = List.of(
+            mini("my_skin", "Mein Skin", "__player__", null, "Verwendet deinen aktuell geladenen Minecraft-Skin (Slim oder Normal)."),
             mini("seong_gi_hun", "Seong Gi-hun", "gi_hun", "ive-played-these-games-before_Q9d8uER.mp3", "Eigener Interaktionssound; sonst allgemeine Mini-You-Laufgeräusche."),
             mini("monty", "Monty", "monty", "20221030_CrunchyUglyToadKeyboardCat-L-oRCpTmjqu1QlN__source.mp4", "Eigener Interaktionssound; sonst allgemeine Mini-You-Laufgeräusche."),
             mini("der_pandi", "der_pandi", "der_pandi", null, "Keine eigenen Sounds."),

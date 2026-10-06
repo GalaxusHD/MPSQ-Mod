@@ -11,6 +11,7 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.WorldRenderer;
 import net.minecraft.client.texture.NativeImage;
 import net.minecraft.client.texture.NativeImageBackedTexture;
+import net.minecraft.client.util.SkinTextures;
 import net.minecraft.util.Identifier;
 
 /** Renders the selected Mini-Me skin as a small local companion. */
@@ -96,7 +97,14 @@ final class MpsqPetRenderer {
         return id == null ? null : MpsqPetCatalog.byId(id);
     }
 
-    private static MpsqNpcSkinRenderer.Skin skinFor(MpsqPetCatalog.Pet pet) {
+    static MpsqNpcSkinRenderer.Skin skinFor(MpsqPetCatalog.Pet pet) {
+        MinecraftClient client = MinecraftClient.getInstance();
+        if ("__player__".equals(pet.texture())) {
+            if (client.player == null) return null;
+            SkinTextures textures = client.player.getSkinTextures();
+            return new MpsqNpcSkinRenderer.Skin(textures.texture(),
+                    textures.model() == SkinTextures.Model.SLIM);
+        }
         if (pet.textureHeight() == 64) return new MpsqNpcSkinRenderer.Skin(pet.textureId(), false);
         MpsqNpcSkinRenderer.Skin cached = LEGACY_SKINS.get(pet.id());
         if (cached != null) return cached;

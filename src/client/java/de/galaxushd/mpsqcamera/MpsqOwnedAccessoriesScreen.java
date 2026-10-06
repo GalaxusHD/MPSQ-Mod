@@ -229,7 +229,7 @@ public final class MpsqOwnedAccessoriesScreen extends Screen {
         MpsqAccessoryRenderer.beginMenuPlayerPreview(url);
         try {
         InventoryScreen.drawEntity(context, left, top, right, bottom, Math.round(modelSize),
-                    mouseX, mouseY, 0.0f, client.player);
+                    1.0f, mouseX, mouseY, client.player);
         } finally {
             MpsqAccessoryRenderer.endMenuPlayerPreview();
         }
