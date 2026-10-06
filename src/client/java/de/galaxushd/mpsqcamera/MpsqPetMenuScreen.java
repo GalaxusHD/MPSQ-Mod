@@ -1,14 +1,18 @@
 package de.galaxushd.mpsqcamera;
 
+import com.mojang.authlib.GameProfile;
+import net.minecraft.client.gui.screen.ingame.InventoryScreen;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.network.OtherClientPlayerEntity;
+import net.minecraft.client.util.SkinTextures;
+import net.minecraft.client.world.ClientWorld;
 import net.minecraft.client.gl.RenderPipelines;
-import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
-import net.minecraft.util.math.RotationAxis;
 
 import java.util.List;
+import java.util.UUID;
 
 /** Shared inventory-style screen for the player's Mini-Me and animal pets. */
 public final class MpsqPetMenuScreen extends Screen {
@@ -30,6 +34,7 @@ public final class MpsqPetMenuScreen extends Screen {
     private float drawScale;
     private int drawLeft;
     private int drawTop;
+    private PetPreviewPlayer previewPlayer;
 
     public MpsqPetMenuScreen(Screen parent) {
         this(parent, PetKind.MINI_ME);
@@ -90,26 +95,41 @@ public final class MpsqPetMenuScreen extends Screen {
         MpsqNpcSkinRenderer.Skin skin = MpsqPetRenderer.skinFor(pet);
         if (skin == null) return;
 
-        float scale = Math.max(4.0f, 10.0f * drawScale);
-        float age = (System.currentTimeMillis() % 100_000L) / 50.0f;
-        var state = MpsqNpcSkinRenderer.createState(skin, 180.0f, 0.0f, age, false);
+        if (client.world == null) return;
+        if (previewPlayer == null || previewPlayer.getWorld() != client.world) {
+            previewPlayer = new PetPreviewPlayer(client.world);
+        }
+        previewPlayer.setPreviewSkin(skin);
         int left = slotX + Math.round(3 * drawScale);
+        int top = slotY + Math.round(2 * drawScale);
         int right = slotX + Math.round((SLOT_SIZE - 3) * drawScale);
         int bottom = slotY + Math.round((SLOT_SIZE - 2) * drawScale);
+        int size = Math.max(4, Math.round(14 * drawScale));
+        float centerX = (left + right) * 0.5f;
+        float centerY = (top + bottom) * 0.5f;
 
-        // Render every preset and the live skin with the same 3D player model,
-        // letting Minecraft apply the correct normal or slim arm geometry.
-        context.draw();
-        var matrices = context.getMatrices();
-        VertexConsumerProvider.Immediate consumers = client.getBufferBuilders().getEntityVertexConsumers();
-        matrices.push();
-        matrices.translate((left + right) * 0.5f, bottom, 120.0f);
-        matrices.scale(scale, -scale, scale);
-        matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(180.0f));
-        client.getEntityRenderDispatcher().render(state, 0.0, 0.0, 0.0,
-                matrices, consumers, 0xF000F0);
-        consumers.draw();
-        matrices.pop();
+        // InventoryScreen manages the GUI's 3D target and MatrixStack. The
+        // preview entity supplies the preset texture and slim/wide model.
+        InventoryScreen.drawEntity(context, left, top, right, bottom, size, 1.0f,
+                centerX, centerY, previewPlayer);
+    }
+
+    private static final class PetPreviewPlayer extends OtherClientPlayerEntity {
+        private SkinTextures previewSkin;
+
+        private PetPreviewPlayer(ClientWorld world) {
+            super(world, new GameProfile(UUID.randomUUID(), "MPSQ Pet Preview"));
+        }
+
+        private void setPreviewSkin(MpsqNpcSkinRenderer.Skin skin) {
+            previewSkin = new SkinTextures(skin.texture(), "", null, null,
+                    skin.slim() ? SkinTextures.Model.SLIM : SkinTextures.Model.WIDE, false);
+        }
+
+        @Override
+        public SkinTextures getSkinTextures() {
+            return previewSkin == null ? super.getSkinTextures() : previewSkin;
+        }
     }
 
     @Override
