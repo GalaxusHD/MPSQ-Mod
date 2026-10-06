@@ -155,7 +155,9 @@ public final class MpsqOwnedAccessoriesScreen extends Screen {
         JsonObject definition = row.has("mpsq_accessories") && row.get("mpsq_accessories").isJsonObject()
                 ? row.getAsJsonObject("mpsq_accessories") : row;
         String url = str(row, "url", str(definition, "url", ""));
-        String assetId = str(row, "asset_id", str(definition, "asset_id", ""));
+        String assetId = str(row, "asset_id", str(definition, "asset_id", str(definition, "model_id", "")));
+        String filename = str(row, "filename", str(definition, "filename", ""));
+        if ("discord_hat.json".equalsIgnoreCase(filename)) assetId = MpsqAccessoryRenderer.DISCORD_HAT_ASSET_ID;
         return MpsqAccessoryRenderer.assetPreviewUrl(assetId, url);
     }
 

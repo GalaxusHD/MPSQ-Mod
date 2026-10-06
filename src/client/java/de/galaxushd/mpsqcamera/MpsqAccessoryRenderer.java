@@ -23,7 +23,10 @@ public final class MpsqAccessoryRenderer {
     private record Model(JsonArray elements,JsonArray meshes,JsonArray bones,JsonArray animations,Map<String,Identifier> textures,Map<String,Integer> previewColors,List<RenderFace> bakedGeometry){}
     public static final String WUMPUS_ASSET_ID="mpsq_wumpus";
     private static final String WUMPUS_MODEL_URL="builtin://mpsq/wumpus";
-    public static String assetPreviewUrl(String assetId,String fallback){return WUMPUS_ASSET_ID.equals(assetId)?WUMPUS_MODEL_URL:fallback;}
+    public static final String DISCORD_HAT_ASSET_ID="discord_hat";
+    private static final String DISCORD_HAT_MODEL_URL="builtin://mpsq/discord_hat";
+    private static boolean isBuiltinModel(String url){return WUMPUS_MODEL_URL.equals(url)||DISCORD_HAT_MODEL_URL.equals(url);}
+    public static String assetPreviewUrl(String assetId,String fallback){if(WUMPUS_ASSET_ID.equals(assetId))return WUMPUS_MODEL_URL;if(DISCORD_HAT_ASSET_ID.equalsIgnoreCase(assetId))return DISCORD_HAT_MODEL_URL;return fallback;}
     private record RenderFace(Identifier texture,float[][] vertices,float nx,float ny,float nz){}
     private record PreviewPoint(double x,double y,double z){}
     private record PreviewPolygon(double[][] points,int color,double depth){}
@@ -309,7 +312,7 @@ public final class MpsqAccessoryRenderer {
     }
     private static float wrapDegrees(float degrees){degrees%=360f;if(degrees>=180f)degrees-=360f;if(degrees< -180f)degrees+=360f;return degrees;}
     private static void mapCatalog(JsonArray values,String fallback){for(JsonElement value:values){if(!value.isJsonObject())continue;JsonObject asset=value.getAsJsonObject();if(asset.has("id")&&asset.has("url")){String id=asset.get("id").getAsString();localAssetUrls.put(id,asset.get("url").getAsString());localAssetCategories.put(id,str(asset,"category",fallback));}}}
-    private static void applyLocalEquippedAccessory(JsonArray values){String id=MpsqLocalWorldStore.equipped();var player=MinecraftClient.getInstance().player;if(id==null||player==null)return;for(JsonElement e:values){if(!e.isJsonObject())continue;JsonObject row=e.getAsJsonObject();if(id.equals(str(row,"accessory_id",""))&&row.has("url")&&!row.get("url").isJsonNull()){wearers.put(player.getName().getString().toLowerCase(Locale.ROOT),row.get("url").getAsString());return;}}}
+    private static void applyLocalEquippedAccessory(JsonArray values){String id=MpsqLocalWorldStore.equipped();var player=MinecraftClient.getInstance().player;if(id==null||player==null)return;if(DISCORD_HAT_ASSET_ID.equalsIgnoreCase(id)){wearers.put(player.getName().getString().toLowerCase(Locale.ROOT),DISCORD_HAT_MODEL_URL);return;}for(JsonElement e:values){if(!e.isJsonObject())continue;JsonObject row=e.getAsJsonObject();if(id.equals(str(row,"accessory_id",""))&&row.has("url")&&!row.get("url").isJsonNull()){wearers.put(player.getName().getString().toLowerCase(Locale.ROOT),row.get("url").getAsString());return;}}}
     public static void tryOn(String url){tryOnUrl=url;tryOnStart=MinecraftClient.getInstance().player==null?null:MinecraftClient.getInstance().player.getPos();pressedKeys.clear();if(url!=null&&MinecraftClient.getInstance().player!=null)MinecraftClient.getInstance().player.sendMessage(net.minecraft.text.Text.literal("Vorschau aktiv · Bewegung oder eine Taste beendet sie (F5 bleibt erlaubt)."),true);}
     /** Temporarily scopes accessory rendering to the player rendered inside the collection GUI. */
     public static void beginMenuPlayerPreview(String url){menuPreviewUrl=url;menuPlayerPreviewActive=true;}
@@ -317,7 +320,7 @@ public final class MpsqAccessoryRenderer {
     public static void renderMenuPlayerPreviewAccessory(net.minecraft.client.render.entity.state.PlayerEntityRenderState state,MatrixStack matrices,VertexConsumerProvider consumers){
         if(!menuPlayerPreviewActive||menuPreviewUrl==null||menuPreviewUrl.isBlank())return;
         Model model=models.get(menuPreviewUrl);
-        if(model==null){if((WUMPUS_MODEL_URL.equals(menuPreviewUrl)||MpsqApiClient.isReady())&&models.size()+loading.size()<64)load(menuPreviewUrl,generation);return;}
+        if(model==null){if((isBuiltinModel(menuPreviewUrl)||MpsqApiClient.isReady())&&models.size()+loading.size()<64)load(menuPreviewUrl,generation);return;}
         matrices.push();
         matrices.translate(0.0,1.62,0.0);
         matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(-state.relativeHeadYaw));
@@ -329,7 +332,7 @@ public final class MpsqAccessoryRenderer {
     }
     private static void clearTryOn(){tryOnUrl=null;tryOnStart=null;pressedKeys.clear();}
     /** Draws a compact isometric model thumbnail with texture-derived face colors. */
-    public static void drawGuiPreview(net.minecraft.client.gui.DrawContext context,String url,int x,int y,float size){int px=Math.max(20,Math.min(64,Math.round(20*size)));Model model=models.get(url);if(model==null){if(url!=null&&(WUMPUS_MODEL_URL.equals(url)||MpsqApiClient.isReady())&&models.size()+loading.size()<64)load(url,generation);context.fill(x-px/2-1,y-px/2-1,x+px/2+1,y+px/2+1,0xAA222222);return;}Identifier preview=previews.computeIfAbsent(url,key->bakePreview(key,model));context.fill(x-px/2-1,y-px/2-1,x+px/2+1,y+px/2+1,0xFF151820);if(preview!=null)context.drawTexturedQuad(preview,x-px/2,y-px/2,px,px,0,0,1,1);}
+    public static void drawGuiPreview(net.minecraft.client.gui.DrawContext context,String url,int x,int y,float size){int px=Math.max(20,Math.min(64,Math.round(20*size)));Model model=models.get(url);if(model==null){if(url!=null&&(isBuiltinModel(url)||MpsqApiClient.isReady())&&models.size()+loading.size()<64)load(url,generation);context.fill(x-px/2-1,y-px/2-1,x+px/2+1,y+px/2+1,0xAA222222);return;}Identifier preview=previews.computeIfAbsent(url,key->bakePreview(key,model));context.fill(x-px/2-1,y-px/2-1,x+px/2+1,y+px/2+1,0xFF151820);if(preview!=null)context.drawTexturedQuad(preview,x-px/2,y-px/2,px,px,0,0,1,1);}
     public static void drawGuiSkinPreview(net.minecraft.client.gui.DrawContext context,String url,int x,int y,float size,boolean slim){int px=Math.max(20,Math.min(64,Math.round(20*size)));MpsqNpcSkinRenderer.load(url,generation,slim);MpsqNpcSkinRenderer.Skin skin=MpsqNpcSkinRenderer.get(url,slim);context.fill(x-px/2-1,y-px/2-1,x+px/2+1,y+px/2+1,0xFF151820);if(skin!=null)context.drawTexturedQuad(skin.texture(),x-px/2,y-px/2,px,px,8f/64f,8f/64f,16f/64f,16f/64f);}
     private static void clearModels(MinecraftClient client){for(Model model:models.values())for(Identifier id:model.textures.values())client.getTextureManager().destroyTexture(id);models.clear();for(Identifier id:previews.values())client.getTextureManager().destroyTexture(id);previews.clear();}
     private static Identifier bakePreview(String url,Model model){try{List<PreviewPolygon> polygons=new ArrayList<>();java.util.BitSet used=new java.util.BitSet(model.elements.size());for(JsonElement bone:model.bones)collectPreviewBone(model,bone.getAsJsonObject(),new ArrayList<>(),used,polygons);for(int i=used.nextClearBit(0);i<model.elements.size();i=used.nextClearBit(i+1))collectPreviewElement(model,i,new ArrayList<>(),polygons);for(JsonElement mesh:model.meshes){JsonObject m=mesh.getAsJsonObject();JsonArray vertices=m.getAsJsonArray("vertices"),indices=m.getAsJsonArray("indices");int color=model.previewColors.getOrDefault(str(m,"texture",""),0xFFB0B0B0);for(int i=0;i+2<indices.size();i+=3){double[][] p=new double[3][2];double depth=0;for(int k=0;k<3;k++){JsonArray v=vertices.get(indices.get(i+k).getAsInt()).getAsJsonArray();PreviewPoint q=project(v.get(0).getAsDouble(),v.get(1).getAsDouble(),v.get(2).getAsDouble());p[k][0]=q.x;p[k][1]=q.y;depth+=q.y;}polygons.add(new PreviewPolygon(p,color,depth/3));}}
@@ -421,7 +424,7 @@ public final class MpsqAccessoryRenderer {
         CompletableFuture.supplyAsync(()->{
             try{
                 byte[] bytes;
-                if(WUMPUS_MODEL_URL.equals(url)){try(InputStream stream=MpsqAccessoryRenderer.class.getResourceAsStream("/assets/mpsqcamera/models/wumpus.json")){if(stream==null)throw new IOException("Wumpus-Modell fehlt");bytes=stream.readNBytes(12000001);}}
+                if(isBuiltinModel(url)){String path=DISCORD_HAT_MODEL_URL.equals(url)?"/assets/mpsqcamera/models/discord_hat.json":"/assets/mpsqcamera/models/wumpus.json";try(InputStream stream=MpsqAccessoryRenderer.class.getResourceAsStream(path)){if(stream==null)throw new IOException("Modell fehlt: "+path);bytes=stream.readNBytes(12000001);}}
                 else {URI uri=URI.create(url), api=URI.create(MpsqApiClient.API_URL);if(!"https".equals(uri.getScheme())||!api.getHost().equals(uri.getHost()))throw new IOException("Unzulässige Modellquelle");bytes=MpsqLocalWorldStore.readAsset(url,12000000);if(bytes==null){var response=HTTP.send(HttpRequest.newBuilder(uri).timeout(Duration.ofSeconds(20)).GET().build(),HttpResponse.BodyHandlers.ofInputStream());try(InputStream stream=response.body()){if(response.statusCode()!=200)throw new IOException("Modell nicht verfügbar");bytes=stream.readNBytes(12000001);if(bytes.length>12000000)throw new IOException("Modell zu groß");MpsqLocalWorldStore.writeAsset(url,bytes);}}}
                 return JsonParser.parseString(new String(bytes,java.nio.charset.StandardCharsets.UTF_8)).getAsJsonObject();
             }catch(Exception e){throw new java.util.concurrent.CompletionException(e);}
