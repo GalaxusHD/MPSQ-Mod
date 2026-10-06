@@ -16,7 +16,6 @@ public final class MpsqQuestMenuScreen extends Screen {
             MpsqCameraClient.MOD_ID, "textures/gui/mpsq_quest_reward_open.png");
 
     private final Screen parent;
-    private boolean eventTab;
     private float drawScale;
     private int drawLeft;
     private int drawTop;
@@ -53,19 +52,6 @@ public final class MpsqQuestMenuScreen extends Screen {
         context.drawTexture(RenderPipelines.GUI_TEXTURED, EMPTY_REWARD_CHEST,
                 chestX, chestY, 0, 0, chestSize, chestSize, 32, 32, 32, 32);
 
-        // Entries stay empty for this visual pass. Highlight the chosen category.
-        int left = eventTab ? 195 : 51;
-        int right = eventTab ? 301 : 156;
-        int color = eventTab ? 0xFFFFB41C : 0xFF26C793;
-        int x1 = drawLeft + Math.round(left * drawScale);
-        int x2 = drawLeft + Math.round(right * drawScale);
-        int y1 = drawTop + Math.round(72 * drawScale);
-        int y2 = drawTop + Math.round(105 * drawScale);
-        int edge = Math.max(1, Math.round(2 * drawScale));
-        context.fill(x1, y1, x2, y1 + edge, color);
-        context.fill(x1, y2 - edge, x2, y2, color);
-        context.fill(x1, y1, x1 + edge, y2, color);
-        context.fill(x2 - edge, y1, x2, y2, color);
     }
 
     @Override
@@ -75,11 +61,9 @@ public final class MpsqQuestMenuScreen extends Screen {
         double x = (mouseX - drawLeft) / drawScale;
         double y = (mouseY - drawTop) / drawScale;
         if (inside(x, y, 51, 72, 105, 34)) {
-            eventTab = false;
             return true;
         }
         if (inside(x, y, 195, 72, 106, 34)) {
-            eventTab = true;
             return true;
         }
         if (inside(x, y, 14, 106, 324, 108)) {

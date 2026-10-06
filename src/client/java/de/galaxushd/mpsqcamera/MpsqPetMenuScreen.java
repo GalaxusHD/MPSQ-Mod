@@ -82,21 +82,6 @@ public final class MpsqPetMenuScreen extends Screen {
             int iconX = x + Math.round((SLOT_SIZE - 24) * drawScale / 2);
             int iconY = y + Math.round((SLOT_SIZE - 24) * drawScale / 2);
 
-            if (pet.id().equals(selectedId)) {
-                int inset = Math.max(1, Math.round(2 * drawScale));
-                int extent = Math.max(1, Math.round(3 * drawScale));
-                context.fill(x + inset, y + inset, x + Math.round(SLOT_SIZE * drawScale) - inset,
-                        y + inset + extent, 0xFFFF1764);
-                context.fill(x + inset, y + Math.round(SLOT_SIZE * drawScale) - inset - extent,
-                        x + Math.round(SLOT_SIZE * drawScale) - inset,
-                        y + Math.round(SLOT_SIZE * drawScale) - inset, 0xFFFF1764);
-                context.fill(x + inset, y + inset, x + inset + extent,
-                        y + Math.round(SLOT_SIZE * drawScale) - inset, 0xFFFF1764);
-                context.fill(x + Math.round(SLOT_SIZE * drawScale) - inset - extent, y + inset,
-                        x + Math.round(SLOT_SIZE * drawScale) - inset,
-                        y + Math.round(SLOT_SIZE * drawScale) - inset, 0xFFFF1764);
-            }
-
             drawHead(context, pet, iconX, iconY, iconSize);
         }
     }
