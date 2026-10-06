@@ -55,8 +55,9 @@ final class MpsqPetRenderer {
             state.limbSwingAmplitude = Math.min(0.55f, speed * 2.2f);
             int light = WorldRenderer.getLightmapCoordinates(client.world,
                     net.minecraft.util.math.BlockPos.ofFloored(petX, petY, petZ));
-            MpsqNpcSkinRenderer.render(state, petX - camera.x, petY - camera.y, petZ - camera.z,
-                    PET_SCALE, matrices, consumers, light, 0xFFFFFFFF);
+            MpsqPetModelContext.render(() -> MpsqNpcSkinRenderer.render(state,
+                    petX - camera.x, petY - camera.y, petZ - camera.z,
+                    PET_SCALE, matrices, consumers, light, 0xFFFFFFFF));
         });
     }
 

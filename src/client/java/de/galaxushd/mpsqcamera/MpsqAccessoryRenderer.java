@@ -25,7 +25,7 @@ public final class MpsqAccessoryRenderer {
     private static final String WUMPUS_MODEL_URL="builtin://mpsq/wumpus";
     public static final String DISCORD_HAT_ASSET_ID="discord_hat";
     private static final String DISCORD_HAT_MODEL_URL="builtin://mpsq/discord_hat";
-    private static final float WUMPUS_WAVE_FACING_OFFSET=190f;
+    private static final float WUMPUS_WAVE_FACING_OFFSET=200f;
     private static boolean isBuiltinModel(String url){return WUMPUS_MODEL_URL.equals(url)||DISCORD_HAT_MODEL_URL.equals(url);}
     public static String assetPreviewUrl(String assetId,String fallback){if(WUMPUS_ASSET_ID.equals(assetId))return WUMPUS_MODEL_URL;if(DISCORD_HAT_ASSET_ID.equalsIgnoreCase(assetId))return DISCORD_HAT_MODEL_URL;return fallback;}
     private record RenderFace(Identifier texture,float[][] vertices,float nx,float ny,float nz){}

@@ -110,8 +110,8 @@ public final class MpsqPetMenuScreen extends Screen {
 
         // InventoryScreen manages the GUI's 3D target and MatrixStack. The
         // preview entity supplies the preset texture and slim/wide model.
-        InventoryScreen.drawEntity(context, left, top, right, bottom, size, 1.0f,
-                centerX, centerY, previewPlayer);
+        MpsqPetModelContext.render(() -> InventoryScreen.drawEntity(context, left, top, right, bottom,
+                size, 1.0f, centerX, centerY, previewPlayer));
     }
 
     private static final class PetPreviewPlayer extends OtherClientPlayerEntity {
