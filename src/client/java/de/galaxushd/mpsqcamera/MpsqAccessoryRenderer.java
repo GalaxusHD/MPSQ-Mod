@@ -16,6 +16,7 @@ import net.minecraft.client.texture.*;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.RotationAxis;
+import net.minecraft.world.RaycastContext;
 
 /** Head accessories rendered only for players actually visible in the current world. */
 public final class MpsqAccessoryRenderer {
@@ -203,7 +204,7 @@ public final class MpsqAccessoryRenderer {
                 float bodyYaw=configuredYaw,targetYaw=bodyYaw;
                 boolean waveTurn=wumpus&&"wave".equals(clip);
                 boolean trackingPlayer=client.player!=null&&(wumpus||face&&client.player.squaredDistanceTo(x,y+npcHeight*0.5,z)<=900);
-                if(wumpus&&client.player!=null){if(waveTurn){LookAngles look=calculateVillagerLookAngles(x,y,z,size,false,client.player);targetYaw=look.yaw()+configuredYaw;}else targetYaw=client.player.getYaw()+configuredYaw;pitch=0f;}
+                if(wumpus&&client.player!=null){if(waveTurn){LookAngles look=calculateVillagerLookAngles(x,y,z,size,false,client.player);targetYaw=look.yaw()+configuredYaw+180f;}else targetYaw=client.player.getYaw()+configuredYaw;pitch=0f;}
                 else if(trackingPlayer){LookAngles look=calculateVillagerLookAngles(x,y,z,size,playerSkin,client.player);targetYaw=look.yaw();pitch=look.pitch();}
                 String rotationKey=o.has("id")?o.get("id").getAsString():x+":"+y+":"+z;
                 if(trackingPlayer){if(wumpus)bodyYaw=smoothFullBodyYaw(rotationKey,bodyYaw,targetYaw);else{float[] smoothed=smoothNpcRotation(rotationKey,bodyYaw,targetYaw,pitch);bodyYaw=smoothed[0];relativeHeadYaw=smoothed[1];pitch=smoothed[2];}}
@@ -220,7 +221,10 @@ public final class MpsqAccessoryRenderer {
                 String configuredGlow=str(o,"glow_color",defaultColor);
                 if("none".equalsIgnoreCase(configuredGlow))configuredGlow=defaultColor;
                 int glow=glowColor(configuredGlow);
-                boolean glowing=shouldGlow(o);
+                // Vanilla's outline post-pass ignores world depth and therefore shows
+                // through blocks. Only submit an NPC outline while its body is visible
+                // from the camera; the regular model render continues to use depth.
+                boolean glowing=shouldGlow(o)&&hasClearView(client,camera,x,y+npcHeight*0.5,z);
                 if(playerSkin){var state=MpsqNpcSkinRenderer.createState(skin,bodyYaw,relativeHeadYaw,pitch,(System.currentTimeMillis()%100000L)/50.0f,glowing);int light=WorldRenderer.getLightmapCoordinates(client.world,net.minecraft.util.math.BlockPos.ofFloored(x,y,z));MpsqNpcSkinRenderer.render(state,x-camera.x,y+bob-camera.y,z-camera.z,size*pulse,matrices,consumers,light,glow);}
                 else {float clipTime=wumpus?MpsqWumpusBehavior.elapsedSeconds(npcId):0;if(wumpus)pitch=0f;matrices.push();matrices.translate(x-camera.x,y+bob-camera.y,z-camera.z);matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(-bodyYaw+(wumpus?90f:0f)));matrices.multiply(RotationAxis.POSITIVE_X.rotationDegrees(pitch));matrices.scale(size/16f*pulse,size/16f*pulse,size/16f*pulse);drawBbModel(model,matrices,consumers,0xFFFFFFFF,clip,clipTime);
                     if(glowing){var outline=client.getBufferBuilders().getOutlineVertexConsumers();outline.setColor((glow>>16)&255,(glow>>8)&255,glow&255,255);drawBbModel(model,matrices,outline,0xFFFFFFFF,clip,clipTime);outline.draw();}
@@ -243,10 +247,16 @@ public final class MpsqAccessoryRenderer {
                     double tagX=x-camera.x,tagZ=z-camera.z;
                     float tagScale=size,tagHeight=0.20f*tagScale,tagGap=0.5f*(2f/3f)*tagScale;
                     float tagCenterOffset=tagGap+tagHeight*0.5f;
-                    drawBillboard(context,matrices,consumers,Identifier.of("mpsqcamera","textures/gui/npc_tags/discord.png"),tagX,y+npcHeight+bob+tagCenterOffset-camera.y,tagZ,tagHeight*(1728f/320f),tagHeight);
+                    drawBillboard(context,matrices,consumers,Identifier.of("mpsqcamera","textures/gui/npc_tags/discord.png"),tagX,y+npcHeight+bob+tagCenterOffset-camera.y,tagZ,tagHeight*(2176f/320f),tagHeight);
                 }
             }
         });
+    }
+    private static boolean hasClearView(MinecraftClient client,net.minecraft.util.math.Vec3d camera,double x,double y,double z){
+        if(client.world==null||client.player==null)return false;
+        var target=new net.minecraft.util.math.Vec3d(x,y,z);
+        return client.world.raycast(new RaycastContext(camera,target,RaycastContext.ShapeType.COLLIDER,
+                RaycastContext.FluidHandling.NONE,client.player)).getType()==net.minecraft.util.hit.HitResult.Type.MISS;
     }
     private record LookAngles(float yaw,float pitch){}
 

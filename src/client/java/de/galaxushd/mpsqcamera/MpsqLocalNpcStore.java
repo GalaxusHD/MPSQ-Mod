@@ -23,7 +23,7 @@ public final class MpsqLocalNpcStore {
         JsonArray all=load();boolean found=false;
         for(JsonElement e:all){if(!e.isJsonObject())continue;JsonObject npc=e.getAsJsonObject();
             if(!id.equals(npc.has("id")?npc.get("id").getAsString():"")||!world.equals(npc.has("world_id")?npc.get("world_id").getAsString():"minecraft:overworld"))continue;
-            found=true;copy(patch,npc,"name","display_name");copy(patch,npc,"scale","scale");copy(patch,npc,"glowColor","glow_color");copy(patch,npc,"animation","animation");copy(patch,npc,"yaw","yaw");copy(patch,npc,"pitch","pitch");copy(patch,npc,"facePlayer","face_player");copy(patch,npc,"taskType","task_type");copy(patch,npc,"interactionData","interaction_data");copy(patch,npc,"tutorialCompleted","tutorial_completed");break;
+            found=true;copy(patch,npc,"name","display_name");copy(patch,npc,"scale","scale");copy(patch,npc,"glowColor","glow_color");copy(patch,npc,"animation","animation");copy(patch,npc,"yaw","yaw");copy(patch,npc,"pitch","pitch");copy(patch,npc,"facePlayer","face_player");copy(patch,npc,"taskType","task_type");copy(patch,npc,"interactionData","interaction_data");copy(patch,npc,"tutorialCompleted","tutorial_completed");copy(patch,npc,"discordTagEnabled","discord_tag_enabled");break;
         }
         if(!found)return false;return MpsqLocalWorldStore.setArray("npcs",all);
     }
