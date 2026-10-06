@@ -110,6 +110,7 @@ public final class MpsqAccessoryRenderer {
         }
     }
     public static void initialize(){
+        MpsqPetRenderer.initialize();
         ClientTickEvents.END_CLIENT_TICK.register(client->{
             if(tryOnUrl!=null&&client.player!=null){
                 if(tryOnStart==null)tryOnStart=client.player.getPos();
