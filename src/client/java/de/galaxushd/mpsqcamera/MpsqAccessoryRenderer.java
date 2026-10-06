@@ -226,7 +226,7 @@ public final class MpsqAccessoryRenderer {
                     if(glowing){var outline=client.getBufferBuilders().getOutlineVertexConsumers();outline.setColor((glow>>16)&255,(glow>>8)&255,glow&255,255);drawBbModel(model,matrices,outline,0xFFFFFFFF,clip,clipTime);outline.draw();}
                     matrices.pop();}
                 boolean tutorialDone=o.has("tutorial_completed")&&o.get("tutorial_completed").getAsBoolean();
-                String tag=switch(task){case "accessories"->"accessories";case "quest"->"quests";case "tutorial"->"tutorial";default->null;};
+                String tag=switch(task){case "accessories"->"accessories";case "quest"->"quests";case "tutorial"->"wiki";default->null;};
                 if(tag!=null){
                     // Keep the tag's world position fixed above the NPC. Only the
                     // billboard itself faces the camera; translating it toward the
@@ -236,9 +236,15 @@ public final class MpsqAccessoryRenderer {
                     // Vanilla player nameplates use a 0.5-block offset above the head;
                     // keep NPC role tags at two thirds of that distance, scaled with the NPC.
                     float tagVerticalOffset=0.5f*(2f/3f)*tagScale;
-                    float aspect=switch(tag){case "accessories"->2624f/320f;case "quests"->1504f/320f;default->1952f/320f;};
+                    float aspect=switch(tag){case "accessories"->2624f/320f;case "quests"->1504f/320f;case "wiki"->2176f/320f;default->1952f/320f;};
                     drawBillboard(context,matrices,consumers,Identifier.of("mpsqcamera","textures/gui/npc_tags/"+tag+".png"),tagX,y+npcHeight+bob+tagVerticalOffset-camera.y,tagZ,tagHeight*aspect,tagHeight);
-                    if("tutorial".equals(tag)&&!tutorialDone){float hover=(float)Math.sin(System.currentTimeMillis()/360.0)*0.07f*tagScale;float iconOffset=tagVerticalOffset+0.36f*tagScale;drawBillboard(context,matrices,consumers,Identifier.of("mpsqcamera","textures/gui/npc_tags/tutorial_exclamation.png"),tagX,y+npcHeight+bob+iconOffset+hover-camera.y,tagZ,0.42f*tagScale,0.42f*tagScale);}}
+                    if("tutorial".equals(task)&&!tutorialDone){float hover=(float)Math.sin(System.currentTimeMillis()/360.0)*0.07f*tagScale;float iconOffset=tagVerticalOffset+0.36f*tagScale;drawBillboard(context,matrices,consumers,Identifier.of("mpsqcamera","textures/gui/npc_tags/tutorial_exclamation.png"),tagX,y+npcHeight+bob+iconOffset+hover-camera.y,tagZ,0.42f*tagScale,0.42f*tagScale);}}
+                if(wumpus&&npcBoolean(o,"discord_tag_enabled","discordTagEnabled")){
+                    double tagX=x-camera.x,tagZ=z-camera.z;
+                    float tagScale=size,tagHeight=0.20f*tagScale,tagGap=0.5f*(2f/3f)*tagScale;
+                    float tagCenterOffset=tagGap+tagHeight*0.5f;
+                    drawBillboard(context,matrices,consumers,Identifier.of("mpsqcamera","textures/gui/npc_tags/discord.png"),tagX,y+npcHeight+bob+tagCenterOffset-camera.y,tagZ,tagHeight*(1728f/320f),tagHeight);
+                }
             }
         });
     }
@@ -337,6 +343,7 @@ public final class MpsqAccessoryRenderer {
     private static JsonArray localNpcsSnapshot(){JsonArray resolved=new JsonArray();for(JsonElement value:MpsqLocalNpcStore.loadWorld(MpsqActionSync.world())){JsonObject row=value.getAsJsonObject().deepCopy();String id=row.has("asset_id")?row.get("asset_id").getAsString():"";String url=WUMPUS_ASSET_ID.equals(id)?WUMPUS_MODEL_URL:localAssetUrls.get(id);if(url==null)continue;row.addProperty("url",url);row.addProperty("asset_id",id);row.addProperty("category",WUMPUS_ASSET_ID.equals(id)?"npc_model":localAssetCategories.getOrDefault(id,str(row,"category","npc_model")));resolved.add(row);}return resolved;}
     private static void loadNpcAsset(JsonObject npc,int epoch){String id=str(npc,"asset_id","");if(WUMPUS_ASSET_ID.equals(id))npc.addProperty("url",WUMPUS_MODEL_URL);if(!npc.has("url")||npc.get("url").isJsonNull())return;String url=npc.get("url").getAsString(),category=str(npc,"category","npc_model");if("npc_skin_normal".equals(category)||"npc_skin_slim".equals(category)){MpsqNpcSkinRenderer.load(url,epoch,"npc_skin_slim".equals(category));return;}if(!models.containsKey(url)&&models.size()+loading.size()<64)load(url,epoch);}
     private static String defaultGlowColor(String task){return switch(task){case "tutorial"->"#c3971f";case "accessories"->"#8027b0";case "quest"->"#2149c4";default->"#ec2f53";};}
+    private static boolean npcBoolean(JsonObject npc,String snakeCase,String camelCase){return npc.has(snakeCase)?npc.get(snakeCase).getAsBoolean():npc.has(camelCase)&&npc.get(camelCase).getAsBoolean();}
     private static int glowColor(String color){
         if(color!=null&&color.matches("#[0-9a-fA-F]{6}"))return 0xFF000000|Integer.parseInt(color.substring(1),16);
         return switch(String.valueOf(color).toLowerCase(Locale.ROOT)){case "white"->0xFFFFFFFF;case "orange"->0xFFFFAA33;case "magenta"->0xFFFF55FF;case "light_blue"->0xFF55AAFF;case "yellow"->0xFFFFFF55;case "lime"->0xFF55FF55;case "pink"->0xFFFF88BB;case "gray"->0xFF666666;case "light_gray"->0xFFBBBBBB;case "cyan"->0xFF55FFFF;case "purple"->0xFFAA55FF;case "blue"->0xFF5555FF;case "brown"->0xFF8B5A2B;case "green"->0xFF55AA33;case "red"->0xFFFF5555;case "black"->0xFF333333;default->0xFFEC2F53;};
