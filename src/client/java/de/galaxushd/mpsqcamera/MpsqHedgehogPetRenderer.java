@@ -9,7 +9,6 @@ import net.minecraft.sound.SoundEvents;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Vec3d;
-import net.minecraft.world.Heightmap;
 
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -158,8 +157,7 @@ final class MpsqHedgehogPetRenderer {
         double nz = z + dz / distance * Math.min(step, distance);
         double ny = groundY(client, nx, y, nz);
         if (!Double.isFinite(ny) || Math.abs(ny - y) > 1.1
-                || blockedAt(client, nx, ny + 0.08, nz)
-                || blockedAt(client, nx, ny + 0.62, nz)) {
+                || MpsqPetGrounding.blocked(client, nx, ny, nz, 0.23, 0.68)) {
             if (now >= actionCooldownUntil) startBoink(client, now);
             else chooseWanderTarget(client, now + 1000);
             return;
@@ -219,12 +217,8 @@ final class MpsqHedgehogPetRenderer {
         double radians = Math.toRadians(yaw);
         double forwardX = -Math.sin(radians), forwardZ = Math.cos(radians);
         double px = x + forwardX * 0.55, pz = z + forwardZ * 0.55;
-        return blockedAt(client, px, y + 0.12, pz) || blockedAt(client, px, y + 0.52, pz);
-    }
-
-    private static boolean blockedAt(MinecraftClient client, double px, double py, double pz) {
-        BlockPos pos = BlockPos.ofFloored(px, py, pz);
-        return !client.world.getBlockState(pos).getCollisionShape(client.world, pos).isEmpty();
+        return MpsqPetGrounding.blocked(client, px, y + 0.08, pz, 0.06, 0.10)
+                || MpsqPetGrounding.blocked(client, px, y + 0.46, pz, 0.06, 0.10);
     }
 
     private static void chooseWanderTarget(MinecraftClient client, long now) {
@@ -270,17 +264,11 @@ final class MpsqHedgehogPetRenderer {
     }
 
     private static double groundY(MinecraftClient client, double px, double referenceY, double pz) {
-        int bx = net.minecraft.util.math.MathHelper.floor(px);
-        int bz = net.minecraft.util.math.MathHelper.floor(pz);
-        int top = client.world.getTopY(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, bx, bz);
-        BlockPos surface = new BlockPos(bx, top - 1, bz);
-        BlockPos feet = surface.up();
-        if (client.world.getFluidState(surface).isOf(net.minecraft.fluid.Fluids.WATER)
-                || client.world.getFluidState(feet).isOf(net.minecraft.fluid.Fluids.WATER)
-                || client.world.getBlockState(surface).getCollisionShape(client.world, surface).isEmpty()) {
-            return Double.NaN;
-        }
-        return top;
+        double surface = MpsqPetGrounding.groundY(client, px, referenceY, pz);
+        if (!Double.isFinite(surface)) return Double.NaN;
+        BlockPos feet = BlockPos.ofFloored(px, surface + 0.03, pz);
+        if (client.world.getFluidState(feet).isOf(net.minecraft.fluid.Fluids.WATER)) return Double.NaN;
+        return surface;
     }
 
     private static double horizontalDistance(double x1, double z1, double x2, double z2) {

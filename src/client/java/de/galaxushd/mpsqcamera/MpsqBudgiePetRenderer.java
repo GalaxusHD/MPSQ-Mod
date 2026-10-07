@@ -46,7 +46,9 @@ final class MpsqBudgiePetRenderer {
             Vec3d camera = context.camera().getPos();
             if (camera.squaredDistanceTo(x,y,z) > 4096) return;
             long now = System.currentTimeMillis();
-            String pose = action != null && now < actionUntil ? action : moving ? "walk" : "idle";
+            // There is no dedicated flight clip in the supplied model; walk pumps the legs
+            // and pitches the chest forward, so use its softer idle wing animation in flight.
+            String pose = action != null && now < actionUntil ? action : "idle";
             double time = action != null && now < actionUntil ? (now-actionStartedAt)/1000.0 : now/1000.0;
             int light = WorldRenderer.getLightmapCoordinates(client.world, BlockPos.ofFloored(x,y,z));
             MpsqBudgieModel.render(matrices, consumers, light, (float)(x-camera.x), (float)(y-camera.y), (float)(z-camera.z), yaw, 0.58f, MpsqPetSelectionStore.budgieVariant(), pose, time);
@@ -61,7 +63,9 @@ final class MpsqBudgiePetRenderer {
         long now=System.currentTimeMillis();
         if (trackedWorld != client.world) { trackedWorld=client.world; positioned=false; action=null; }
         if (!positioned) {
-            double a=Math.toRadians(owner.getYaw()); x=owner.getX()+Math.sin(a)*1.8; z=owner.getZ()-Math.cos(a)*1.8; y=owner.getY()+1.6;
+            double a=Math.toRadians(owner.getYaw()); x=owner.getX()+Math.sin(a)*1.8; z=owner.getZ()-Math.cos(a)*1.8;
+            y=MpsqPetGrounding.groundY(client, x, owner.getY(), z);
+            if (!Double.isFinite(y)) y=owner.getY()+1.0;
             yaw=owner.getYaw(); positioned=true; chooseTarget(owner, now);
         }
         if (action != null && now >= actionUntil) action=null;
@@ -81,7 +85,8 @@ final class MpsqBudgiePetRenderer {
             double fleeX=x+dx/len*4.5, fleeZ=z+dz/len*4.5;
             double toOwnerX=owner.getX()-fleeX, toOwnerZ=owner.getZ()-fleeZ; double ownerLen=Math.max(0.01,Math.sqrt(toOwnerX*toOwnerX+toOwnerZ*toOwnerZ));
             targetX=fleeX+toOwnerX/ownerLen*2.5; targetZ=fleeZ+toOwnerZ/ownerLen*2.5;
-            targetY=owner.getY()+1.5; nextTargetAt=now+1800; pauseUntil=0;
+            double perchY=MpsqPetGrounding.groundY(client, targetX, owner.getY(), targetZ);
+            targetY=Double.isFinite(perchY) ? perchY : owner.getY(); nextTargetAt=now+1800; pauseUntil=0;
         }
         if(threat==null)threatId=null;
         double ownerDistance=horizontal(x,z,owner.getX(),owner.getZ());
@@ -96,20 +101,34 @@ final class MpsqBudgiePetRenderer {
         if (now<pauseUntil) { moving=false; return; }
         moving=true;
         double step=threat==null?0.075:0.12, ratio=Math.min(step/dist,1.0);
-        x+=dx*ratio; y+=dy*ratio; z+=dz*ratio;
+        double nx=x+dx*ratio, ny=y+dy*ratio, nz=z+dz*ratio;
+        if (MpsqPetGrounding.blocked(client,nx,ny,nz,0.22,0.68)) {
+            chooseTarget(owner,now);
+            return;
+        }
+        x=nx; y=ny; z=nz;
         yaw=approach(yaw,(float)Math.toDegrees(Math.atan2(-dx,dz)),8.0f);
     }
 
     private static void chooseTarget(net.minecraft.client.network.ClientPlayerEntity owner,long now) {
-        double angle=ThreadLocalRandom.current().nextDouble(Math.PI*2), radius=ThreadLocalRandom.current().nextDouble(2.0,ROAM_RADIUS);
-        targetX=owner.getX()+Math.cos(angle)*radius; targetZ=owner.getZ()+Math.sin(angle)*radius;
-        targetY=owner.getY()+ThreadLocalRandom.current().nextDouble(1.0,3.2);
+        boolean found=false;
+        for(int attempt=0;attempt<18;attempt++) {
+            double angle=ThreadLocalRandom.current().nextDouble(Math.PI*2), radius=ThreadLocalRandom.current().nextDouble(2.0,ROAM_RADIUS);
+            double candidateX=owner.getX()+Math.cos(angle)*radius, candidateZ=owner.getZ()+Math.sin(angle)*radius;
+            double perchY=MpsqPetGrounding.groundY(MinecraftClient.getInstance(), candidateX, owner.getY(), candidateZ);
+            if(!Double.isFinite(perchY) || MpsqPetGrounding.blocked(MinecraftClient.getInstance(),candidateX,perchY,candidateZ,0.22,0.68)) continue;
+            targetX=candidateX; targetZ=candidateZ; targetY=perchY; found=true; break;
+        }
+        if(!found) {
+            targetX=owner.getX(); targetZ=owner.getZ();
+            double ownerPerch=MpsqPetGrounding.groundY(MinecraftClient.getInstance(),targetX,owner.getY(),targetZ);
+            targetY=Double.isFinite(ownerPerch)?ownerPerch:owner.getY();
+        }
         nextTargetAt=now+ThreadLocalRandom.current().nextLong(4000,10000); pauseUntil=0;
     }
     private static void startBite(MinecraftClient client,long now) {
         action="bite"; actionStartedAt=now; actionUntil=now+550; actionCooldownUntil=now+ACTION_COOLDOWN;
-        // Vanilla hurt status triggers only the brief client-side red tint and tilt; it does not alter health.
-        client.player.handleStatus((byte)2);
+        // Keep the bite feedback audible only; do not fake a player damage/hurt state.
         client.world.playSound(client.player, client.player.getBlockPos(), SoundEvents.ENTITY_PARROT_HURT, SoundCategory.PLAYERS, 0.45f, 1.2f);
     }
     private static boolean rayHits(net.minecraft.client.network.ClientPlayerEntity player) {

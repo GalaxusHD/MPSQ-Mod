@@ -7,7 +7,6 @@ import net.minecraft.client.render.WorldRenderer;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Vec3d;
-import net.minecraft.world.Heightmap;
 
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -142,9 +141,8 @@ final class MpsqOtterPetRenderer {
         double nx = x + dx / distance * Math.min(step, distance);
         double nz = z + dz / distance * Math.min(step, distance);
         double ny = groundY(client, nx, y, nz);
-        BlockPos feet = BlockPos.ofFloored(nx, ny + 0.05, nz);
-        if (!client.world.getBlockState(feet).isAir()
-                && !client.world.getFluidState(feet).isOf(net.minecraft.fluid.Fluids.WATER)) {
+        if (!Double.isFinite(ny) || Math.abs(ny - y) > 1.1
+                || MpsqPetGrounding.blocked(client, nx, ny, nz, 0.27, 0.85)) {
             chooseWanderTarget(client, now + 1500);
             return;
         }
@@ -209,12 +207,9 @@ final class MpsqOtterPetRenderer {
     }
 
     private static double groundY(MinecraftClient client, double px, double referenceY, double pz) {
-        int bx = net.minecraft.util.math.MathHelper.floor(px), bz = net.minecraft.util.math.MathHelper.floor(pz);
-        int by = net.minecraft.util.math.MathHelper.floor(referenceY);
-        BlockPos probe = new BlockPos(bx, by, bz);
-        if (client.world.getFluidState(probe).isOf(net.minecraft.fluid.Fluids.WATER)) return by + 0.08;
-        int top = client.world.getTopY(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, bx, bz);
-        return top;
+        BlockPos probe = BlockPos.ofFloored(px, referenceY, pz);
+        if (client.world.getFluidState(probe).isOf(net.minecraft.fluid.Fluids.WATER)) return probe.getY() + 0.08;
+        return MpsqPetGrounding.groundY(client, px, referenceY, pz);
     }
 
     private static boolean isWater(MinecraftClient client, double px, double py, double pz) {

@@ -5,6 +5,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import net.minecraft.client.render.RenderLayer;
+import net.minecraft.client.render.OverlayTexture;
 import net.minecraft.client.render.VertexConsumer;
 import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.util.math.MatrixStack;
@@ -105,7 +106,7 @@ final class MpsqBudgieModel {
             double[] p = points[i];
             buffer.vertex(matrices.peek(), (float)p[0], (float)p[1], (float)p[2])
                     .color(255,255,255,255).texture(tex[i][0], tex[i][1])
-                    .overlay(0).light(light == 0 ? FULL_BRIGHT : light)
+                    .overlay(OverlayTexture.DEFAULT_UV).light(light == 0 ? FULL_BRIGHT : light)
                     .normal(matrices.peek(), nx, ny, nz);
         }
     }

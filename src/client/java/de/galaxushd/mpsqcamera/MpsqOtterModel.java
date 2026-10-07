@@ -5,6 +5,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import net.minecraft.client.render.RenderLayer;
+import net.minecraft.client.render.OverlayTexture;
 import net.minecraft.client.render.VertexConsumer;
 import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.util.math.MatrixStack;
@@ -52,7 +53,7 @@ final class MpsqOtterModel {
     private static void renderGroup(Group group, MatrixStack matrices, VertexConsumer vertices, int light,
                                     Animation animation, double time, double parentX, double parentY,
                                     double parentZ) {
-        double gx = group.origin.x, gy = group.origin.y, gz = group.origin.z;
+        double gx = number(group.origin, 0), gy = number(group.origin, 1), gz = number(group.origin, 2);
         matrices.push();
         matrices.translate((gx - parentX) / 16.0, (gy - parentY) / 16.0, (gz - parentZ) / 16.0);
         Vec3 rotation = group.rotation;
@@ -103,7 +104,7 @@ final class MpsqOtterModel {
             double[] p = points[i];
             buffer.vertex(matrices.peek(), (float)p[0], (float)p[1], (float)p[2])
                     .color(255,255,255,255).texture(tex[i][0], tex[i][1])
-                    .overlay(0).light(light == 0 ? FULL_BRIGHT : light)
+                    .overlay(OverlayTexture.DEFAULT_UV).light(light == 0 ? FULL_BRIGHT : light)
                     .normal(matrices.peek(), nx, ny, nz);
         }
     }
@@ -165,9 +166,9 @@ final class MpsqOtterModel {
 
     private record ModelData(Group root, Map<String, Animation> animations) { }
     private static final class Group {
-        final String id; final Vec3 origin; final Vec3 rotation; final List<Cube> cubes = new ArrayList<>();
+        final String id; final JsonArray origin; final Vec3 rotation; final List<Cube> cubes = new ArrayList<>();
         final List<Group> children = new ArrayList<>();
-        Group(String id, Vec3 origin, Vec3 rotation) { this.id=id; this.origin=origin; this.rotation=rotation; }
+        Group(String id, JsonArray origin, Vec3 rotation) { this.id=id; this.origin=origin; this.rotation=rotation; }
     }
     private record Vec3(double x, double y, double z) {
         static final Vec3 ZERO = new Vec3(0,0,0);
