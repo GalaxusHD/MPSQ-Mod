@@ -33,6 +33,27 @@ public final class MpsqAccessoryRenderer {
     private static final float WUMPUS_WAVE_FACING_OFFSET=200f;
     private static boolean isBuiltinModel(String url){return WUMPUS_MODEL_URL.equals(url)||DISCORD_HAT_MODEL_URL.equals(url);}
     public static String assetPreviewUrl(String assetId,String fallback){if(WUMPUS_ASSET_ID.equals(assetId))return WUMPUS_MODEL_URL;if(DISCORD_HAT_ASSET_ID.equalsIgnoreCase(assetId))return DISCORD_HAT_MODEL_URL;return fallback;}
+    /** Resolves model files that are bundled directly with the mod. */
+    public static String builtinAccessoryUrl(String filename){
+        String name=filename==null?"":filename.replace('\\','/');
+        name=name.substring(name.lastIndexOf('/')+1).toLowerCase(Locale.ROOT);
+        return switch(name){
+            case "discord_hat.json","discord_hat.bbmodel"->DISCORD_HAT_MODEL_URL;
+            case "wumpus.json","wumpus.bbmodel"->WUMPUS_MODEL_URL;
+            default->null;
+        };
+    }
+    /** Resolves a catalog row to a bundled model URL when one is available. */
+    public static String resolveBuiltinAccessory(JsonObject row){
+        if(row==null)return null;
+        JsonObject definition=row.has("mpsq_accessories")&&row.get("mpsq_accessories").isJsonObject()
+                ?row.getAsJsonObject("mpsq_accessories"):row;
+        String filename=str(row,"filename",str(definition,"filename",""));
+        String builtin=builtinAccessoryUrl(filename);
+        if(builtin!=null)return builtin;
+        String assetId=str(row,"asset_id",str(definition,"asset_id",str(definition,"model_id","")));
+        return assetPreviewUrl(assetId,null);
+    }
     private record RenderFace(Identifier texture,float[][] vertices,float nx,float ny,float nz){}
     private record PreviewPoint(double x,double y,double z){}
     private record PreviewPolygon(double[][] points,int color,double depth){}
