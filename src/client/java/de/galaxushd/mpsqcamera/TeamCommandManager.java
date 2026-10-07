@@ -80,6 +80,11 @@ public final class TeamCommandManager {
         clone.addProperty("z", player.getZ());
         clone.addProperty("yaw", player.getYaw());
         clone.addProperty("pitch", player.getPitch());
+        MinecraftClient client = MinecraftClient.getInstance();
+        if (client.player != null) {
+            clone.addProperty("sourceX", client.player.getX());
+            clone.addProperty("sourceZ", client.player.getZ());
+        }
         return clone;
     }
 
