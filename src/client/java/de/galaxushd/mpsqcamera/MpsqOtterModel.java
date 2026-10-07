@@ -52,7 +52,7 @@ final class MpsqOtterModel {
     private static void renderGroup(Group group, MatrixStack matrices, VertexConsumer vertices, int light,
                                     Animation animation, double time, double parentX, double parentY,
                                     double parentZ) {
-        double gx = number(group.origin, 0), gy = number(group.origin, 1), gz = number(group.origin, 2);
+        double gx = group.origin.x, gy = group.origin.y, gz = group.origin.z;
         matrices.push();
         matrices.translate((gx - parentX) / 16.0, (gy - parentY) / 16.0, (gz - parentZ) / 16.0);
         Vec3 rotation = group.rotation;
@@ -165,9 +165,9 @@ final class MpsqOtterModel {
 
     private record ModelData(Group root, Map<String, Animation> animations) { }
     private static final class Group {
-        final String id; final JsonArray origin; final Vec3 rotation; final List<Cube> cubes = new ArrayList<>();
+        final String id; final Vec3 origin; final Vec3 rotation; final List<Cube> cubes = new ArrayList<>();
         final List<Group> children = new ArrayList<>();
-        Group(String id, JsonArray origin, Vec3 rotation) { this.id=id; this.origin=origin; this.rotation=rotation; }
+        Group(String id, Vec3 origin, Vec3 rotation) { this.id=id; this.origin=origin; this.rotation=rotation; }
     }
     private record Vec3(double x, double y, double z) {
         static final Vec3 ZERO = new Vec3(0,0,0);
