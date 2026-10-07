@@ -21,9 +21,7 @@ public final class MpsqPetCatalog {
     }
 
     private static final List<Pet> PETS = List.of(
-            mini("my_skin", "Mein Skin", "__player__", null, "Verwendet deinen aktuell geladenen Minecraft-Skin (Slim oder Normal)."),
-            miniModel("nm_mini_you_player", "Mein Mini-You", "__player__", "nm_mini_you_1", null,
-                    "Verwendet deinen aktuellen Minecraft-Skin. Slim-Skin-Modelle können separat ergänzt werden."),
+            mini("my_skin", "Mein Mini-Me", "__player__", null, "Verwendet deinen aktuellen Minecraft-Skin; Slim- und normale Skins werden erkannt."),
             mini("seong_gi_hun", "Seong Gi-hun", "gi_hun", "ive-played-these-games-before_Q9d8uER.mp3", "Eigener Interaktionssound; sonst allgemeine Mini-You-Laufgeräusche."),
             mini("monty", "Monty", "monty", "20221030_CrunchyUglyToadKeyboardCat-L-oRCpTmjqu1QlN__source.mp4", "Eigener Interaktionssound; sonst allgemeine Mini-You-Laufgeräusche."),
             mini("der_pandi", "der_pandi", "der_pandi", null, "Keine eigenen Sounds."),
@@ -34,9 +32,10 @@ public final class MpsqPetCatalog {
             mini("mr_creeper", "Mr_Creeper", "mr_creeper", null, "Keine eigenen Sounds."),
             mini("agent_chicken_789", "AgentChicken789", "agent_chicken_789", null, "Keine eigenen Sounds."),
             mini("endermansdl", "endermansdl", "endermansdl", null, "Keine eigenen Sounds."),
-            mini("nm_mini_you_1", "Mini You 1", "mini_you_neutral", null, "Streift umher und winkt bei Interaktion; Testvariante ohne den ursprünglichen festen Spielerskin."),
-            mini("nm_mini_you_2", "Mini You 2", "mini_you_neutral", null, "Streift umher und winkt bei Interaktion; Testvariante ohne den ursprünglichen festen Spielerskin."),
-            mini("nm_mini_you_3", "Mini You 3", "mini_you_neutral", null, "Streift umher und winkt bei Interaktion; Testvariante ohne den ursprünglichen festen Spielerskin."),
+            staffMini("kreis_minime", "Kreis", "kreis"),
+            staffMini("soldat_minime", "Soldat", "soldat"),
+            staffMini("offizier_minime", "Offizier", "offizier"),
+            staffMini("frontman_minime", "Frontman", "frontman"),
             new Pet("nogs_budgie", "Nog's Wellensittich", "budgie_green", Group.ANIMAL, null,
                     null, "Fliegt frei herum, erkundet die Umgebung und reagiert auf Spieler."),
             new Pet("nocsy_otter", "Nocsy-Otter", "nocsy_otter_v2", Group.ANIMAL, null,
@@ -53,8 +52,12 @@ public final class MpsqPetCatalog {
     private MpsqPetCatalog() { }
 
     private static Pet mini(String id, String name, String texture, String sound, String notes) {
-        String model=id.matches("nm_mini_you_[1-3]")?id:null;
-        return new Pet(id, name, texture, Group.MINI_YOU, null, sound, notes, model);
+        return new Pet(id, name, texture, Group.MINI_YOU, null, sound, notes, "nm_mini_you_1");
+    }
+
+    private static Pet staffMini(String id, String name, String texture) {
+        return new Pet(id, name, texture, Group.MINI_YOU, TeamRank.OFFICER, null,
+                "Squid-Game-Team-Skin; ab Offizier verfügbar.", "nm_mini_you_1");
     }
 
     private static Pet miniModel(String id,String name,String texture,String model,String sound,String notes){

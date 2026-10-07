@@ -23,7 +23,11 @@ final class MpsqPetPresenceRenderer {
                 float px=(float)(pet.x()-camera.x),py=(float)(pet.y()-camera.y),pz=(float)(pet.z()-camera.z);
                 if(MpsqMiniYouPetRenderer.isMiniYouId(pet.petId())){renderMiniYou(client,pet,px,py,pz,light,matrices,consumers,now);continue;}
                 switch(pet.petId()){
-                    case "nogs_budgie" -> MpsqBudgieModel.render(matrices,consumers,light,px,py,pz,pet.yaw(),0.58f,pet.variant(),"walk",now/1000.0);
+                    case "nogs_budgie" -> {
+                        double floor = MpsqPetGrounding.groundY(client, pet.x(), pet.y(), pet.z());
+                        String pose = !Double.isFinite(floor) || pet.y() > floor + 0.12 ? "fly" : "walk";
+                        MpsqBudgieModel.render(matrices,consumers,light,px,py,pz,pet.yaw(),0.58f,pet.variant(),pose,now/1000.0);
+                    }
                     case "nogs_hedgehog" -> MpsqHedgehogModel.render(matrices,consumers,light,px,py,pz,pet.yaw(),1.0f,"walk",now/1000.0);
                     case "nocsy_otter" -> MpsqOtterModel.render(matrices,consumers,light,px,py,pz,pet.yaw(),0.62f,"walk",now/1000.0);
                     default -> renderMini(client,pet,px,py,pz,light,matrices,consumers,now);
@@ -40,11 +44,7 @@ final class MpsqPetPresenceRenderer {
             var handler=client.getNetworkHandler();var entry=handler==null?null:handler.getPlayerListEntry(presence.playerId());
             if(entry==null)return;SkinTextures textures=entry.getSkinTextures();skin=new MpsqNpcSkinRenderer.Skin(textures.texture(),textures.model()==SkinTextures.Model.SLIM);
         }
-        if(pet.miniModel()!=null) {
-            MpsqMiniYouModel.render(matrices,consumers,light,pet.id(),skin==null?null:skin.texture(),skin!=null&&skin.slim(),x,y,z,presence.yaw(),0.48f,"walk",now/1000.0);
-        } else {
-            renderMini(client,presence,x,y,z,light,matrices,consumers,now);
-        }
+        MpsqMiniYouModel.render(matrices,consumers,light,pet.id(),skin==null?null:skin.texture(),skin!=null&&skin.slim(),x,y,z,presence.yaw(),0.48f,"walk",now/1000.0);
     }
     private static void renderMini(MinecraftClient client,MpsqPetPresenceClient.Snapshot pet,float x,float y,float z,int light,
                                    net.minecraft.client.util.math.MatrixStack matrices,

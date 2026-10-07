@@ -26,6 +26,7 @@ final class MpsqOtterPetRenderer {
     private static long nextWanderAt;
     private static long pauseUntil;
     private static long lastPetAt;
+    private static boolean useKeyWasDown;
     private static long petAnimationUntil;
     private static long petAnimationStartedAt;
     private static String petAnimation;
@@ -72,7 +73,9 @@ final class MpsqOtterPetRenderer {
             }
             if (!isOtterSelected() || !positioned) return;
             if (camera.squaredDistanceTo(x, y, z) > 4096) return;
-            String animation = water ? "swim" : currentPetAnimation(now);
+            String action = currentPetAnimation(now);
+            String animation = petAnimation != null && now < petAnimationUntil
+                    ? action : water ? "swim" : action;
             double animationTime = animation.equals(petAnimation) && petAnimation != null
                     ? (now - petAnimationStartedAt) / 1000.0
                     : (now / 1000.0);
@@ -113,8 +116,10 @@ final class MpsqOtterPetRenderer {
         }
 
         water = isWater(client, x, y, z);
-        boolean usePressed = client.options.useKey.wasPressed();
-        if (usePressed && !water && now - lastPetAt >= PET_COOLDOWN_MILLIS
+        boolean useDown = client.options.useKey.isPressed();
+        boolean useStarted = useDown && !useKeyWasDown;
+        useKeyWasDown = useDown;
+        if (useStarted && now - lastPetAt >= PET_COOLDOWN_MILLIS
                 && rayHitsOtter(player)) {
             petAnimation = ThreadLocalRandom.current().nextBoolean() ? "pet1" : "pet2";
             petAnimationStartedAt = now;
@@ -141,9 +146,11 @@ final class MpsqOtterPetRenderer {
         double nx = x + dx / distance * Math.min(step, distance);
         double nz = z + dz / distance * Math.min(step, distance);
         double ny = groundY(client, nx, y, nz);
-        if (!Double.isFinite(ny) || Math.abs(ny - y) > 1.1
-                || MpsqPetGrounding.blocked(client, nx, ny, nz, 0.27, 0.85)) {
-            chooseWanderTarget(client, now + 1500);
+        if (!Double.isFinite(ny) || ny - y > 1.0001 || y - ny > 1.1
+                || MpsqPetGrounding.blocked(client, nx, ny, nz, 0.28, 0.58)) {
+            // Missing floor, a drop, or an obstacle too high for the otter: pick
+            // another route. Walkable slabs and steps up to one block are allowed.
+            chooseWanderTarget(client, now + 1000);
             return;
         }
         x = nx; z = nz; y = ny;
@@ -207,9 +214,20 @@ final class MpsqOtterPetRenderer {
     }
 
     private static double groundY(MinecraftClient client, double px, double referenceY, double pz) {
-        BlockPos probe = BlockPos.ofFloored(px, referenceY, pz);
-        if (client.world.getFluidState(probe).isOf(net.minecraft.fluid.Fluids.WATER)) return probe.getY() + 0.08;
-        return MpsqPetGrounding.groundY(client, px, referenceY, pz);
+        int bx = net.minecraft.util.math.MathHelper.floor(px);
+        int bz = net.minecraft.util.math.MathHelper.floor(pz);
+        int by = net.minecraft.util.math.MathHelper.floor(referenceY);
+        BlockPos probe = new BlockPos(bx, by, bz);
+        if (client.world.getFluidState(probe).isOf(net.minecraft.fluid.Fluids.WATER)) return by + 0.08;
+        double surface = MpsqPetGrounding.groundY(client, px, referenceY, pz);
+        if (!Double.isFinite(surface)) return Double.NaN;
+        BlockPos feet = BlockPos.ofFloored(px, surface + 0.03, pz);
+        BlockPos below = feet.down();
+        if (client.world.getFluidState(feet).isOf(net.minecraft.fluid.Fluids.WATER)
+                || client.world.getFluidState(below).isOf(net.minecraft.fluid.Fluids.WATER)) {
+            return Math.max(surface, below.getY() + 0.08);
+        }
+        return surface;
     }
 
     private static boolean isWater(MinecraftClient client, double px, double py, double pz) {

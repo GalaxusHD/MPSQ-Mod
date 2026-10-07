@@ -41,7 +41,9 @@ final class MpsqOtterModel {
         matrices.translate(x, y, z);
         matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(180.0f - yaw));
         matrices.scale(scale, scale, scale);
-        VertexConsumer vertices = consumers.getBuffer(RenderLayer.getEntityCutoutNoCull(MODEL_TEXTURE));
+        // Cull the hidden side of the model's zero-thickness whisker planes.
+        // Rendering both coincident sides caused the visible texture to flicker.
+        VertexConsumer vertices = consumers.getBuffer(RenderLayer.getEntityCutout(MODEL_TEXTURE));
         Animation pose = model.animations.get(animation);
         if (pose == null) pose = model.animations.get("idle");
         double poseTime = pose == null ? 0 : pose.loop
@@ -84,12 +86,14 @@ final class MpsqOtterModel {
         double x1 = (cube.to.x - cube.origin.x) / 16.0;
         double y1 = (cube.to.y - cube.origin.y) / 16.0;
         double z1 = (cube.to.z - cube.origin.z) / 16.0;
-        face(cube, "north", buffer, matrices, light, new double[][]{{x0,y0,z0},{x1,y0,z0},{x1,y1,z0},{x0,y1,z0}}, 0,0,-1);
-        face(cube, "south", buffer, matrices, light, new double[][]{{x1,y0,z1},{x0,y0,z1},{x0,y1,z1},{x1,y1,z1}}, 0,0,1);
-        face(cube, "west", buffer, matrices, light, new double[][]{{x0,y0,z1},{x0,y0,z0},{x0,y1,z0},{x0,y1,z1}}, -1,0,0);
-        face(cube, "east", buffer, matrices, light, new double[][]{{x1,y0,z0},{x1,y0,z1},{x1,y1,z1},{x1,y1,z0}}, 1,0,0);
-        face(cube, "up", buffer, matrices, light, new double[][]{{x0,y1,z0},{x1,y1,z0},{x1,y1,z1},{x0,y1,z1}}, 0,1,0);
-        face(cube, "down", buffer, matrices, light, new double[][]{{x0,y0,z1},{x1,y0,z1},{x1,y0,z0},{x0,y0,z0}}, 0,-1,0);
+        // Keep the Blockbench face order and the supplied normals aligned. The
+        // former reversed winding produced unstable-looking thin whisker planes.
+        face(cube, "north", buffer, matrices, light, new double[][]{{x0,y0,z0},{x0,y1,z0},{x1,y1,z0},{x1,y0,z0}}, 0,0,-1);
+        face(cube, "south", buffer, matrices, light, new double[][]{{x1,y0,z1},{x1,y1,z1},{x0,y1,z1},{x0,y0,z1}}, 0,0,1);
+        face(cube, "west", buffer, matrices, light, new double[][]{{x0,y0,z1},{x0,y1,z1},{x0,y1,z0},{x0,y0,z0}}, -1,0,0);
+        face(cube, "east", buffer, matrices, light, new double[][]{{x1,y0,z0},{x1,y1,z0},{x1,y1,z1},{x1,y0,z1}}, 1,0,0);
+        face(cube, "up", buffer, matrices, light, new double[][]{{x0,y1,z0},{x0,y1,z1},{x1,y1,z1},{x1,y1,z0}}, 0,1,0);
+        face(cube, "down", buffer, matrices, light, new double[][]{{x0,y0,z1},{x0,y0,z0},{x1,y0,z0},{x1,y0,z1}}, 0,-1,0);
         matrices.pop();
     }
 
@@ -99,7 +103,9 @@ final class MpsqOtterModel {
         if (uv == null) return;
         float u0 = (float) (uv[0] / 64.0), v0 = (float) (uv[1] / 64.0);
         float u1 = (float) (uv[2] / 64.0), v1 = (float) (uv[3] / 64.0);
-        float[][] tex = {{u0,v0},{u1,v0},{u1,v1},{u0,v1}};
+        // The outward-facing vertex order is the reverse of the old renderer's
+        // order. Reverse the matching UV corners too so the texture stays aligned.
+        float[][] tex = {{u0,v0},{u0,v1},{u1,v1},{u1,v0}};
         for (int i = 0; i < 4; i++) {
             double[] p = points[i];
             buffer.vertex(matrices.peek(), (float)p[0], (float)p[1], (float)p[2])

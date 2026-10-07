@@ -5,7 +5,6 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import net.minecraft.client.render.RenderLayer;
-import net.minecraft.client.render.OverlayTexture;
 import net.minecraft.client.render.VertexConsumer;
 import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.util.math.MatrixStack;
@@ -21,6 +20,8 @@ import java.util.Map;
 /** Loads each supplied Blockbench model and keyed poses for Nog's Budgie pet. */
 final class MpsqBudgieModel {
     private static final Map<String, ModelData> MODELS = new HashMap<>();
+    private static final String RIGHT_WING = "02ece6ff-6b78-6b1f-faf7-bc4a28d12133";
+    private static final String LEFT_WING = "c6d4927b-59a0-be89-75e9-4b299c563d15";
     private static String safeVariant(String value) { return MpsqBudgiePetRenderer.isVariant(value) ? value : "green"; }
     private static Identifier texture(String variant) { return Identifier.of(MpsqCameraClient.MOD_ID,
             "textures/pets/budgies/" + safeVariant(variant) + ".png"); }
@@ -43,9 +44,12 @@ final class MpsqBudgieModel {
         matrices.translate(x, y, z);
         matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(180.0f - yaw));
         matrices.scale(scale, scale, scale);
-        VertexConsumer vertices = consumers.getBuffer(RenderLayer.getEntityCutoutNoCull(texture(variant)));
+        // Plane-like feet and wing pieces contain coincident front/back faces;
+        // back-face culling prevents those layers from fighting each other.
+        VertexConsumer vertices = consumers.getBuffer(RenderLayer.getEntityCutout(texture(variant)));
         Animation pose = model.animations.get(animation);
-        if (pose == null) pose = model.animations.get("idle");
+        if (pose == null && !"fly".equals(animation)) pose = model.animations.get("idle");
+        if (pose == null && "fly".equals(animation)) pose = Animation.proceduralFly();
         double poseTime = pose == null ? 0 : pose.loop
                 ? timeSeconds % Math.max(0.001, pose.length) : Math.min(timeSeconds, pose.length);
         renderGroup(model.root, matrices, vertices, light, pose, poseTime, 0, 0, 0);
@@ -60,6 +64,13 @@ final class MpsqBudgieModel {
         matrices.translate((gx - parentX) / 16.0, (gy - parentY) / 16.0, (gz - parentZ) / 16.0);
         Vec3 rotation = group.rotation;
         Vec3 animatedRotation = animation == null ? Vec3.ZERO : animation.value(group.id, "rotation", time);
+        if (animation != null && animation.name.equals("fly")) {
+            // The supplied files have no authored fly clip. Add a symmetric
+            // flap to the actual wing bones while retaining their model pose.
+            double flap = Math.sin(time * Math.PI * 2.0 * 2.8) * 42.0;
+            if (group.id.equals(RIGHT_WING)) animatedRotation = animatedRotation.add(new Vec3(0, 0, flap));
+            else if (group.id.equals(LEFT_WING)) animatedRotation = animatedRotation.add(new Vec3(0, 0, -flap));
+        }
         Vec3 animatedPosition = animation == null ? Vec3.ZERO : animation.value(group.id, "position", time);
         matrices.translate(animatedPosition.x / 16.0, animatedPosition.y / 16.0, animatedPosition.z / 16.0);
         matrices.multiply(RotationAxis.POSITIVE_Z.rotationDegrees((float) (rotation.z + animatedRotation.z)));
@@ -86,12 +97,12 @@ final class MpsqBudgieModel {
         double x1 = (cube.to.x - cube.origin.x) / 16.0;
         double y1 = (cube.to.y - cube.origin.y) / 16.0;
         double z1 = (cube.to.z - cube.origin.z) / 16.0;
-        face(cube, "north", buffer, matrices, light, new double[][]{{x0,y0,z0},{x1,y0,z0},{x1,y1,z0},{x0,y1,z0}}, 0,0,-1);
-        face(cube, "south", buffer, matrices, light, new double[][]{{x1,y0,z1},{x0,y0,z1},{x0,y1,z1},{x1,y1,z1}}, 0,0,1);
-        face(cube, "west", buffer, matrices, light, new double[][]{{x0,y0,z1},{x0,y0,z0},{x0,y1,z0},{x0,y1,z1}}, -1,0,0);
-        face(cube, "east", buffer, matrices, light, new double[][]{{x1,y0,z0},{x1,y0,z1},{x1,y1,z1},{x1,y1,z0}}, 1,0,0);
-        face(cube, "up", buffer, matrices, light, new double[][]{{x0,y1,z0},{x1,y1,z0},{x1,y1,z1},{x0,y1,z1}}, 0,1,0);
-        face(cube, "down", buffer, matrices, light, new double[][]{{x0,y0,z1},{x1,y0,z1},{x1,y0,z0},{x0,y0,z0}}, 0,-1,0);
+        face(cube, "north", buffer, matrices, light, new double[][]{{x0,y0,z0},{x0,y1,z0},{x1,y1,z0},{x1,y0,z0}}, 0,0,-1);
+        face(cube, "south", buffer, matrices, light, new double[][]{{x1,y0,z1},{x1,y1,z1},{x0,y1,z1},{x0,y0,z1}}, 0,0,1);
+        face(cube, "west", buffer, matrices, light, new double[][]{{x0,y0,z1},{x0,y1,z1},{x0,y1,z0},{x0,y0,z0}}, -1,0,0);
+        face(cube, "east", buffer, matrices, light, new double[][]{{x1,y0,z0},{x1,y1,z0},{x1,y1,z1},{x1,y0,z1}}, 1,0,0);
+        face(cube, "up", buffer, matrices, light, new double[][]{{x0,y1,z0},{x0,y1,z1},{x1,y1,z1},{x1,y1,z0}}, 0,1,0);
+        face(cube, "down", buffer, matrices, light, new double[][]{{x0,y0,z1},{x0,y0,z0},{x1,y0,z0},{x1,y0,z1}}, 0,-1,0);
         matrices.pop();
     }
 
@@ -101,12 +112,13 @@ final class MpsqBudgieModel {
         if (uv == null) return;
         float u0 = (float) (uv[0] / 32.0), v0 = (float) (uv[1] / 32.0);
         float u1 = (float) (uv[2] / 32.0), v1 = (float) (uv[3] / 32.0);
-        float[][] tex = {{u0,v0},{u1,v0},{u1,v1},{u0,v1}};
+        // Preserve each Blockbench face's UV corner after reversing vertex winding.
+        float[][] tex = {{u0,v0},{u0,v1},{u1,v1},{u1,v0}};
         for (int i = 0; i < 4; i++) {
             double[] p = points[i];
             buffer.vertex(matrices.peek(), (float)p[0], (float)p[1], (float)p[2])
                     .color(255,255,255,255).texture(tex[i][0], tex[i][1])
-                    .overlay(OverlayTexture.DEFAULT_UV).light(light == 0 ? FULL_BRIGHT : light)
+                    .overlay(0).light(light == 0 ? FULL_BRIGHT : light)
                     .normal(matrices.peek(), nx, ny, nz);
         }
     }
@@ -219,6 +231,7 @@ final class MpsqBudgieModel {
         final String name; final double length; final boolean loop;
         final Map<String, Map<String,List<Key>>> tracks = new HashMap<>();
         Animation(String name, double length, boolean loop) { this.name=name; this.length=length; this.loop=loop; }
+        static Animation proceduralFly() { return new Animation("fly", 1.0, true); }
         static Animation parse(JsonObject object) {
             Animation animation = new Animation(object.get("name").getAsString(),
                     object.get("length").getAsDouble(), object.get("loop").getAsString().equals("loop"));

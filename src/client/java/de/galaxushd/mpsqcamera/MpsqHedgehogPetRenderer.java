@@ -28,7 +28,6 @@ final class MpsqHedgehogPetRenderer {
     private static float yaw;
     private static long nextWanderAt;
     private static long pauseUntil;
-    private static long nextObstacleCheck;
     private static long actionCooldownUntil;
     private static long actionStartedAt;
     private static long actionUntil;
@@ -120,14 +119,6 @@ final class MpsqHedgehogPetRenderer {
             return;
         }
 
-        if (now >= nextObstacleCheck) {
-            nextObstacleCheck = now + 2000;
-            if (now >= actionCooldownUntil && wallInFront(client)) {
-                startBoink(client, now);
-                return;
-            }
-        }
-
         if (horizontalDistance(x, z, player.getX(), player.getZ()) >= MAX_PLAYER_DISTANCE) {
             chooseWanderTarget(client, now);
         }
@@ -156,8 +147,24 @@ final class MpsqHedgehogPetRenderer {
         double nx = x + dx / distance * Math.min(step, distance);
         double nz = z + dz / distance * Math.min(step, distance);
         double ny = groundY(client, nx, y, nz);
-        if (!Double.isFinite(ny) || Math.abs(ny - y) > 1.1
-                || MpsqPetGrounding.blocked(client, nx, ny, nz, 0.23, 0.68)) {
+        // A missing floor is a ledge or gap, not a wall: choose another route
+        // instead of playing the impact animation. The nearest collision surface
+        // may be up to one block higher; the body test catches anything above it.
+        if (!Double.isFinite(ny)) {
+            moving = false;
+            chooseWanderTarget(client, now + 1000);
+            return;
+        }
+        boolean stepTooHigh = ny - y > 1.0001;
+        boolean deepDrop = y - ny > 1.1;
+        boolean bodyBlocked = !stepTooHigh
+                && MpsqPetGrounding.blocked(client, nx, ny, nz, 0.23, 0.68);
+        if (deepDrop) {
+            moving = false;
+            chooseWanderTarget(client, now + 1000);
+            return;
+        }
+        if (stepTooHigh || bodyBlocked) {
             if (now >= actionCooldownUntil) startBoink(client, now);
             else chooseWanderTarget(client, now + 1000);
             return;
@@ -211,14 +218,6 @@ final class MpsqHedgehogPetRenderer {
         Vec3d end = start.add(player.getRotationVec(1.0f).multiply(3.2));
         Box bounds = new Box(x - 0.42, y, z - 0.42, x + 0.42, y + 0.72, z + 0.42);
         return bounds.raycast(start, end).isPresent();
-    }
-
-    private static boolean wallInFront(MinecraftClient client) {
-        double radians = Math.toRadians(yaw);
-        double forwardX = -Math.sin(radians), forwardZ = Math.cos(radians);
-        double px = x + forwardX * 0.55, pz = z + forwardZ * 0.55;
-        return MpsqPetGrounding.blocked(client, px, y + 0.08, pz, 0.06, 0.10)
-                || MpsqPetGrounding.blocked(client, px, y + 0.46, pz, 0.06, 0.10);
     }
 
     private static void chooseWanderTarget(MinecraftClient client, long now) {

@@ -4,7 +4,6 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.RenderLayer;
 import net.minecraft.client.render.OverlayTexture;
 import net.minecraft.client.render.VertexConsumer;
@@ -43,7 +42,9 @@ final class MpsqMiniYouModel {
         matrices.translate(x, y, z);
         matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(180.0f - yaw));
         matrices.scale(scale, scale, scale);
-        VertexConsumer vertices = consumers.getBuffer(RenderLayer.getEntityCutoutNoCull(skinTexture==null?MODEL_TEXTURE:skinTexture));
+        // BBModel outer-layer planes overlap the base cubes. Culling the back
+        // faces avoids drawing both sides of those planes into the same pixels.
+        VertexConsumer vertices = consumers.getBuffer(RenderLayer.getEntityCutout(skinTexture==null?MODEL_TEXTURE:skinTexture));
         Animation pose = model.animations.get(animation);
         if (pose == null) pose = model.animations.get("idle");
         double poseTime = pose == null ? 0 : pose.loop
@@ -86,12 +87,12 @@ final class MpsqMiniYouModel {
         double x1 = (cube.to.x - cube.origin.x) / 16.0;
         double y1 = (cube.to.y - cube.origin.y) / 16.0;
         double z1 = (cube.to.z - cube.origin.z) / 16.0;
-        face(cube, "north", buffer, matrices, light, new double[][]{{x0,y0,z0},{x1,y0,z0},{x1,y1,z0},{x0,y1,z0}}, 0,0,-1);
-        face(cube, "south", buffer, matrices, light, new double[][]{{x1,y0,z1},{x0,y0,z1},{x0,y1,z1},{x1,y1,z1}}, 0,0,1);
-        face(cube, "west", buffer, matrices, light, new double[][]{{x0,y0,z1},{x0,y0,z0},{x0,y1,z0},{x0,y1,z1}}, -1,0,0);
-        face(cube, "east", buffer, matrices, light, new double[][]{{x1,y0,z0},{x1,y0,z1},{x1,y1,z1},{x1,y1,z0}}, 1,0,0);
-        face(cube, "up", buffer, matrices, light, new double[][]{{x0,y1,z0},{x1,y1,z0},{x1,y1,z1},{x0,y1,z1}}, 0,1,0);
-        face(cube, "down", buffer, matrices, light, new double[][]{{x0,y0,z1},{x1,y0,z1},{x1,y0,z0},{x0,y0,z0}}, 0,-1,0);
+        face(cube, "north", buffer, matrices, light, new double[][]{{x0,y0,z0},{x0,y1,z0},{x1,y1,z0},{x1,y0,z0}}, 0,0,-1);
+        face(cube, "south", buffer, matrices, light, new double[][]{{x1,y0,z1},{x1,y1,z1},{x0,y1,z1},{x0,y0,z1}}, 0,0,1);
+        face(cube, "west", buffer, matrices, light, new double[][]{{x0,y0,z1},{x0,y1,z1},{x0,y1,z0},{x0,y0,z0}}, -1,0,0);
+        face(cube, "east", buffer, matrices, light, new double[][]{{x1,y0,z0},{x1,y1,z0},{x1,y1,z1},{x1,y0,z1}}, 1,0,0);
+        face(cube, "up", buffer, matrices, light, new double[][]{{x0,y1,z0},{x0,y1,z1},{x1,y1,z1},{x1,y1,z0}}, 0,1,0);
+        face(cube, "down", buffer, matrices, light, new double[][]{{x0,y0,z1},{x0,y0,z0},{x1,y0,z0},{x1,y0,z1}}, 0,-1,0);
         matrices.pop();
     }
 
@@ -101,7 +102,9 @@ final class MpsqMiniYouModel {
         if (uv == null) return;
         float u0 = (float) (uv[0] / 64.0), v0 = (float) (uv[1] / 64.0);
         float u1 = (float) (uv[2] / 64.0), v1 = (float) (uv[3] / 64.0);
-        float[][] tex = {{u0,v0},{u1,v0},{u1,v1},{u0,v1}};
+        // The vertices above are wound outward; keep the Blockbench UV corner
+        // pairing intact while reversing the quad's winding.
+        float[][] tex = {{u0,v0},{u0,v1},{u1,v1},{u1,v0}};
         for (int i = 0; i < 4; i++) {
             double[] p = points[i];
             buffer.vertex(matrices.peek(), (float)p[0], (float)p[1], (float)p[2])
