@@ -93,12 +93,7 @@ public final class MpsqPetMenuScreen extends Screen {
             int x = drawLeft + Math.round((GRID_LEFT + column * SLOT_SIZE) * drawScale);
             int y = drawTop + Math.round((GRID_TOP + row * SLOT_SIZE) * drawScale);
 
-            if (MpsqMiniYouPetRenderer.isMiniYouId(pet.id())) {
-                int size = Math.round(30 * drawScale);
-                MpsqMiniYouModel.renderSlot(context, pet,
-                        x + Math.round(3 * drawScale), y + Math.round(2 * drawScale), size,
-                        (System.currentTimeMillis() % 10_000L) / 1000.0);
-            } else drawPetModel(context, pet, x, y);
+            drawPetModel(context, pet, x, y);
         }
     }
 
@@ -121,9 +116,16 @@ public final class MpsqPetMenuScreen extends Screen {
     private void drawPetModel(DrawContext context, MpsqPetCatalog.Pet pet, int slotX, int slotY) {
         if (client == null) return;
         MpsqNpcSkinRenderer.Skin skin = MpsqPetRenderer.skinFor(pet);
-        if (skin == null) return;
-
-        if (client.world == null) return;
+        if (skin == null || client.world == null) {
+            int size = Math.max(1, Math.round(26 * drawScale));
+            int iconX = slotX + Math.round((SLOT_SIZE - 26) * drawScale / 2);
+            int iconY = slotY + Math.round((SLOT_SIZE - 26) * drawScale / 2);
+            Identifier fallback = "__player__".equals(pet.texture())
+                    ? Identifier.of(MpsqCameraClient.MOD_ID, "textures/pets/mini_you_neutral.png") : pet.textureId();
+            context.drawTexture(RenderPipelines.GUI_TEXTURED, fallback, iconX, iconY,
+                    0, 0, size, size, 64, pet.textureHeight(), 64, pet.textureHeight());
+            return;
+        }
         if (previewPlayer == null || previewPlayer.getWorld() != client.world) {
             previewPlayer = new PetPreviewPlayer(client.world);
         }
@@ -132,9 +134,9 @@ public final class MpsqPetMenuScreen extends Screen {
         int top = slotY + Math.round(2 * drawScale);
         int right = slotX + Math.round((SLOT_SIZE - 3) * drawScale);
         int bottom = slotY + Math.round((SLOT_SIZE - 2) * drawScale);
-        int size = Math.max(4, Math.round(14 * drawScale));
+        int size = Math.max(4, Math.round(22 * drawScale));
         float centerX = (left + right) * 0.5f;
-        float centerY = (top + bottom) * 0.5f;
+        float centerY = bottom - Math.round(3 * drawScale);
 
         // InventoryScreen manages the GUI's 3D target and MatrixStack. The
         // preview entity supplies the preset texture and slim/wide model.

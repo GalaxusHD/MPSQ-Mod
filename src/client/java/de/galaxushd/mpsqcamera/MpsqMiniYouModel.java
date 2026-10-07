@@ -6,10 +6,9 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.RenderLayer;
+import net.minecraft.client.render.OverlayTexture;
 import net.minecraft.client.render.VertexConsumer;
 import net.minecraft.client.render.VertexConsumerProvider;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.render.VertexConsumerProvider.Immediate;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.RotationAxis;
@@ -53,28 +52,10 @@ final class MpsqMiniYouModel {
         matrices.pop();
     }
 
-    static void renderSlot(DrawContext context, MpsqPetCatalog.Pet pet, int left, int top, int size, double timeSeconds) {
-        MinecraftClient client = MinecraftClient.getInstance();
-        MpsqNpcSkinRenderer.Skin skin=MpsqPetRenderer.skinFor(pet);
-        Immediate consumers = client.getBufferBuilders().getEntityVertexConsumers();
-        // Minecraft 1.21.8 uses a 2D Matrix3x2fStack for GUI drawing. The
-        // custom Blockbench mesh still needs its own 3D MatrixStack.
-        MatrixStack matrices = new MatrixStack();
-        matrices.push();
-        matrices.translate(left + size * 0.5f, top + size * 0.92f, 250.0f);
-        float pixelScale = size / 1.6f;
-        matrices.scale(pixelScale, -pixelScale, pixelScale);
-        matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(25.0f));
-        matrices.multiply(RotationAxis.POSITIVE_X.rotationDegrees(10.0f));
-        render(matrices, consumers, 0x00F000F0, pet.id(),skin==null?null:skin.texture(),skin!=null&&skin.slim(),0, 0, 0, 0, 1.0f, "idle", timeSeconds);
-        matrices.pop();
-        consumers.draw();
-    }
-
     private static void renderGroup(Group group, MatrixStack matrices, VertexConsumer vertices, int light,
                                     Animation animation, double time, double parentX, double parentY,
                                     double parentZ) {
-        double gx = group.origin.x, gy = group.origin.y, gz = group.origin.z;
+        double gx = number(group.origin, 0), gy = number(group.origin, 1), gz = number(group.origin, 2);
         matrices.push();
         matrices.translate((gx - parentX) / 16.0, (gy - parentY) / 16.0, (gz - parentZ) / 16.0);
         Vec3 rotation = group.rotation;
@@ -125,7 +106,7 @@ final class MpsqMiniYouModel {
             double[] p = points[i];
             buffer.vertex(matrices.peek(), (float)p[0], (float)p[1], (float)p[2])
                     .color(255,255,255,255).texture(tex[i][0], tex[i][1])
-                    .overlay(0).light(light == 0 ? FULL_BRIGHT : light)
+                    .overlay(OverlayTexture.DEFAULT_UV).light(light == 0 ? FULL_BRIGHT : light)
                     .normal(matrices.peek(), nx, ny, nz);
         }
     }
@@ -192,9 +173,9 @@ final class MpsqMiniYouModel {
 
     private record ModelData(Group root, Map<String, Animation> animations) { }
     private static final class Group {
-        final String id; final Vec3 origin; final Vec3 rotation; final List<Cube> cubes = new ArrayList<>();
+        final String id; final JsonArray origin; final Vec3 rotation; final List<Cube> cubes = new ArrayList<>();
         final List<Group> children = new ArrayList<>();
-        Group(String id, Vec3 origin, Vec3 rotation) { this.id=id; this.origin=origin; this.rotation=rotation; }
+        Group(String id, JsonArray origin, Vec3 rotation) { this.id=id; this.origin=origin; this.rotation=rotation; }
     }
     private record Vec3(double x, double y, double z) {
         static final Vec3 ZERO = new Vec3(0,0,0);

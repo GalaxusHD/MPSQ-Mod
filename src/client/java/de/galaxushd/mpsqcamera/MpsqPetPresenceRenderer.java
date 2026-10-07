@@ -40,7 +40,11 @@ final class MpsqPetPresenceRenderer {
             var handler=client.getNetworkHandler();var entry=handler==null?null:handler.getPlayerListEntry(presence.playerId());
             if(entry==null)return;SkinTextures textures=entry.getSkinTextures();skin=new MpsqNpcSkinRenderer.Skin(textures.texture(),textures.model()==SkinTextures.Model.SLIM);
         }
-        MpsqMiniYouModel.render(matrices,consumers,light,pet.id(),skin==null?null:skin.texture(),skin!=null&&skin.slim(),x,y,z,presence.yaw(),0.48f,"walk",now/1000.0);
+        if(pet.miniModel()!=null) {
+            MpsqMiniYouModel.render(matrices,consumers,light,pet.id(),skin==null?null:skin.texture(),skin!=null&&skin.slim(),x,y,z,presence.yaw(),0.48f,"walk",now/1000.0);
+        } else {
+            renderMini(client,presence,x,y,z,light,matrices,consumers,now);
+        }
     }
     private static void renderMini(MinecraftClient client,MpsqPetPresenceClient.Snapshot pet,float x,float y,float z,int light,
                                    net.minecraft.client.util.math.MatrixStack matrices,
