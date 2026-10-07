@@ -19,7 +19,9 @@ final class MpsqPetGrounding {
         int blockX = MathHelper.floor(x);
         int blockZ = MathHelper.floor(z);
         int minY = Math.max(client.world.getBottomY(), MathHelper.floor(referenceY - SEARCH_BELOW));
-        int maxY = Math.min(client.world.getTopY() - 1, MathHelper.floor(referenceY + SEARCH_ABOVE));
+        // Entity positions are already constrained to the dimension's build range.
+        // Avoid World#getTopY() here: in Yarn 1.21.8 it requires a heightmap and X/Z.
+        int maxY = MathHelper.floor(referenceY + SEARCH_ABOVE);
         double best = Double.NaN;
         double bestDelta = Double.POSITIVE_INFINITY;
 

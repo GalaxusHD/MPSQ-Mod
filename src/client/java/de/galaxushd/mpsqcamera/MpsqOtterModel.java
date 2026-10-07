@@ -135,7 +135,7 @@ final class MpsqOtterModel {
     }
 
     private static Group parseGroup(JsonObject object, Map<String, JsonObject> elements) {
-        Group group = new Group(object.get("uuid").getAsString(), vector(object, "origin"),
+        Group group = new Group(object.get("uuid").getAsString(), vectorArray(object, "origin"),
                 vector(object, "rotation"));
         if (object.has("children")) for (JsonElement child : object.getAsJsonArray("children")) {
             if (child.isJsonPrimitive()) {
@@ -155,6 +155,13 @@ final class MpsqOtterModel {
         if (!object.has(key) || !object.get(key).isJsonArray()) return Vec3.ZERO;
         JsonArray array = object.getAsJsonArray(key);
         return new Vec3(number(array, 0), number(array, 1), number(array, 2));
+    }
+
+    private static JsonArray vectorArray(JsonObject object, String key) {
+        if (object.has(key) && object.get(key).isJsonArray()) return object.getAsJsonArray(key);
+        JsonArray zero = new JsonArray();
+        zero.add(0); zero.add(0); zero.add(0);
+        return zero;
     }
 
     private static double number(JsonArray array, int index) {

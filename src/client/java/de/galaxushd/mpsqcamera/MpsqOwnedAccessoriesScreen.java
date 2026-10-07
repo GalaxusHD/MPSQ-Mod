@@ -160,8 +160,8 @@ public final class MpsqOwnedAccessoriesScreen extends Screen {
         String assetId = str(row, "asset_id", str(definition, "asset_id", str(definition, "model_id", "")));
         String filename = str(row, "filename", str(definition, "filename", ""));
         if ("discord_hat.json".equalsIgnoreCase(filename)) assetId = MpsqAccessoryRenderer.DISCORD_HAT_ASSET_ID;
-        String builtin = MpsqAccessoryRenderer.builtinAccessoryUrl(filename);
-        if (builtin != null) return builtin;
+        String filenameBuiltin = MpsqAccessoryRenderer.builtinAccessoryUrl(filename);
+        if (filenameBuiltin != null) return filenameBuiltin;
         return MpsqAccessoryRenderer.assetPreviewUrl(assetId, url);
     }
 

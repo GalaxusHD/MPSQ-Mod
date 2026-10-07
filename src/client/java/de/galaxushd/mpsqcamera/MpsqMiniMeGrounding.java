@@ -13,7 +13,9 @@ final class MpsqMiniMeGrounding {
         if (client.world == null || !Double.isFinite(referenceY)) return Double.NaN;
         int bx = MathHelper.floor(x), bz = MathHelper.floor(z);
         int minY = Math.max(client.world.getBottomY(), MathHelper.floor(referenceY - 3.0));
-        int maxY = Math.min(client.world.getTopY() - 1, MathHelper.floor(referenceY + 1.25));
+        // Entity positions are already constrained to the dimension's build range.
+        // Avoid World#getTopY() here: in Yarn 1.21.8 it requires a heightmap and X/Z.
+        int maxY = MathHelper.floor(referenceY + 1.25);
         double result = Double.NaN, nearest = Double.POSITIVE_INFINITY;
         for (int by = minY; by <= maxY; by++) {
             if (!client.world.isChunkLoaded(bx >> 4, bz >> 4)) continue;
