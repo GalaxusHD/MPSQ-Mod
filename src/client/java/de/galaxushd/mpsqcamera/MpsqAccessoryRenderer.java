@@ -20,14 +20,22 @@ import net.minecraft.world.RaycastContext;
 
 /** Head accessories rendered only for players actually visible in the current world. */
 public final class MpsqAccessoryRenderer {
-    private record Model(JsonArray elements,JsonArray meshes,JsonArray bones,JsonArray animations,Map<String,Identifier> textures,Map<String,Integer> previewColors,List<RenderFace> bakedGeometry){}
+    private record Model(JsonArray elements,JsonArray meshes,JsonArray bones,JsonArray animations,Map<String,Identifier> textures,Map<String,Integer> previewColors,List<RenderFace> bakedGeometry,String skinTextureKey){}
     public static final String WUMPUS_ASSET_ID="mpsq_wumpus";
     private static final String WUMPUS_MODEL_URL="builtin://mpsq/wumpus";
     public static final String DISCORD_HAT_ASSET_ID="discord_hat";
     private static final String DISCORD_HAT_MODEL_URL="builtin://mpsq/discord_hat";
+    public static final String BUDGIE_HAT_ASSET_ID="nm_hat_budgie";
+    private static final String BUDGIE_HAT_MODEL_URL="builtin://mpsq/nm_hat_budgie";
+    public static final String HEDGEHOG_HAT_ASSET_ID="nm_hat_hedgehog";
+    private static final String HEDGEHOG_HAT_MODEL_URL="builtin://mpsq/nm_hat_hedgehog";
     private static final float WUMPUS_WAVE_FACING_OFFSET=200f;
-    private static boolean isBuiltinModel(String url){return WUMPUS_MODEL_URL.equals(url)||DISCORD_HAT_MODEL_URL.equals(url);}
-    public static String assetPreviewUrl(String assetId,String fallback){if(WUMPUS_ASSET_ID.equals(assetId))return WUMPUS_MODEL_URL;if(DISCORD_HAT_ASSET_ID.equalsIgnoreCase(assetId))return DISCORD_HAT_MODEL_URL;return fallback;}
+    private static boolean isBuiltinModel(String url){return WUMPUS_MODEL_URL.equals(url)||DISCORD_HAT_MODEL_URL.equals(url)||BUDGIE_HAT_MODEL_URL.equals(url)||HEDGEHOG_HAT_MODEL_URL.equals(url)||MpsqBuiltinFurnitureCatalog.byUrl(url)!=null;}
+    private static String builtinModelPath(String url){if(DISCORD_HAT_MODEL_URL.equals(url))return "/assets/mpsqcamera/models/discord_hat.json";if(WUMPUS_MODEL_URL.equals(url))return "/assets/mpsqcamera/models/wumpus.json";if(BUDGIE_HAT_MODEL_URL.equals(url))return "/assets/mpsqcamera/models/accessories/nm_hat_budgie.json";if(HEDGEHOG_HAT_MODEL_URL.equals(url))return "/assets/mpsqcamera/models/accessories/nm_hat_hedgehog.json";MpsqBuiltinFurnitureCatalog.Furniture item=MpsqBuiltinFurnitureCatalog.byUrl(url);return item==null?null:item.resource();}
+    public static String builtinFurnitureUrl(String assetId){MpsqBuiltinFurnitureCatalog.Furniture item=MpsqBuiltinFurnitureCatalog.byId(assetId);return item==null?null:item.url();}
+    public static void registerBuiltinFurniture(){for(var item:MpsqBuiltinFurnitureCatalog.all()){localAssetUrls.put(item.id(),item.url());localAssetCategories.put(item.id(),"furniture");}}
+    public static String builtinAccessoryUrl(String filename){String name=filename==null?"":filename.substring(filename.lastIndexOf('/')+1).toLowerCase(Locale.ROOT);return switch(name){case "discord_hat.json","discord_hat.bbmodel"->DISCORD_HAT_MODEL_URL;case "nm_hat_budgie.json","nm_hat_budgie.bbmodel","nm_hat_budgie (1).bbmodel"->BUDGIE_HAT_MODEL_URL;case "nm_hat_hedgehog.json","nm_hat_hedgehog.bbmodel","nm_hat_hedgehog (1).bbmodel"->HEDGEHOG_HAT_MODEL_URL;default->null;};}
+    public static String assetPreviewUrl(String assetId,String fallback){if(WUMPUS_ASSET_ID.equals(assetId))return WUMPUS_MODEL_URL;if(DISCORD_HAT_ASSET_ID.equalsIgnoreCase(assetId))return DISCORD_HAT_MODEL_URL;if(BUDGIE_HAT_ASSET_ID.equalsIgnoreCase(assetId))return BUDGIE_HAT_MODEL_URL;if(HEDGEHOG_HAT_ASSET_ID.equalsIgnoreCase(assetId))return HEDGEHOG_HAT_MODEL_URL;return fallback;}
     private record RenderFace(Identifier texture,float[][] vertices,float nx,float ny,float nz){}
     private record PreviewPoint(double x,double y,double z){}
     private record PreviewPolygon(double[][] points,int color,double depth){}
@@ -78,7 +86,7 @@ public final class MpsqAccessoryRenderer {
     private static int objectRevision;
     private static String scope="";
     private MpsqAccessoryRenderer(){}
-    public static void refresh(){generation++;polling=false;loading.clear();npcRotations.clear();MpsqNpcSkinRenderer.clear(MinecraftClient.getInstance());clearModels(MinecraftClient.getInstance());localAssetUrls.clear();localAssetCategories.clear();localCatalogRequested=false;next=0;}
+    public static void refresh(){generation++;polling=false;loading.clear();npcRotations.clear();MpsqNpcSkinRenderer.clear(MinecraftClient.getInstance());clearModels(MinecraftClient.getInstance());localAssetUrls.clear();localAssetCategories.clear();registerBuiltinFurniture();localCatalogRequested=false;next=0;}
     static boolean isCurrentGeneration(int epoch){return epoch==generation;}
     public static JsonArray npcsSnapshot(){return npcs.deepCopy();}
     public static JsonArray objectsSnapshot(){return objects.deepCopy();}
@@ -117,6 +125,10 @@ public final class MpsqAccessoryRenderer {
     }
     public static void initialize(){
         MpsqPetRenderer.initialize();
+        MpsqMiniYouPetRenderer.initialize();
+        MpsqOtterPetRenderer.initialize();
+        MpsqHedgehogPetRenderer.initialize();
+        MpsqBudgiePetRenderer.initialize();
         ClientTickEvents.END_CLIENT_TICK.register(client->{
             if(tryOnUrl!=null&&client.player!=null){
                 if(tryOnStart==null)tryOnStart=client.player.getPos();
@@ -124,7 +136,7 @@ public final class MpsqAccessoryRenderer {
                 else {long window=client.getWindow().getHandle();for(int key=1;key<=org.lwjgl.glfw.GLFW.GLFW_KEY_LAST;key++){boolean down=org.lwjgl.glfw.GLFW.glfwGetKey(window,key)==org.lwjgl.glfw.GLFW.GLFW_PRESS;if(down&&!pressedKeys.get(key)&&key!=org.lwjgl.glfw.GLFW.GLFW_KEY_F5){clearTryOn();break;}if(down)pressedKeys.set(key);else pressedKeys.clear(key);}}
             }
             String current=MpsqActionSync.server()+"|"+MpsqActionSync.world();
-            if(!scope.equals(current)){scope=current;generation++;polling=false;wearers.clear();objects=new JsonArray();npcs=new JsonArray();loading.clear();npcRotations.clear();MpsqNpcSkinRenderer.clear(client);clearModels(client);localAssetUrls.clear();localAssetCategories.clear();localCatalogRequested=false;localAccessoryCatalogRequested=false;next=0;}
+            if(!scope.equals(current)){scope=current;generation++;polling=false;wearers.clear();objects=new JsonArray();npcs=new JsonArray();loading.clear();npcRotations.clear();MpsqNpcSkinRenderer.clear(client);clearModels(client);localAssetUrls.clear();localAssetCategories.clear();registerBuiltinFurniture();localCatalogRequested=false;localAccessoryCatalogRequested=false;next=0;}
             boolean localWorld=MpsqActionSync.server().isBlank()&&client.getServer()!=null;
             if(client.world==null||!TeamVisibilitySettings.visible()||(!MpsqActionSync.server().isBlank()&&!MpsqActionSync.isMpsqServer())||(!localWorld&&!MpsqApiClient.isReady())||polling||System.currentTimeMillis()<next)return;
             polling=true;next=System.currentTimeMillis()+15000;int epoch=generation;
@@ -169,7 +181,7 @@ public final class MpsqAccessoryRenderer {
                 if(error!=null)return;
                 wearers.clear();
                 for(JsonElement value:data.getAsJsonArray()){
-                    JsonObject row=value.getAsJsonObject();String name=row.get("name").getAsString().toLowerCase(Locale.ROOT), url=row.get("url").getAsString();
+                    JsonObject row=value.getAsJsonObject();String name=row.get("name").getAsString().toLowerCase(Locale.ROOT), url=builtinAccessoryUrl(str(row,"filename",""));if(url==null)url=row.get("url").getAsString();
                     wearers.put(name,url);
                 }
                 // Load only assets worn by players in this world, limiting texture memory.
@@ -185,7 +197,7 @@ public final class MpsqAccessoryRenderer {
             var camera=context.camera().getPos();
             for(var value:objects){var o=value.getAsJsonObject();Model model=models.get(o.get("url").getAsString());if(model==null)continue;
                 double x=o.get("x").getAsDouble(),y=o.get("y").getAsDouble(),z=o.get("z").getAsDouble();if(camera.squaredDistanceTo(x,y,z)>4096)continue;
-                float objectScale=o.has("scale")?o.get("scale").getAsFloat():1.0f;objectScale=Float.isFinite(objectScale)?Math.max(0.25f,Math.min(3.0f,objectScale)):1.0f;FurnitureBounds bounds=furnitureBounds(model);matrices.push();matrices.translate(x+0.5-camera.x,y-camera.y,z+0.5-camera.z);matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(o.get("rotation").getAsFloat()));matrices.translate(-0.5,0,-0.5);matrices.translate(0.5-objectScale*bounds.centerX()/16.0,-objectScale*bounds.minY()/16.0,0.5-objectScale*bounds.centerZ()/16.0);matrices.scale(objectScale/16,objectScale/16,objectScale/16);drawBakedFurniture(model,matrices,consumers,0xFFFFFFFF);matrices.pop();String furnitureName=o.has("display_name")?o.get("display_name").getAsString():"";MpsqFurnitureNameTagRenderer.draw(context,matrices,consumers,furnitureName,x+0.5,y+2.0*objectScale+0.15,z+0.5);
+                Model displayModel=furnitureSkinModel(model,o,client);float objectScale=o.has("scale")?o.get("scale").getAsFloat():1.0f;objectScale=Float.isFinite(objectScale)?Math.max(0.25f,Math.min(3.0f,objectScale)):1.0f;FurnitureBounds bounds=furnitureBounds(model);matrices.push();matrices.translate(x+0.5-camera.x,y-camera.y,z+0.5-camera.z);matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(o.get("rotation").getAsFloat()));matrices.translate(-0.5,0,-0.5);matrices.translate(0.5-objectScale*bounds.centerX()/16.0,-objectScale*bounds.minY()/16.0,0.5-objectScale*bounds.centerZ()/16.0);matrices.scale(objectScale/16,objectScale/16,objectScale/16);if(displayModel.animations!=null&&!displayModel.animations.isEmpty())drawBbModel(displayModel,matrices,consumers,0xFFFFFFFF,"idle",client.world.getTime()/20.0f);else drawBakedFurniture(displayModel,matrices,consumers,0xFFFFFFFF);matrices.pop();String furnitureName=o.has("display_name")?o.get("display_name").getAsString():"";MpsqFurnitureNameTagRenderer.draw(context,matrices,consumers,furnitureName,x+0.5,y+2.0*objectScale+0.15,z+0.5);
             }
             for(var player:client.world.getPlayers()){
                 if(player.isInvisible()||player.isSpectator()||(player==client.player&&client.options.getPerspective().isFirstPerson()))continue;
@@ -313,7 +325,7 @@ public final class MpsqAccessoryRenderer {
     }
     private static float wrapDegrees(float degrees){degrees%=360f;if(degrees>=180f)degrees-=360f;if(degrees< -180f)degrees+=360f;return degrees;}
     private static void mapCatalog(JsonArray values,String fallback){for(JsonElement value:values){if(!value.isJsonObject())continue;JsonObject asset=value.getAsJsonObject();if(asset.has("id")&&asset.has("url")){String id=asset.get("id").getAsString();localAssetUrls.put(id,asset.get("url").getAsString());localAssetCategories.put(id,str(asset,"category",fallback));}}}
-    private static void applyLocalEquippedAccessory(JsonArray values){String id=MpsqLocalWorldStore.equipped();var player=MinecraftClient.getInstance().player;if(id==null||player==null)return;if(DISCORD_HAT_ASSET_ID.equalsIgnoreCase(id)){wearers.put(player.getName().getString().toLowerCase(Locale.ROOT),DISCORD_HAT_MODEL_URL);return;}for(JsonElement e:values){if(!e.isJsonObject())continue;JsonObject row=e.getAsJsonObject();if(id.equals(str(row,"accessory_id",""))&&row.has("url")&&!row.get("url").isJsonNull()){wearers.put(player.getName().getString().toLowerCase(Locale.ROOT),row.get("url").getAsString());return;}}}
+    private static void applyLocalEquippedAccessory(JsonArray values){String id=MpsqLocalWorldStore.equipped();var player=MinecraftClient.getInstance().player;if(id==null||player==null)return;String builtin=assetPreviewUrl(id,null);if(builtin!=null){wearers.put(player.getName().getString().toLowerCase(Locale.ROOT),builtin);return;}for(JsonElement e:values){if(!e.isJsonObject())continue;JsonObject row=e.getAsJsonObject();if(!id.equals(str(row,"accessory_id","")))continue;builtin=builtinAccessoryUrl(str(row,"filename",""));String url=builtin!=null?builtin:str(row,"url","");if(!url.isBlank()){wearers.put(player.getName().getString().toLowerCase(Locale.ROOT),url);return;}}}
     public static void tryOn(String url){tryOnUrl=url;tryOnStart=MinecraftClient.getInstance().player==null?null:MinecraftClient.getInstance().player.getPos();pressedKeys.clear();if(url!=null&&MinecraftClient.getInstance().player!=null)MinecraftClient.getInstance().player.sendMessage(net.minecraft.text.Text.literal("Vorschau aktiv · Bewegung oder eine Taste beendet sie (F5 bleibt erlaubt)."),true);}
     /** Temporarily scopes accessory rendering to the player rendered inside the collection GUI. */
     public static void beginMenuPlayerPreview(String url){menuPreviewUrl=url;menuPlayerPreviewActive=true;}
@@ -371,6 +383,8 @@ public final class MpsqAccessoryRenderer {
     }
     private static void drawModel(Model model,MatrixStack matrices,VertexConsumerProvider consumers,int tint){drawElements(model,matrices,consumers,tint,null);drawMeshes(model,matrices,consumers,tint);}
     private record FurnitureBounds(float centerX,float minY,float maxY,float centerZ){}
+    /** Optional object fields skin_texture_url / skin_owner_uuid let a live leaderboard update statue appearances. */
+    private static Model furnitureSkinModel(Model model,JsonObject object,MinecraftClient client){String textureUrl=str(object,"skin_texture_url","");Identifier skinTexture=null;if(!textureUrl.isBlank()){MpsqNpcSkinRenderer.load(textureUrl,generation,false);MpsqNpcSkinRenderer.Skin skin=MpsqNpcSkinRenderer.get(textureUrl,false);if(skin!=null)skinTexture=skin.texture();}if(skinTexture==null){String owner=str(object,"skin_owner_uuid",str(object,"skin_owner_name",""));if(!owner.isBlank()&&client.world!=null)for(var player:client.world.getPlayers())if(player instanceof net.minecraft.client.network.AbstractClientPlayerEntity candidate&&(owner.equalsIgnoreCase(candidate.getUuid().toString())||owner.equalsIgnoreCase(candidate.getGameProfile().getName()))){skinTexture=candidate.getSkinTextures().texture();break;}}if(skinTexture==null||model.skinTextureKey==null||!model.textures.containsKey(model.skinTextureKey))return model;Map<String,Identifier> textures=new HashMap<>(model.textures);Identifier previous=textures.put(model.skinTextureKey,skinTexture),replacement=skinTexture;List<RenderFace> baked=model.bakedGeometry.stream().map(face->face.texture.equals(previous)?new RenderFace(replacement,face.vertices,face.nx,face.ny,face.nz):face).toList();return new Model(model.elements,model.meshes,model.bones,model.animations,textures,model.previewColors,baked,model.skinTextureKey);}
     private static FurnitureBounds furnitureBounds(Model model){float minX=Float.POSITIVE_INFINITY,minY=Float.POSITIVE_INFINITY,minZ=Float.POSITIVE_INFINITY,maxX=Float.NEGATIVE_INFINITY,maxY=Float.NEGATIVE_INFINITY,maxZ=Float.NEGATIVE_INFINITY;for(RenderFace face:model.bakedGeometry)for(float[] vertex:face.vertices){minX=Math.min(minX,vertex[0]);minY=Math.min(minY,vertex[1]);minZ=Math.min(minZ,vertex[2]);maxX=Math.max(maxX,vertex[0]);maxY=Math.max(maxY,vertex[1]);maxZ=Math.max(maxZ,vertex[2]);}if(!Float.isFinite(minX))return new FurnitureBounds(8f,0f,16f,8f);return new FurnitureBounds((minX+maxX)*0.5f,minY,maxY,(minZ+maxZ)*0.5f);}
     private static void drawBakedFurniture(Model model,MatrixStack matrices,VertexConsumerProvider consumers,int tint){for(RenderFace face:model.bakedGeometry){var buffer=consumers.getBuffer(RenderLayer.getEntityCutoutNoCull(face.texture));for(int i=0;i<4;i++){float[] vertex=face.vertices[Math.min(i,face.vertices.length-1)];buffer.vertex(matrices.peek(),vertex[0],vertex[1],vertex[2]).color((tint>>16)&255,(tint>>8)&255,tint&255,(tint>>>24)&255).texture(vertex[3],vertex[4]).overlay(OverlayTexture.DEFAULT_UV).light(0xF000F0).normal(matrices.peek(),face.nx,face.ny,face.nz);}}}
     private static void drawBbModel(Model model,MatrixStack matrices,VertexConsumerProvider consumers,int tint){drawBbModel(model,matrices,consumers,tint,null,0);}
@@ -425,7 +439,7 @@ public final class MpsqAccessoryRenderer {
         CompletableFuture.supplyAsync(()->{
             try{
                 byte[] bytes;
-                if(isBuiltinModel(url)){String path=DISCORD_HAT_MODEL_URL.equals(url)?"/assets/mpsqcamera/models/discord_hat.json":"/assets/mpsqcamera/models/wumpus.json";try(InputStream stream=MpsqAccessoryRenderer.class.getResourceAsStream(path)){if(stream==null)throw new IOException("Modell fehlt: "+path);bytes=stream.readNBytes(12000001);}}
+                if(isBuiltinModel(url)){String path=builtinModelPath(url);try(InputStream stream=path==null?null:MpsqAccessoryRenderer.class.getResourceAsStream(path)){if(stream==null)throw new IOException("Modell fehlt: "+path);bytes=stream.readNBytes(12000001);}}
                 else {URI uri=URI.create(url), api=URI.create(MpsqApiClient.API_URL);if(!"https".equals(uri.getScheme())||!api.getHost().equals(uri.getHost()))throw new IOException("Unzulässige Modellquelle");bytes=MpsqLocalWorldStore.readAsset(url,12000000);if(bytes==null){var response=HTTP.send(HttpRequest.newBuilder(uri).timeout(Duration.ofSeconds(20)).GET().build(),HttpResponse.BodyHandlers.ofInputStream());try(InputStream stream=response.body()){if(response.statusCode()!=200)throw new IOException("Modell nicht verfügbar");bytes=stream.readNBytes(12000001);if(bytes.length>12000000)throw new IOException("Modell zu groß");MpsqLocalWorldStore.writeAsset(url,bytes);}}}
                 return JsonParser.parseString(new String(bytes,java.nio.charset.StandardCharsets.UTF_8)).getAsJsonObject();
             }catch(Exception e){throw new java.util.concurrent.CompletionException(e);}
@@ -448,7 +462,7 @@ public final class MpsqAccessoryRenderer {
                 for(JsonElement element:elements){JsonObject faces=element.getAsJsonObject().getAsJsonObject("faces");for(var face:faces.entrySet()){JsonObject f=face.getValue().getAsJsonObject();NativeImage image=previewImages.get(str(f,"texture",""));if(image!=null&&f.has("uv"))previewColors.put(previewColorKey(f),averageColor(image,f.getAsJsonArray("uv")));}}
                 JsonArray bones=bundle.has("bones")&&bundle.get("bones").isJsonArray()?bundle.getAsJsonArray("bones"):new JsonArray();if(bones.size()>256)throw new IOException("Zu viele Modellknochen");normalizeBones(bones);validateBones(bones,0);
                 JsonArray animations=bundle.has("animations")&&bundle.get("animations").isJsonArray()?bundle.getAsJsonArray("animations"):new JsonArray();if(animations.size()>32)throw new IOException("Zu viele Modellanimationen");
-                models.put(url,new Model(elements,meshes,bones,animations,textures,previewColors,bakeFurnitureGeometry(elements,meshes,bones,textures)));
+                models.put(url,new Model(elements,meshes,bones,animations,textures,previewColors,bakeFurnitureGeometry(elements,meshes,bones,textures),bundle.has("skin_texture_key")?str(bundle,"skin_texture_key",null):null));
             }catch(Exception e){for(Identifier id:textures.values())MinecraftClient.getInstance().getTextureManager().destroyTexture(id);MpsqCameraClient.LOGGER.warn("Accessoire-Modell ungültig",e);}
         }));
     }

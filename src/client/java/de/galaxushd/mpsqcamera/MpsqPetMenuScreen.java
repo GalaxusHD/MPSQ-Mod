@@ -23,8 +23,15 @@ public final class MpsqPetMenuScreen extends Screen {
     private static final int SLOT_SIZE = 36;
     private static final int PET_ROWS = 4;
     private static final int PET_COLUMNS = 9;
+    private static final int ACTION_MAX_WIDTH = SLOT_SIZE * 2;
+    private static final int ACTION_TEXTURE_WIDTH = 1984;
+    private static final int ACTION_TEXTURE_HEIGHT = 352;
     private static final Identifier BACKGROUND = Identifier.of(
             MpsqCameraClient.MOD_ID, "textures/gui/mpsq_pets_menu.png");
+    private static final Identifier EQUIP_ACTION = Identifier.of(
+            MpsqCameraClient.MOD_ID, "textures/gui/pet_equip.png");
+    private static final Identifier EQUIPPED_ACTION = Identifier.of(
+            MpsqCameraClient.MOD_ID, "textures/gui/pet_equipped.png");
 
     public enum PetKind { MINI_ME, ANIMALS }
 
@@ -44,7 +51,8 @@ public final class MpsqPetMenuScreen extends Screen {
         super(Text.literal(kind == PetKind.MINI_ME ? "Pets · Mini-Me" : "Pets · Tiere & Co."));
         this.parent = parent;
         this.kind = kind;
-        this.selectedId = MpsqPetSelectionStore.selectedId();
+        // Opening the menu does not open the action tag automatically.
+        this.selectedId = null;
     }
 
     @Override
@@ -71,14 +79,13 @@ public final class MpsqPetMenuScreen extends Screen {
         if (kind == PetKind.MINI_ME) {
             drawMiniMePets(context);
         } else {
-            context.drawCenteredTextWithShadow(textRenderer, "Tier-Pets kommen bald",
-                    drawLeft + Math.round(ART_WIDTH * drawScale / 2),
-                    drawTop + Math.round(145 * drawScale), 0xFFE6E1E3);
+            drawAnimalPets(context);
         }
+        drawSelectedPetAction(context);
     }
 
     private void drawMiniMePets(DrawContext context) {
-        List<MpsqPetCatalog.Pet> pets = MpsqPetCatalog.all();
+        List<MpsqPetCatalog.Pet> pets = MpsqPetCatalog.group(MpsqPetCatalog.Group.MINI_YOU);
         for (int index = 0; index < pets.size() && index < PET_ROWS * PET_COLUMNS; index++) {
             MpsqPetCatalog.Pet pet = pets.get(index);
             int column = index % PET_COLUMNS;
@@ -86,7 +93,28 @@ public final class MpsqPetMenuScreen extends Screen {
             int x = drawLeft + Math.round((GRID_LEFT + column * SLOT_SIZE) * drawScale);
             int y = drawTop + Math.round((GRID_TOP + row * SLOT_SIZE) * drawScale);
 
-            drawPetModel(context, pet, x, y);
+            if (MpsqMiniYouPetRenderer.isMiniYouId(pet.id())) {
+                int size = Math.round(30 * drawScale);
+                MpsqMiniYouModel.renderSlot(context, pet,
+                        x + Math.round(3 * drawScale), y + Math.round(2 * drawScale), size,
+                        (System.currentTimeMillis() % 10_000L) / 1000.0);
+            } else drawPetModel(context, pet, x, y);
+        }
+    }
+
+    private void drawAnimalPets(DrawContext context) {
+        List<MpsqPetCatalog.Pet> pets = MpsqPetCatalog.group(MpsqPetCatalog.Group.ANIMAL);
+        for (int index = 0; index < pets.size() && index < PET_ROWS * PET_COLUMNS; index++) {
+            MpsqPetCatalog.Pet pet = pets.get(index);
+            int column = index % PET_COLUMNS, row = index / PET_COLUMNS;
+            int x = drawLeft + Math.round((GRID_LEFT + column * SLOT_SIZE) * drawScale);
+            int y = drawTop + Math.round((GRID_TOP + row * SLOT_SIZE) * drawScale);
+            int textureSize = pet.textureHeight();
+            int size = Math.max(1, Math.round(26 * drawScale));
+            int iconX = x + Math.round((SLOT_SIZE - 26) * drawScale / 2);
+            int iconY = y + Math.round((SLOT_SIZE - 26) * drawScale / 2);
+            context.drawTexture(RenderPipelines.GUI_TEXTURED, pet.textureId(), iconX, iconY,
+                    0, 0, size, size, textureSize, textureSize, textureSize, textureSize);
         }
     }
 
@@ -114,6 +142,60 @@ public final class MpsqPetMenuScreen extends Screen {
                 size, 1.0f, centerX, centerY, previewPlayer));
     }
 
+    private void drawSelectedPetAction(DrawContext context) {
+        if (selectedId == null) return;
+        List<MpsqPetCatalog.Pet> pets = MpsqPetCatalog.group(kind == PetKind.MINI_ME
+                ? MpsqPetCatalog.Group.MINI_YOU : MpsqPetCatalog.Group.ANIMAL);
+        int index = -1;
+        for (int i = 0; i < pets.size(); i++) {
+            if (pets.get(i).id().equals(selectedId)) { index = i; break; }
+        }
+        if (index < 0) return;
+        MpsqPetCatalog.Pet pet = pets.get(index);
+        if (pet.issuerRole() != null) return;
+        int column = index % PET_COLUMNS, row = index / PET_COLUMNS;
+        int slotX = GRID_LEFT + column * SLOT_SIZE;
+        int slotY = GRID_TOP + row * SLOT_SIZE;
+        int buttonWidth = Math.min(ACTION_MAX_WIDTH, ART_WIDTH);
+        int buttonHeight = Math.max(1, Math.round(buttonWidth * (float) ACTION_TEXTURE_HEIGHT / ACTION_TEXTURE_WIDTH));
+        int buttonX = Math.max(0, Math.min(ART_WIDTH - buttonWidth,
+                slotX + SLOT_SIZE / 2 - buttonWidth / 2));
+        int buttonY = slotY + SLOT_SIZE;
+        int screenX = drawLeft + Math.round(buttonX * drawScale);
+        int screenY = drawTop + Math.round(buttonY * drawScale);
+        int screenWidth = Math.max(1, Math.round(buttonWidth * drawScale));
+        int screenHeight = Math.max(1, Math.round(buttonHeight * drawScale));
+        Identifier texture = selectedId.equals(MpsqPetSelectionStore.selectedId())
+                ? EQUIPPED_ACTION : EQUIP_ACTION;
+        context.drawTexture(RenderPipelines.GUI_TEXTURED, texture, screenX, screenY,
+                0, 0, screenWidth, screenHeight,
+                ACTION_TEXTURE_WIDTH, ACTION_TEXTURE_HEIGHT,
+                ACTION_TEXTURE_WIDTH, ACTION_TEXTURE_HEIGHT);
+    }
+
+    private boolean clickSelectedPetAction(double guiX, double guiY) {
+        if (selectedId == null) return false;
+        List<MpsqPetCatalog.Pet> pets = MpsqPetCatalog.group(kind == PetKind.MINI_ME
+                ? MpsqPetCatalog.Group.MINI_YOU : MpsqPetCatalog.Group.ANIMAL);
+        int index = -1;
+        for (int i = 0; i < pets.size(); i++) {
+            if (pets.get(i).id().equals(selectedId)) { index = i; break; }
+        }
+        if (index < 0 || pets.get(index).issuerRole() != null) return false;
+        int column = index % PET_COLUMNS, row = index / PET_COLUMNS;
+        int slotX = GRID_LEFT + column * SLOT_SIZE;
+        int slotY = GRID_TOP + row * SLOT_SIZE;
+        int buttonWidth = Math.min(ACTION_MAX_WIDTH, ART_WIDTH);
+        int buttonHeight = Math.max(1, Math.round(buttonWidth * (float) ACTION_TEXTURE_HEIGHT / ACTION_TEXTURE_WIDTH));
+        int buttonX = Math.max(0, Math.min(ART_WIDTH - buttonWidth,
+                slotX + SLOT_SIZE / 2 - buttonWidth / 2));
+        int buttonY = slotY + SLOT_SIZE;
+        if (!inside(guiX, guiY, buttonX, buttonY, buttonWidth, buttonHeight)) return false;
+        String newId = selectedId.equals(MpsqPetSelectionStore.selectedId()) ? null : selectedId;
+        MpsqPetSelectionStore.select(newId);
+        return true;
+    }
+
     private static final class PetPreviewPlayer extends OtherClientPlayerEntity {
         private SkinTextures previewSkin;
 
@@ -134,7 +216,7 @@ public final class MpsqPetMenuScreen extends Screen {
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (button != 0 || drawScale <= 0) return true;
+        if ((button != 0 && button != 1) || drawScale <= 0) return true;
 
         double guiX = (mouseX - drawLeft) / drawScale;
         double guiY = (mouseY - drawTop) / drawScale;
@@ -154,19 +236,31 @@ public final class MpsqPetMenuScreen extends Screen {
             return true;
         }
 
-        if (kind == PetKind.MINI_ME && inside(guiX, guiY, GRID_LEFT, GRID_TOP,
+        if (button == 0 && clickSelectedPetAction(guiX, guiY)) return true;
+
+        if (inside(guiX, guiY, GRID_LEFT, GRID_TOP,
                 PET_COLUMNS * SLOT_SIZE, PET_ROWS * SLOT_SIZE)) {
             int column = (int) (guiX - GRID_LEFT) / SLOT_SIZE;
             int row = (int) (guiY - GRID_TOP) / SLOT_SIZE;
             int index = row * PET_COLUMNS + column;
-            List<MpsqPetCatalog.Pet> pets = MpsqPetCatalog.all();
+            List<MpsqPetCatalog.Pet> pets = MpsqPetCatalog.group(kind == PetKind.MINI_ME
+                    ? MpsqPetCatalog.Group.MINI_YOU : MpsqPetCatalog.Group.ANIMAL);
             if (index >= 0 && index < pets.size()) {
                 MpsqPetCatalog.Pet pet = pets.get(index);
-                if (pet.issuerRole() == null && MpsqPetSelectionStore.select(pet.id())) {
-                    selectedId = pet.id();
+                if (button == 1 && pet.id().equals("nogs_budgie")) {
+                    client.setScreen(new MpsqBudgieSkinScreen(this));
+                    return true;
+                }
+                if (button == 0) {
+                    if (pet.issuerRole() == null) {
+                        selectedId = pet.id().equals(selectedId) ? null : pet.id();
+                    }
                 }
             }
         }
+
+        if (button == 0 && !inside(guiX, guiY, GRID_LEFT, GRID_TOP,
+                PET_COLUMNS * SLOT_SIZE, PET_ROWS * SLOT_SIZE)) selectedId = null;
 
         // There is no container inventory: empty slots and decorative X areas
         // cannot accept, remove, or transfer items and never get hover effects.

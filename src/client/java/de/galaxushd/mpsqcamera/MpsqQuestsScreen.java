@@ -2,6 +2,7 @@ package de.galaxushd.mpsqcamera;
 
 import com.google.gson.*;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gl.RenderPipelines;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
@@ -18,11 +19,16 @@ import java.nio.charset.StandardCharsets;
 /** Player quest board and Officer quest editor for a placed quest NPC. */
 public final class MpsqQuestsScreen extends Screen {
     private static final int TOP=108, BOTTOM=48, CARD_HEIGHT=108, GAP=8, COLUMNS=3;
+    private static final int GUI_SLOT_SIZE=36, ACTION_MAX_WIDTH=GUI_SLOT_SIZE*2, ACTION_GAP=2;
+    private static final int ACTION_TEXTURE_WIDTH=1472, ACTION_TEXTURE_HEIGHT=288;
+    private static final Identifier ACCEPT_ACTION=Identifier.of(MpsqCameraClient.MOD_ID,"textures/gui/quest_accept.png");
+    private static final Identifier DECLINE_ACTION=Identifier.of(MpsqCameraClient.MOD_ID,"textures/gui/quest_decline.png");
     private final Screen parent;
     private final String npcId;
     private JsonArray quests=new JsonArray();
     private String status="Quests werden geladen …";
     private int scroll;
+    private String selectedQuestId="";
     private boolean pending,editing,dragging;
     private boolean accessoryCatalogLoaded,accessoryCatalogLoading;
     private JsonObject edited;
@@ -131,16 +137,16 @@ public final class MpsqQuestsScreen extends Screen {
             c.drawCenteredTextWithShadow(textRenderer,"QUEST STUDIO",center,62,0xFFFFFFFF);
             c.drawCenteredTextWithShadow(textRenderer,textRenderer.trimToWidth(status,Math.max(100,width-24)),center,height-24,0xFFFFA0AA);
         }else{
-            String help=canEdit()?"Linksklick: annehmen/ablehnen/Belohnung · Rechtsklick: bearbeiten":"Linksklick: annehmen/ablehnen/Belohnung · Rechtsklick: Fortschritt";
+            String help=canEdit()?"Linksklick: Quest auswählen · Rechtsklick: bearbeiten":"Linksklick: Quest auswählen · Rechtsklick: Fortschritt";
             c.drawCenteredTextWithShadow(textRenderer,Text.literal(help),center,76,0xFFBBBBBB);
             int left=boardLeft(),boardW=boardWidth(),cw=cardWidth(),bottom=height-BOTTOM;
             c.enableScissor(left,TOP,left+boardW,bottom);
             for(int i=0;i<quests.size();i++){
                 int col=i%COLUMNS,row=i/COLUMNS,x=left+8+col*(cw+GAP),y=TOP+row*(CARD_HEIGHT+GAP)-scroll;
                 if(y+CARD_HEIGHT<TOP||y>bottom)continue;
-                JsonObject q=quests.get(i).getAsJsonObject();boolean accepted=q.has("accepted")&&q.get("accepted").getAsBoolean();boolean claimed=q.has("claimed")&&q.get("claimed").getAsBoolean();
+                JsonObject q=quests.get(i).getAsJsonObject();boolean accepted=q.has("accepted")&&q.get("accepted").getAsBoolean();boolean claimed=q.has("claimed")&&q.get("claimed").getAsBoolean();boolean selected=selectedQuestId.equals(questKey(q,i));
                 int progress=q.has("progress")?q.get("progress").getAsInt():0,target=q.has("target_count")?q.get("target_count").getAsInt():1;
-                c.fill(x,y,x+cw,y+CARD_HEIGHT,i%2==0?0xD9282D39:0xD9222733);c.fill(x,y,x+cw,y+2,0xFFFF536A);
+                c.fill(x,y,x+cw,y+CARD_HEIGHT,i%2==0?0xD9282D39:0xD9222733);c.fill(x,y,x+cw,y+2,selected?0xFF77DD99:0xFFFF536A);
                 drawItem(c,str(q,"icon_item","minecraft:paper"),x+8,y+8);
                 c.drawTextWithShadow(textRenderer,textRenderer.trimToWidth(str(q,"title","Quest"),Math.max(30,cw-104)),x+31,y+8,0xFFFFFFFF);
                 c.drawTextWithShadow(textRenderer,textRenderer.trimToWidth(rewardLabel(q),90),x+cw-96,y+8,0xFFFFD36A);
@@ -150,8 +156,11 @@ public final class MpsqQuestsScreen extends Screen {
                 c.drawTextWithShadow(textRenderer,textRenderer.trimToWidth(str(q,"objective_item","minecraft:stone")+"  "+progress+" / "+target,Math.max(20,cw-44)),x+31,y+50,0xFFE5E5E5);
                 int barX=x+8,barY=y+72,barW=cw-16;c.fill(barX,barY,barX+barW,barY+4,0xFF171A21);float ratio=target<=0?0:Math.min(1f,(float)progress/target);c.fill(barX,barY,barX+(int)(barW*ratio),barY+4,0xFFFF536A);
                 String action=claimed?"Abgeholt":!accepted?"Annehmen":progress>=target?"Belohnung abholen":"Ablehnen";
-                c.drawTextWithShadow(textRenderer,accepted?"Angenommen":"Verfügbar",x+8,y+84,accepted?0xFF77DD99:0xFFBBBBBB);
-                c.drawTextWithShadow(textRenderer,action,x+cw-textRenderer.getWidth(action)-8,y+84,claimed?0xFF77DD99:0xFFFFA0AA);
+                if(selected)drawQuestActions(c,x,y,cw);
+                else {
+                    c.drawTextWithShadow(textRenderer,accepted?"Angenommen":"Verfügbar",x+8,y+84,accepted?0xFF77DD99:0xFFBBBBBB);
+                    c.drawTextWithShadow(textRenderer,action,x+cw-textRenderer.getWidth(action)-8,y+84,claimed?0xFF77DD99:0xFFFFA0AA);
+                }
             }
             c.disableScissor();drawScrollbar(c,left+boardW+4,TOP,bottom);
             c.drawCenteredTextWithShadow(textRenderer,textRenderer.trimToWidth(status,Math.max(100,width-24)),center,height-24,0xFFFFFFFF);
@@ -160,6 +169,24 @@ public final class MpsqQuestsScreen extends Screen {
     }
 
     private String rewardLabel(JsonObject q){int points=q.has("reward_points")?q.get("reward_points").getAsInt():0;return points>0?points+" Punkte":"Accessoire";}
+    private static String questKey(JsonObject q,int index){return str(q,"id","quest-slot-"+index);}
+    private int actionButtonWidth(int cardWidth){return (Math.min(ACTION_MAX_WIDTH,Math.max(2+ACTION_GAP,cardWidth-16))-ACTION_GAP)/2;}
+    private int actionButtonHeight(int cardWidth){return Math.max(1,Math.round(actionButtonWidth(cardWidth)*(float)ACTION_TEXTURE_HEIGHT/ACTION_TEXTURE_WIDTH));}
+    private void drawQuestActions(DrawContext c,int x,int y,int cardWidth){
+        int buttonWidth=actionButtonWidth(cardWidth),buttonHeight=actionButtonHeight(cardWidth),total=buttonWidth*2+ACTION_GAP;
+        int left=x+(cardWidth-total)/2,top=y+CARD_HEIGHT-buttonHeight-3;
+        c.drawTexture(RenderPipelines.GUI_TEXTURED,ACCEPT_ACTION,left,top,0,0,buttonWidth,buttonHeight,ACTION_TEXTURE_WIDTH,ACTION_TEXTURE_HEIGHT,ACTION_TEXTURE_WIDTH,ACTION_TEXTURE_HEIGHT);
+        c.drawTexture(RenderPipelines.GUI_TEXTURED,DECLINE_ACTION,left+buttonWidth+ACTION_GAP,top,0,0,buttonWidth,buttonHeight,ACTION_TEXTURE_WIDTH,ACTION_TEXTURE_HEIGHT,ACTION_TEXTURE_WIDTH,ACTION_TEXTURE_HEIGHT);
+    }
+    private boolean clickQuestAction(JsonObject q,int index,int x,int y,int cardWidth,double mouseX,double mouseY){
+        if(!selectedQuestId.equals(questKey(q,index)))return false;
+        int buttonWidth=actionButtonWidth(cardWidth),buttonHeight=actionButtonHeight(cardWidth),total=buttonWidth*2+ACTION_GAP;
+        int left=x+(cardWidth-total)/2,top=y+CARD_HEIGHT-buttonHeight-3;
+        if(mouseX>=left&&mouseX<left+buttonWidth&&mouseY>=top&&mouseY<top+buttonHeight){selectedQuestId="";if(q.has("accepted")&&q.get("accepted").getAsBoolean())status="Diese Quest läuft bereits.";else act(q,"accept");return true;}
+        int declineLeft=left+buttonWidth+ACTION_GAP;
+        if(mouseX>=declineLeft&&mouseX<declineLeft+buttonWidth&&mouseY>=top&&mouseY<top+buttonHeight){selectedQuestId="";act(q,"decline");return true;}
+        return false;
+    }
     private void drawItem(DrawContext c,String id,int x,int y){try{var item=Registries.ITEM.get(Identifier.of(id));if(item!=Items.AIR)c.drawItem(new ItemStack(item),x,y);}catch(IllegalArgumentException ignored){}}
     private void drawScrollbar(DrawContext c,int x,int top,int bottom){int visible=bottom-top,content=contentHeight();if(content<=visible)return;int thumb=Math.max(20,visible*visible/content),travel=visible-thumb,y=top+(maxScroll()==0?0:travel*scroll/maxScroll());c.fill(x,top,x+4,bottom,0x66000000);c.fill(x,y,x+4,y+thumb,dragging?0xFFFF7182:0xFFBBBBBB);}
     private void scrollTo(double y){int visible=height-TOP-BOTTOM,thumb=Math.max(20,visible*visible/Math.max(1,contentHeight())),travel=Math.max(1,visible-thumb);scroll=(int)Math.round(Math.max(0,Math.min(travel,y-TOP-thumb/2))*maxScroll()/travel);clamp();}
@@ -185,15 +212,17 @@ public final class MpsqQuestsScreen extends Screen {
 
     @Override public boolean mouseClicked(double x,double y,int button){
         if(editing)return super.mouseClicked(x,y,button);
+        if(button==1)selectedQuestId="";
         int left=boardLeft(),boardW=boardWidth(),cw=cardWidth();
         if(y>=TOP&&y<height-BOTTOM&&x>=left+8&&x<left+boardW-8){
             int localY=(int)(y-TOP+scroll),col=(int)(x-(left+8))/(cw+GAP),row=localY/(CARD_HEIGHT+GAP),index=row*COLUMNS+col;
-            if(localY%(CARD_HEIGHT+GAP)<CARD_HEIGHT&&col>=0&&col<COLUMNS&&index>=0&&index<quests.size()&&x<left+8+col*(cw+GAP)+cw){JsonObject q=quests.get(index).getAsJsonObject();
-                if(button==1&&canEdit()){edit(q);return true;}
-                if(button==1){float p=(float)q.get("progress").getAsInt()/Math.max(1,q.get("target_count").getAsInt());String id=q.get("id").getAsString();MpsqBossbarManager.apply(new MpsqBossbarState("quest-"+id,str(q,"title","Quest"),"purple",p,true));status="Fortschritt wird oben angezeigt.";return true;}
-                if(button==0){if(!q.get("accepted").getAsBoolean()){act(q,"accept");return true;}if(q.get("progress").getAsInt()>=q.get("target_count").getAsInt()&&!q.get("claimed").getAsBoolean()){act(q,"claim");return true;}if(!q.get("claimed").getAsBoolean()){act(q,"decline");return true;}}
+            if(localY%(CARD_HEIGHT+GAP)<CARD_HEIGHT&&col>=0&&col<COLUMNS&&index>=0&&index<quests.size()&&x<left+8+col*(cw+GAP)+cw){JsonObject q=quests.get(index).getAsJsonObject();int cardX=left+8+col*(cw+GAP),cardY=TOP+row*(CARD_HEIGHT+GAP)-scroll;
+                if(button==0&&clickQuestAction(q,index,cardX,cardY,cw,x,y))return true;
+                if(button==1){selectedQuestId="";if(canEdit()){edit(q);return true;}float p=(float)q.get("progress").getAsInt()/Math.max(1,q.get("target_count").getAsInt());String id=q.get("id").getAsString();MpsqBossbarManager.apply(new MpsqBossbarState("quest-"+id,str(q,"title","Quest"),"purple",p,true));status="Fortschritt wird oben angezeigt.";return true;}
+                if(button==0){if(q.has("claimed")&&q.get("claimed").getAsBoolean()){selectedQuestId="";status="Die Belohnung dieser Quest wurde bereits abgeholt.";return true;}String key=questKey(q,index);selectedQuestId=selectedQuestId.equals(key)?"":key;return true;}
             }
         }
+        if(button==0)selectedQuestId="";
         if(button==0&&x>=left+boardW&&x<=left+boardW+12&&y>=TOP&&y<height-BOTTOM&&maxScroll()>0){dragging=true;scrollTo(y);return true;}
         if(y>=height-26&&x<100){close();return true;}
         return super.mouseClicked(x,y,button);
@@ -205,6 +234,7 @@ public final class MpsqQuestsScreen extends Screen {
     @Override public boolean mouseScrolled(double x,double y,double horizontal,double vertical){if(!editing){scroll-=(int)Math.signum(vertical)*CARD_HEIGHT*2;clamp();return true;}return super.mouseScrolled(x,y,horizontal,vertical);}
     @Override public boolean mouseDragged(double x,double y,int button,double dx,double dy){if(dragging&&button==0){scrollTo(y);return true;}return super.mouseDragged(x,y,button,dx,dy);}
     @Override public boolean mouseReleased(double x,double y,int button){if(button==0)dragging=false;return super.mouseReleased(x,y,button);}
+    @Override public boolean keyPressed(int keyCode,int scanCode,int modifiers){if(keyCode==org.lwjgl.glfw.GLFW.GLFW_KEY_ESCAPE&&!selectedQuestId.isEmpty()){selectedQuestId="";return true;}return super.keyPressed(keyCode,scanCode,modifiers);}
     @Override public void close(){client.setScreen(parent);}
     @Override public boolean shouldPause(){return false;}
 }

@@ -29,6 +29,12 @@ final class MpsqPetRenderer {
 
     private MpsqPetRenderer() { }
 
+    static MpsqPetPresenceClient.Snapshot snapshot() {
+        MpsqPetCatalog.Pet pet=selectedPet();
+        return positioned && pet!=null && pet.issuerRole()==null && !MpsqPetCatalog.isAnimal(pet)
+                ? new MpsqPetPresenceClient.Snapshot(null,pet.id(),"",petX,petY,petZ,MinecraftClient.getInstance().player==null?0:MinecraftClient.getInstance().player.getYaw(),System.currentTimeMillis()) : null;
+    }
+
     static void initialize() {
         ClientTickEvents.END_CLIENT_TICK.register(MpsqPetRenderer::tick);
         WorldRenderEvents.AFTER_ENTITIES.register(context -> {
@@ -38,9 +44,11 @@ final class MpsqPetRenderer {
             var consumers = context.consumers();
             if (player == null || client.world == null || matrices == null || consumers == null
                     || !TeamVisibilitySettings.visible() || !positioned || trackedWorld != client.world) return;
+            if (MpsqOtterPetRenderer.suppressOtherPets()) return;
 
             MpsqPetCatalog.Pet pet = selectedPet();
-            if (pet == null || pet.issuerRole() != null) return;
+            if (pet == null || pet.issuerRole() != null || MpsqPetCatalog.isAnimal(pet)
+                    || MpsqMiniYouPetRenderer.isMiniYouId(pet.id())) return;
             MpsqNpcSkinRenderer.Skin skin = skinFor(pet);
             if (skin == null) return;
 
@@ -65,6 +73,7 @@ final class MpsqPetRenderer {
         var player = client.player;
         MpsqPetCatalog.Pet pet = selectedPet();
         if (player == null || client.world == null || pet == null || pet.issuerRole() != null
+                || MpsqMiniYouPetRenderer.isMiniYouId(pet.id())
                 || !TeamVisibilitySettings.visible()) {
             positioned = false;
             trackedWorld = null;

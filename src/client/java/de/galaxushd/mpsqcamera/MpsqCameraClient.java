@@ -44,6 +44,8 @@ public class MpsqCameraClient implements ClientModInitializer {
         MpsqKickAnimationManager.initialize();
         MpsqTemplateAudio.initialize();
         MpsqAccessoryRenderer.initialize();
+        MpsqPetPresenceClient.initialize();
+        MpsqPetPresenceRenderer.initialize();
         MpsqNpcManager.initialize();
         TeamProfileSync.initialize();
         // Load the rank cache independently. A temporary camera or screen API
