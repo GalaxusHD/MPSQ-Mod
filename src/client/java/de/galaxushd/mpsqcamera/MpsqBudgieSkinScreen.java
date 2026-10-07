@@ -48,10 +48,9 @@ final class MpsqBudgieSkinScreen extends Screen {
         });
     }
 
-    @Override public void renderBackground(DrawContext context,int mouseX,int mouseY,float delta){super.renderBackground(context,mouseX,mouseY,delta);context.fillGradient(0,0,width,height,0xE61A1A1A,0xF2050505);}
+    @Override public void renderBackground(DrawContext context,int mouseX,int mouseY,float delta){context.fillGradient(0,0,width,height,0xE61A1A1A,0xF2050505);}
 
     @Override public void render(DrawContext context,int mouseX,int mouseY,float delta){
-        renderBackground(context,mouseX,mouseY,delta);
         context.drawCenteredTextWithShadow(textRenderer,"WELLENSITTICH · FARBVARIANTEN",width/2,18,0xFFFFFFFF);
         int cols=5, cardW=Math.min(112,(width-32)/cols), cardH=118, gap=5;
         int totalW=cols*cardW+(cols-1)*gap,left=(width-totalW)/2,top=Math.max(48,(height-(2*cardH+gap+36))/2);
