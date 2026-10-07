@@ -1,12 +1,12 @@
 package de.galaxushd.mpsqcamera;
 
 /** Marks player-model renders that should use Mini-Me pet proportions. */
-final class MpsqPetModelContext {
+public final class MpsqPetModelContext {
     private static int renderDepth;
 
     private MpsqPetModelContext() { }
 
-    static boolean isRenderingPet() {
+    public static boolean isRenderingPet() {
         return renderDepth > 0;
     }
 
