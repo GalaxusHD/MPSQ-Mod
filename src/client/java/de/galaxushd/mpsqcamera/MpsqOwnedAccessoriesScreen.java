@@ -22,9 +22,9 @@ public final class MpsqOwnedAccessoriesScreen extends Screen {
     private static final int GRID_ROWS = 4;
     private static final int PAGE_SIZE = GRID_COLUMNS * GRID_ROWS;
     private static final int PREVIEW_LEFT = 266;
-    private static final int PREVIEW_TOP = 70;
+    private static final int PREVIEW_TOP = 54;
     private static final int PREVIEW_WIDTH = 70;
-    private static final int PREVIEW_HEIGHT = 108;
+    private static final int PREVIEW_HEIGHT = 124;
     private static final int ACTION_LEFT = 266;
     private static final int ACTION_TOP = 180;
     private static final int ACTION_WIDTH = 70;
@@ -152,6 +152,8 @@ public final class MpsqOwnedAccessoriesScreen extends Screen {
 
     private String previewUrl(JsonObject row) {
         if (row == null) return null;
+        String builtin = MpsqAccessoryRenderer.resolveBuiltinAccessory(row);
+        if (builtin != null) return builtin;
         JsonObject definition = row.has("mpsq_accessories") && row.get("mpsq_accessories").isJsonObject()
                 ? row.getAsJsonObject("mpsq_accessories") : row;
         String url = str(row, "url", str(definition, "url", ""));
@@ -226,7 +228,7 @@ public final class MpsqOwnedAccessoriesScreen extends Screen {
         int right = drawLeft + Math.round((PREVIEW_LEFT + PREVIEW_WIDTH - 5) * drawScale);
         int top = drawTop + Math.round((PREVIEW_TOP + 5) * drawScale);
         int bottom = drawTop + Math.round((PREVIEW_TOP + PREVIEW_HEIGHT - 3) * drawScale);
-        float modelSize = 44.0f * drawScale;
+        float modelSize = 36.0f * drawScale;
         String url = previewUrl(selectedItem());
         MpsqAccessoryRenderer.beginMenuPlayerPreview(url);
         try {

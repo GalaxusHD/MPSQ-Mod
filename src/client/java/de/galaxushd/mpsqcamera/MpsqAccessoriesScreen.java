@@ -44,7 +44,7 @@ public final class MpsqAccessoriesScreen extends Screen {
             String label=(equipped?"✓ ":"")+name;if(tab==1&&staff()&&r.has("id"))label+="  ["+r.get("id").getAsString()+"]";
             if(tab==1){int price=r.has("price_points")?r.get("price_points").getAsInt():500;boolean has=r.has("owned")&&r.get("owned").getAsBoolean()||localWorld()&&MpsqLocalWorldStore.owns(str(r,"accessory_id",""));label+=(has?"  · Besitzt du":"  · "+price+" Punkte");}
             c.drawTextWithShadow(textRenderer,textRenderer.trimToWidth(label,width/2+82),center-137,yy+7,equipped?0xFFFF7777:0xFFFFFFFF);
-            if(r.has("url")&&!r.get("url").isJsonNull())MpsqAccessoryRenderer.drawGuiPreview(c,r.get("url").getAsString(),center+126,yy+11,1.35f);
+            String preview=previewUrl(r);if(preview!=null&&!preview.isBlank())MpsqAccessoryRenderer.drawGuiPreview(c,preview,center+126,yy+11,1.35f);
         }c.disableScissor();drawScrollbar(c,center+151,TOP,bottom,list.size()*ROW);
         c.drawCenteredTextWithShadow(textRenderer,status,center,height-47,0xFFFFFFFF);
         if(list.size()*ROW>height-TOP-BOTTOM)c.drawCenteredTextWithShadow(textRenderer,"Mausrad zum Scrollen",center,height-34,0xFFBBBBBB);
@@ -55,8 +55,9 @@ public final class MpsqAccessoriesScreen extends Screen {
     private int maxScroll(){return Math.max(0,rows().size()*ROW-(height-TOP-BOTTOM));}
     private void scrollTo(double mouseY){int visible=height-TOP-BOTTOM,content=rows().size()*ROW,thumb=Math.max(18,visible*visible/content),travel=Math.max(1,visible-thumb);scroll=(int)Math.round(Math.max(0,Math.min(travel,mouseY-TOP-thumb/2))*maxScroll()/travel);clamp();}
     private static String str(JsonObject o,String k,String fallback){return o.has(k)&&!o.get(k).isJsonNull()?o.get(k).getAsString():fallback;}
+    private static String previewUrl(JsonObject row){String builtin=MpsqAccessoryRenderer.resolveBuiltinAccessory(row);return builtin!=null?builtin:str(row,"url","");}
     @Override public boolean mouseClicked(double x,double y,int button){int c=width/2;if(button==0){if(x>=c+149&&x<=c+158&&y>=TOP&&y<height-BOTTOM&&maxScroll()>0){draggingScrollbar=true;scrollTo(y);return true;}if(y>=48&&y<66){if(x>=c-150&&x<c){tab=0;scroll=0;return true;}if(x>=c&&x<=c+150){tab=1;scroll=0;return true;}}}
-        if((button==0||button==1)&&y>=TOP&&y<height-BOTTOM&&x>=c-150&&x<=c+150){int index=(int)(y-TOP+scroll)/ROW;JsonArray list=rows();if(index>=0&&index<list.size()){JsonObject row=list.get(index).getAsJsonObject();if(button==1&&tab==1&&row.has("url")&&!row.get("url").isJsonNull()){MpsqAccessoryRenderer.tryOn(row.get("url").getAsString());client.setScreen(null);return true;}if(button==0&&tab==0&&row.has("accessory_id"))equip(row.get("equipped").getAsBoolean()?null:row.get("accessory_id").getAsString());else if(button==0&&tab==1)buy(row);return true;}}
+        if((button==0||button==1)&&y>=TOP&&y<height-BOTTOM&&x>=c-150&&x<=c+150){int index=(int)(y-TOP+scroll)/ROW;JsonArray list=rows();if(index>=0&&index<list.size()){JsonObject row=list.get(index).getAsJsonObject();String preview=previewUrl(row);if(button==1&&tab==1&&preview!=null&&!preview.isBlank()){MpsqAccessoryRenderer.tryOn(preview);client.setScreen(null);return true;}if(button==0&&tab==0&&row.has("accessory_id"))equip(row.get("equipped").getAsBoolean()?null:row.get("accessory_id").getAsString());else if(button==0&&tab==1)buy(row);return true;}}
         if(button==0&&y>=height-25&&x<c){close();return true;}
         return super.mouseClicked(x,y,button);}
     @Override public boolean mouseDragged(double x,double y,int button,double dx,double dy){if(draggingScrollbar&&button==0){scrollTo(y);return true;}return super.mouseDragged(x,y,button,dx,dy);}

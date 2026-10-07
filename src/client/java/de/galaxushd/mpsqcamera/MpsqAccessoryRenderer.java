@@ -29,13 +29,18 @@ public final class MpsqAccessoryRenderer {
     private static final String BUDGIE_HAT_MODEL_URL="builtin://mpsq/nm_hat_budgie";
     public static final String HEDGEHOG_HAT_ASSET_ID="nm_hat_hedgehog";
     private static final String HEDGEHOG_HAT_MODEL_URL="builtin://mpsq/nm_hat_hedgehog";
+    // Shared Blockbench Java-block head display transform exported by these hats.
+    private static final float HEAD_DISPLAY_TRANSLATION_Y=12.75f;
+    private static final float HEAD_DISPLAY_SCALE=1.61f;
     private static final float WUMPUS_WAVE_FACING_OFFSET=200f;
     private static boolean isBuiltinModel(String url){return WUMPUS_MODEL_URL.equals(url)||DISCORD_HAT_MODEL_URL.equals(url)||BUDGIE_HAT_MODEL_URL.equals(url)||HEDGEHOG_HAT_MODEL_URL.equals(url)||MpsqBuiltinFurnitureCatalog.byUrl(url)!=null;}
     private static String builtinModelPath(String url){if(DISCORD_HAT_MODEL_URL.equals(url))return "/assets/mpsqcamera/models/accessoires/discord_hat.json";if(WUMPUS_MODEL_URL.equals(url))return "/assets/mpsqcamera/models/wumpus.json";if(BUDGIE_HAT_MODEL_URL.equals(url))return "/assets/mpsqcamera/models/accessoires/nm_hat_budgie.json";if(HEDGEHOG_HAT_MODEL_URL.equals(url))return "/assets/mpsqcamera/models/accessoires/nm_hat_hedgehog.json";MpsqBuiltinFurnitureCatalog.Furniture item=MpsqBuiltinFurnitureCatalog.byUrl(url);return item==null?null:item.resource();}
     public static String builtinFurnitureUrl(String assetId){MpsqBuiltinFurnitureCatalog.Furniture item=MpsqBuiltinFurnitureCatalog.byId(assetId);return item==null?null:item.url();}
     public static void registerBuiltinFurniture(){for(var item:MpsqBuiltinFurnitureCatalog.all()){localAssetUrls.put(item.id(),item.url());localAssetCategories.put(item.id(),"furniture");}}
-    public static String builtinAccessoryUrl(String filename){String name=filename==null?"":filename.substring(filename.lastIndexOf('/')+1).toLowerCase(Locale.ROOT);return switch(name){case "discord_hat.json","discord_hat.bbmodel"->DISCORD_HAT_MODEL_URL;case "nm_hat_budgie.json","nm_hat_budgie.bbmodel","nm_hat_budgie (1).bbmodel"->BUDGIE_HAT_MODEL_URL;case "nm_hat_hedgehog.json","nm_hat_hedgehog.bbmodel","nm_hat_hedgehog (1).bbmodel"->HEDGEHOG_HAT_MODEL_URL;default->null;};}
-    public static String assetPreviewUrl(String assetId,String fallback){if(WUMPUS_ASSET_ID.equals(assetId))return WUMPUS_MODEL_URL;if(DISCORD_HAT_ASSET_ID.equalsIgnoreCase(assetId))return DISCORD_HAT_MODEL_URL;if(BUDGIE_HAT_ASSET_ID.equalsIgnoreCase(assetId))return BUDGIE_HAT_MODEL_URL;if(HEDGEHOG_HAT_ASSET_ID.equalsIgnoreCase(assetId))return HEDGEHOG_HAT_MODEL_URL;return fallback;}
+    public static String builtinAccessoryUrl(String filename){String name=filename==null?"":filename.substring(filename.lastIndexOf('/')+1).toLowerCase(Locale.ROOT);return switch(name){case "discord_hat.json","discord_hat.bbmodel","discord_head.json","discord_head.bbmodel"->DISCORD_HAT_MODEL_URL;case "nm_hat_budgie.json","nm_hat_budgie.bbmodel","nm_hat_budgie (1).bbmodel"->BUDGIE_HAT_MODEL_URL;case "nm_hat_hedgehog.json","nm_hat_hedgehog.bbmodel","nm_hat_hedgehog (1).bbmodel"->HEDGEHOG_HAT_MODEL_URL;default->builtinAccessoryUrlForKey(name);};}
+    public static String builtinAccessoryUrlForKey(String key){if(key==null)return null;return switch(key.toLowerCase(Locale.ROOT)){case "discord_hat","discord-head","discord_head"->DISCORD_HAT_MODEL_URL;case "nm_hat_budgie","budgie_hat","budgie-head","budgie_head"->BUDGIE_HAT_MODEL_URL;case "nm_hat_hedgehog","hedgehog_hat","hedgehog-head","hedgehog_head"->HEDGEHOG_HAT_MODEL_URL;default->null;};}
+    public static String resolveBuiltinAccessory(JsonObject row){if(row==null)return null;JsonObject definition=row.has("mpsq_accessories")&&row.get("mpsq_accessories").isJsonObject()?row.getAsJsonObject("mpsq_accessories"):row;String url=builtinAccessoryUrl(str(row,"filename",str(definition,"filename","")));if(url!=null)return url;String key=str(row,"accessory_key",str(definition,"accessory_key",""));url=builtinAccessoryUrlForKey(key);if(url!=null)return url;String id=str(row,"asset_id",str(definition,"asset_id",str(row,"model_id",str(definition,"model_id",""))));return assetPreviewUrl(id,null);}
+    public static String assetPreviewUrl(String assetId,String fallback){if(WUMPUS_ASSET_ID.equals(assetId))return WUMPUS_MODEL_URL;String builtin=builtinAccessoryUrlForKey(assetId);return builtin==null?fallback:builtin;}
     private record RenderFace(Identifier texture,float[][] vertices,float nx,float ny,float nz){}
     private record PreviewPoint(double x,double y,double z){}
     private record PreviewPolygon(double[][] points,int color,double depth){}
@@ -181,8 +186,8 @@ public final class MpsqAccessoryRenderer {
                 if(error!=null)return;
                 wearers.clear();
                 for(JsonElement value:data.getAsJsonArray()){
-                    JsonObject row=value.getAsJsonObject();String name=row.get("name").getAsString().toLowerCase(Locale.ROOT), url=builtinAccessoryUrl(str(row,"filename",""));if(url==null)url=row.get("url").getAsString();
-                    wearers.put(name,url);
+                    JsonObject row=value.getAsJsonObject();String name=str(row,"name","").toLowerCase(Locale.ROOT), url=builtinAccessoryUrlForKey(str(row,"accessory_key",""));if(url==null)url=builtinAccessoryUrl(str(row,"filename",""));if(url==null)url=str(row,"url","");
+                    if(!name.isBlank()&&!url.isBlank())wearers.put(name,url);
                 }
                 // Load only assets worn by players in this world, limiting texture memory.
                 if(client.world!=null)for(var player:client.world.getPlayers()){
@@ -205,10 +210,8 @@ public final class MpsqAccessoryRenderer {
                 String wornUrl=player==client.player&&tryOnUrl!=null?tryOnUrl:wearers.get(player.getName().getString().toLowerCase(Locale.ROOT));
                 Model model=models.get(wornUrl);if(model==null)continue;
                 matrices.push();
-                matrices.translate(player.getX()-camera.x,player.getY()+player.getStandingEyeHeight()-camera.y,player.getZ()-camera.z);
-                matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(-player.getHeadYaw()));
-                matrices.multiply(RotationAxis.POSITIVE_X.rotationDegrees(player.getPitch()));
-                matrices.translate(-0.5,-0.25,-0.5);matrices.scale(1f/16,1f/16,1f/16);
+                matrices.translate(player.getX()-camera.x,player.getY()+1.5-camera.y,player.getZ()-camera.z);
+                applyHeadDisplayTransform(matrices,180.0f-player.getHeadYaw(),player.getPitch());
                 drawBbModel(model,matrices,consumers,0xFFFFFFFF);
                 matrices.pop();
             }
@@ -325,7 +328,7 @@ public final class MpsqAccessoryRenderer {
     }
     private static float wrapDegrees(float degrees){degrees%=360f;if(degrees>=180f)degrees-=360f;if(degrees< -180f)degrees+=360f;return degrees;}
     private static void mapCatalog(JsonArray values,String fallback){for(JsonElement value:values){if(!value.isJsonObject())continue;JsonObject asset=value.getAsJsonObject();if(asset.has("id")&&asset.has("url")){String id=asset.get("id").getAsString();localAssetUrls.put(id,asset.get("url").getAsString());localAssetCategories.put(id,str(asset,"category",fallback));}}}
-    private static void applyLocalEquippedAccessory(JsonArray values){String id=MpsqLocalWorldStore.equipped();var player=MinecraftClient.getInstance().player;if(id==null||player==null)return;String builtin=assetPreviewUrl(id,null);if(builtin!=null){wearers.put(player.getName().getString().toLowerCase(Locale.ROOT),builtin);return;}for(JsonElement e:values){if(!e.isJsonObject())continue;JsonObject row=e.getAsJsonObject();if(!id.equals(str(row,"accessory_id","")))continue;builtin=builtinAccessoryUrl(str(row,"filename",""));String url=builtin!=null?builtin:str(row,"url","");if(!url.isBlank()){wearers.put(player.getName().getString().toLowerCase(Locale.ROOT),url);return;}}}
+    private static void applyLocalEquippedAccessory(JsonArray values){String id=MpsqLocalWorldStore.equipped();var player=MinecraftClient.getInstance().player;if(id==null||player==null)return;String builtin=assetPreviewUrl(id,null);if(builtin!=null){wearers.put(player.getName().getString().toLowerCase(Locale.ROOT),builtin);return;}for(JsonElement e:values){if(!e.isJsonObject())continue;JsonObject row=e.getAsJsonObject();if(!id.equals(str(row,"accessory_id","")))continue;builtin=resolveBuiltinAccessory(row);String url=builtin!=null?builtin:str(row,"url","");if(!url.isBlank()){wearers.put(player.getName().getString().toLowerCase(Locale.ROOT),url);return;}}}
     public static void tryOn(String url){tryOnUrl=url;tryOnStart=MinecraftClient.getInstance().player==null?null:MinecraftClient.getInstance().player.getPos();pressedKeys.clear();if(url!=null&&MinecraftClient.getInstance().player!=null)MinecraftClient.getInstance().player.sendMessage(net.minecraft.text.Text.literal("Vorschau aktiv · Bewegung oder eine Taste beendet sie (F5 bleibt erlaubt)."),true);}
     /** Temporarily scopes accessory rendering to the player rendered inside the collection GUI. */
     public static void beginMenuPlayerPreview(String url){menuPreviewUrl=url;menuPlayerPreviewActive=true;}
@@ -335,13 +338,18 @@ public final class MpsqAccessoryRenderer {
         Model model=models.get(menuPreviewUrl);
         if(model==null){if((isBuiltinModel(menuPreviewUrl)||MpsqApiClient.isReady())&&models.size()+loading.size()<64)load(menuPreviewUrl,generation);return;}
         matrices.push();
-        matrices.translate(0.0,1.62,0.0);
-        matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(-state.relativeHeadYaw));
-        matrices.multiply(RotationAxis.POSITIVE_X.rotationDegrees(state.pitch));
-        matrices.translate(-0.5,-0.25,-0.5);
-        matrices.scale(1f/16f,1f/16f,1f/16f);
+        matrices.translate(0.0,1.5,0.0);
+        applyHeadDisplayTransform(matrices,180.0f-state.relativeHeadYaw,state.pitch);
         drawBbModel(model,matrices,consumers,0xFFFFFFFF);
         matrices.pop();
+    }
+    private static void applyHeadDisplayTransform(MatrixStack matrices,float yaw,float pitch){
+        matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(yaw));
+        matrices.multiply(RotationAxis.POSITIVE_X.rotationDegrees(pitch));
+        matrices.translate(0.0,HEAD_DISPLAY_TRANSLATION_Y/16.0,0.0);
+        matrices.scale(HEAD_DISPLAY_SCALE,HEAD_DISPLAY_SCALE,HEAD_DISPLAY_SCALE);
+        matrices.translate(-0.5,-0.5,-0.5);
+        matrices.scale(1.0f/16.0f,1.0f/16.0f,1.0f/16.0f);
     }
     private static void clearTryOn(){tryOnUrl=null;tryOnStart=null;pressedKeys.clear();}
     /** Draws a compact isometric model thumbnail with texture-derived face colors. */
