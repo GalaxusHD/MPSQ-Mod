@@ -31,13 +31,15 @@ public abstract class PlayerEntityRendererMixin {
             if (cloneSkin != null) state.skinTextures = cloneSkin;
             boolean[] parts = MpsqKickAnimationManager.sourceModelParts(player);
             if (parts != null) {
-                state.hatVisible = parts[0];
                 state.jacketVisible = parts[1];
                 state.leftSleeveVisible = parts[2];
                 state.rightSleeveVisible = parts[3];
                 state.leftPantsLegVisible = parts[4];
                 state.rightPantsLegVisible = parts[5];
             }
+            // Keep the outer head texture enabled on the animated copy. Empty
+            // overlay pixels stay transparent, while actual hat pixels remain visible.
+            state.hatVisible = true;
             return;
         }
         if (!TeamVisibilitySettings.visible()) return;
@@ -51,12 +53,16 @@ public abstract class PlayerEntityRendererMixin {
     private void mpsq$applyKickFall(PlayerEntityRenderState state, MatrixStack matrices,
                                     float bodyYaw, float scale, CallbackInfo ci) {
         float fall = MpsqKickAnimationManager.rootPitchDegrees(state.name);
-        if (fall == 0.0f) return;
-        // Apply the fall after Minecraft's normal standing/yaw transforms so the
-        // entire copied player (including both skin layers) tips as one body.
-        matrices.translate(0.0, 0.95, 0.0);
-        matrices.multiply(net.minecraft.util.math.RotationAxis.POSITIVE_X.rotationDegrees(fall));
-        matrices.translate(0.0, -0.95, 0.0);
+        float despawn = MpsqKickAnimationManager.despawnScale(state.name);
+        if (despawn < 1.0f) matrices.translate(0.0, -(1.0f - despawn) * 0.45, 0.0);
+        if (fall != 0.0f) {
+            // Positive X turns the front of the player upward, so the clone lands
+            // on its back. Keep the torso as the pivot for the complete skin.
+            matrices.translate(0.0, 0.95, 0.0);
+            matrices.multiply(net.minecraft.util.math.RotationAxis.POSITIVE_X.rotationDegrees(fall));
+            matrices.translate(0.0, -0.95, 0.0);
+        }
+        if (despawn < 1.0f) matrices.scale(despawn, despawn, despawn);
     }
 
     @ModifyVariable(method = "renderLabelIfPresent(Lnet/minecraft/client/render/entity/state/PlayerEntityRenderState;Lnet/minecraft/text/Text;Lnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/VertexConsumerProvider;I)V",

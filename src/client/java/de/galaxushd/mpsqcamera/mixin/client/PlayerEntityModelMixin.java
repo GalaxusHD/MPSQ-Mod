@@ -34,10 +34,17 @@ public abstract class PlayerEntityModelMixin {
         BipedEntityModel<?> model = (BipedEntityModel<?>) (Object) this;
 
         apply(model.head, MpsqKickAnimationManager.rotation(state.name, "head"));
+        // The hat part is the player's outer head/hat skin layer. It must follow
+        // the same pivots as the head or the outer texture separates in the fall.
+        apply(model.hat, MpsqKickAnimationManager.rotation(state.name, "head"));
         apply(model.rightArm, MpsqKickAnimationManager.rotation(state.name, "rightArm"));
+        apply(rightSleeve, MpsqKickAnimationManager.rotation(state.name, "rightArm"));
         apply(model.leftArm, MpsqKickAnimationManager.rotation(state.name, "leftArm"));
+        apply(leftSleeve, MpsqKickAnimationManager.rotation(state.name, "leftArm"));
         apply(model.rightLeg, MpsqKickAnimationManager.rotation(state.name, "rightLeg"));
+        apply(rightPants, MpsqKickAnimationManager.rotation(state.name, "rightLeg"));
         apply(model.leftLeg, MpsqKickAnimationManager.rotation(state.name, "leftLeg"));
+        apply(leftPants, MpsqKickAnimationManager.rotation(state.name, "leftLeg"));
     }
 
     @Inject(method = "setAngles", at = @At("TAIL"))
