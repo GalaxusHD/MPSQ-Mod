@@ -17,6 +17,10 @@ public final class ScreenRenderer {
     private static final double RENDER_RANGE = 64.0;
     private static final double SURFACE_OFFSET = 0.003;
     private static final double FRAME_THICKNESS = 0.075;
+    private static final int STATUS_OVERLAY_ALPHA = 230;
+    private static final Identifier INACTIVE_OVERLAY = Identifier.of("mpsqcamera", "textures/screens/inactive.png");
+    private static final Identifier REDSTONE_BUTTON_OVERLAY = Identifier.of("mpsqcamera", "textures/screens/redstone-button.png");
+    private static final Identifier OFFLINE_OVERLAY = Identifier.of("mpsqcamera", "textures/screens/offline.png");
 
     private static final int FRAME_RED = 48;
     private static final int FRAME_GREEN = 52;
@@ -77,8 +81,8 @@ public final class ScreenRenderer {
                     : (cameraScreen ? RemoteCameraFrameManager.texture(activeCamera) : CinemaBrowserManager.texture(screen.id()));
             CinemaBrowserManager.ScreenStatus screenStatus = cameraScreen
                     ? (!mayViewCamera ? CinemaBrowserManager.ScreenStatus.OFFLINE
-                    : (blockedCamera ? CinemaBrowserManager.ScreenStatus.OFFLINE
-                    : (texture == null ? (activeCamera == null ? CinemaBrowserManager.ScreenStatus.OFFLINE : CinemaBrowserManager.ScreenStatus.INACTIVE) : CinemaBrowserManager.ScreenStatus.NONE)))
+                    : (blockedCamera ? CinemaBrowserManager.ScreenStatus.BLOCKED
+                    : (texture == null ? CinemaBrowserManager.ScreenStatus.OFFLINE : CinemaBrowserManager.ScreenStatus.NONE)))
                     : CinemaBrowserManager.status(screen);
 
             drawScreenFace(
@@ -173,15 +177,28 @@ public final class ScreenRenderer {
         // Schwarze Bildschirmfläche.
         if (browserTexture == null) {
             quad(matrices, vertices, ax, ay, az, bx, by, bz, cx, cy, cz, dx, dy, dz, 0, 0, 0, 235);
-            drawStatusOverlay(matrices, consumers, status, ax, ay, az, bx, by, bz, cx, cy, cz, dx, dy, dz);
+            Identifier statusOverlay = statusOverlay(status);
+            if (statusOverlay != null) {
+                Vec3d normal = new Vec3d(bx - ax, by - ay, bz - az).crossProduct(new Vec3d(dx - ax, dy - ay, dz - az)).normalize();
+                double offset = 0.002;
+                VertexConsumer overlayVertices = consumers.getBuffer(RenderLayer.getEntityTranslucent(statusOverlay));
+                texturedQuad(matrices, overlayVertices,
+                        ax + normal.x * offset, ay + normal.y * offset, az + normal.z * offset,
+                        bx + normal.x * offset, by + normal.y * offset, bz + normal.z * offset,
+                        cx + normal.x * offset, cy + normal.y * offset, cz + normal.z * offset,
+                        dx + normal.x * offset, dy + normal.y * offset, dz + normal.z * offset,
+                        STATUS_OVERLAY_ALPHA);
+            } else {
+                drawStatusText(matrices, vertices, status, ax, ay, az, bx, by, bz, cx, cy, cz, dx, dy, dz);
+            }
         } else {
             VertexConsumer textureVertices = MinecraftRenderCompat.textureVertices(consumers, browserTexture);
             if (textureVertices == null) {
                 quad(matrices, vertices, ax, ay, az, bx, by, bz, cx, cy, cz, dx, dy, dz, 0, 0, 0, 235);
-                drawStatusOverlay(matrices, consumers, CinemaBrowserManager.ScreenStatus.OFFLINE,
+                drawStatusText(matrices, vertices, CinemaBrowserManager.ScreenStatus.ERROR,
                         ax, ay, az, bx, by, bz, cx, cy, cz, dx, dy, dz);
             } else {
-                texturedQuad(matrices, textureVertices, ax, ay, az, bx, by, bz, cx, cy, cz, dx, dy, dz);
+                texturedQuad(matrices, textureVertices, ax, ay, az, bx, by, bz, cx, cy, cz, dx, dy, dz, 255);
             }
         }
 
@@ -242,20 +259,84 @@ public final class ScreenRenderer {
                 FRAME_RED, FRAME_GREEN, FRAME_BLUE);
     }
 
-    private static void drawStatusOverlay(
+    private static Identifier statusOverlay(CinemaBrowserManager.ScreenStatus status) {
+        return switch (status) {
+            case NO_LINK -> OFFLINE_OVERLAY;
+            case REDSTONE_OFFLINE -> REDSTONE_BUTTON_OVERLAY;
+            case OFFLINE -> INACTIVE_OVERLAY;
+            default -> null;
+        };
+    }
+
+    private static void drawStatusText(
             MatrixStack matrices,
-            VertexConsumerProvider consumers,
+            VertexConsumer vertices,
             CinemaBrowserManager.ScreenStatus status,
             double ax, double ay, double az,
             double bx, double by, double bz,
             double cx, double cy, double cz,
             double dx, double dy, double dz
     ) {
-        Identifier texture = status.overlayTexture();
-        if (texture == null) return;
-        VertexConsumer overlayVertices = MinecraftRenderCompat.translucentTextureVertices(consumers, texture);
-        if (overlayVertices == null) return;
-        texturedQuad(matrices, overlayVertices, ax, ay, az, bx, by, bz, cx, cy, cz, dx, dy, dz);
+        if (status == CinemaBrowserManager.ScreenStatus.NONE) {
+            return;
+        }
+
+        Vec3d baseOrigin = new Vec3d(ax, ay, az);
+        Vec3d horizontal = new Vec3d(bx, by, bz).subtract(baseOrigin);
+        Vec3d vertical = new Vec3d(dx, dy, dz).subtract(baseOrigin);
+
+        double width = horizontal.length();
+        double height = vertical.length();
+
+        if (width <= 0.0 || height <= 0.0) {
+            return;
+        }
+
+        horizontal = horizontal.normalize();
+        vertical = vertical.normalize();
+        // Keep status pixels slightly in front of the black plane to prevent z-fighting while moving.
+        Vec3d origin = baseOrigin.add(horizontal.crossProduct(vertical).multiply(0.001));
+
+        String text = status.label();
+        double cellSize = Math.min(width / (text.length() * 4.0 + 1.0), height / 7.0);
+
+        if (cellSize < 0.025) {
+            return;
+        }
+
+        double totalWidth = (text.length() * 4.0 - 1.0) * cellSize;
+        double left = (width - totalWidth) / 2.0;
+        double bottom = (height - 5.0 * cellSize) / 2.0;
+        double inset = cellSize * 0.12;
+
+        for (int character = 0; character < text.length(); character++) {
+            String[] pixels = glyph(text.charAt(character));
+
+            for (int row = 0; row < pixels.length; row++) {
+                for (int column = 0; column < pixels[row].length(); column++) {
+                    if (pixels[row].charAt(column) != '1') {
+                        continue;
+                    }
+
+                    double u = left + (character * 4.0 + column) * cellSize + inset;
+                    double v = bottom + (4 - row) * cellSize + inset;
+
+                    Vec3d a = origin.add(horizontal.multiply(u)).add(vertical.multiply(v));
+                    Vec3d b = a.add(horizontal.multiply(cellSize - 2 * inset));
+                    Vec3d d = a.add(vertical.multiply(cellSize - 2 * inset));
+                    Vec3d c = b.add(vertical.multiply(cellSize - 2 * inset));
+
+                    coloredQuad(
+                            matrices,
+                            vertices,
+                            a, b, c, d,
+                            status.red(),
+                            status.green(),
+                            status.blue()
+                    );
+                }
+            }
+        }
     }
 
     private static String[] glyph(char character) {
@@ -321,22 +402,23 @@ public final class ScreenRenderer {
             double ax, double ay, double az,
             double bx, double by, double bz,
             double cx, double cy, double cz,
-            double dx, double dy, double dz
+            double dx, double dy, double dz,
+            int alpha
     ) {
-        texturedVertex(matrices, vertices, ax, ay, az, 0.0f, 1.0f);
-        texturedVertex(matrices, vertices, bx, by, bz, 1.0f, 1.0f);
-        texturedVertex(matrices, vertices, cx, cy, cz, 1.0f, 0.0f);
-        texturedVertex(matrices, vertices, dx, dy, dz, 0.0f, 0.0f);
+        texturedVertex(matrices, vertices, ax, ay, az, 0.0f, 1.0f, alpha);
+        texturedVertex(matrices, vertices, bx, by, bz, 1.0f, 1.0f, alpha);
+        texturedVertex(matrices, vertices, cx, cy, cz, 1.0f, 0.0f, alpha);
+        texturedVertex(matrices, vertices, dx, dy, dz, 0.0f, 0.0f, alpha);
     }
 
     private static void texturedVertex(
             MatrixStack matrices,
             VertexConsumer vertices,
             double x, double y, double z,
-            float u, float v
+            float u, float v, int alpha
     ) {
         vertices.vertex(matrices.peek(), (float) x, (float) y, (float) z)
-                .color(255, 255, 255, 255)
+                .color(230, 230, 230, alpha)
                 .texture(u, v)
                 // A value of 0 selects Minecraft's red damage-overlay pixel.
                 // Browser textures must use the neutral overlay instead.
@@ -350,18 +432,6 @@ public final class ScreenRenderer {
         private static boolean warningLogged;
 
         private MinecraftRenderCompat() {
-        }
-
-        private static VertexConsumer translucentTextureVertices(VertexConsumerProvider consumers, Identifier texture) {
-            try {
-                return consumers.getBuffer(RenderLayer.getEntityTranslucent(texture));
-            } catch (RuntimeException exception) {
-                if (!warningLogged) {
-                    warningLogged = true;
-                    MpsqCameraClient.LOGGER.warn("Bildschirm-Overlay konnte nicht gerendert werden", exception);
-                }
-                return null;
-            }
         }
 
         private static VertexConsumer textureVertices(VertexConsumerProvider consumers, Identifier texture) {
