@@ -195,6 +195,9 @@ function validAction(type:string,data:any):boolean {
   case "SHOW_BOSSBAR":return typeof data.title==="string"&&data.title.length<=256;
   case "TOGGLE_BOSSBAR":return typeof data.title==="string"&&data.title.length<=256;
   case "TOGGLE_AUDIO":return validSoundSource(data);
+  case "SWITCH_SYSTEM":return typeof data.systemId==="string"&&/^[a-z0-9_-]{1,64}$/.test(data.systemId);
+  case "RLGL_START":case "RLGL_STOP":case "RLGL_RED":return true;
+  case "RLGL_GREEN":return Number.isInteger(data.duration)&&data.duration>=1&&data.duration<=120;
   case "SHOW_DIALOGUE":return Array.isArray(data.pages)&&data.pages.length>0&&data.pages.length<=12&&data.pages.every((p:any)=>typeof p==="string"&&p.trim().length>0&&p.length<=240);
   case "OPEN_LINK":try{const u=new URL(data.url);return u.protocol==="https:"&&!u.username&&!u.password&&u.href.length<=2048&&typeof data.screenId==="string"&&/^[0-9a-f-]{36}$/i.test(data.screenId);}catch{return false;}
   case "STOP_AUDIO":case "HIDE_BOSSBAR":return true;
@@ -546,7 +549,7 @@ serve(async req => {
       const self=await teamProfile(clientId); if(!canEditEvent(self))return out({error:"Keine Berechtigung"},403);
       const body=await json(req), type=String(body.actionType??""), data=body.actionData??{};
       if(!validAction(type,data))return out({error:"Ungültige Aktionsdaten"},400);
-      const supported=["PLAY_AUDIO","START_PLAYLIST","STOP_AUDIO","SHOW_BOSSBAR","START_COUNTDOWN","HIDE_BOSSBAR","TOGGLE_AUDIO","TOGGLE_COUNTDOWN","TOGGLE_BOSSBAR","SHOW_DIALOGUE"];
+      const supported=["PLAY_AUDIO","START_PLAYLIST","STOP_AUDIO","SHOW_BOSSBAR","START_COUNTDOWN","HIDE_BOSSBAR","TOGGLE_AUDIO","TOGGLE_COUNTDOWN","TOGGLE_BOSSBAR","SHOW_DIALOGUE","SWITCH_SYSTEM","RLGL_START","RLGL_STOP","RLGL_GREEN","RLGL_RED"];
       if(!supported.includes(type)||!body.serverId||!body.worldId||JSON.stringify(data).length>8192)return out({error:"Ungültige Aktion"},400);
       if(type==="START_COUNTDOWN"&&(!Number.isInteger(data.duration)||data.duration<1||data.duration>7200))return out({error:"Ungültige Dauer"},400);
       if(["START_COUNTDOWN","SHOW_BOSSBAR"].includes(type)&&typeof data.title!=="string")return out({error:"Titel fehlt"},400);
@@ -639,7 +642,7 @@ serve(async req => {
       const actionType = String(body.actionType ?? "").trim().toUpperCase(); const blockId = String(body.blockId ?? "").trim();
       const pos = body.position ?? {};
       if(!validAction(actionType,body.actionData??{}))return out({error:"Ungültige Aktionsdaten"},400);
-      const supported = ["PLAY_AUDIO","START_PLAYLIST","STOP_AUDIO","SHOW_BOSSBAR","START_COUNTDOWN","HIDE_BOSSBAR","TOGGLE_AUDIO","TOGGLE_COUNTDOWN","TOGGLE_BOSSBAR","SHOW_DIALOGUE","OPEN_LINK"];
+      const supported = ["PLAY_AUDIO","START_PLAYLIST","STOP_AUDIO","SHOW_BOSSBAR","START_COUNTDOWN","HIDE_BOSSBAR","TOGGLE_AUDIO","TOGGLE_COUNTDOWN","TOGGLE_BOSSBAR","SHOW_DIALOGUE","OPEN_LINK","SWITCH_SYSTEM","RLGL_START","RLGL_STOP","RLGL_GREEN","RLGL_RED"];
       if (!supported.includes(actionType) || !String(body.serverId ?? "").trim()) return out({error:"Aktion oder Server ungültig"},400);
       if (!validRank(String(body.minimumRank ?? "offizier"))) return out({error:"Ungültiger Mindestrang"},400);
       if (JSON.stringify(body.actionData ?? {}).length > 8192) return out({error:"Aktionsdaten zu groß"},400);
@@ -902,7 +905,18 @@ serve(async req => {
       const self=await teamProfile(clientId); const body=await json(req); const name=String(body.displayName??"").trim().slice(0,32);
       const server=String(body.serverId??"").trim().toLowerCase(),world=String(body.worldId??"").trim();
       if(!teamAllowed(self)||!name||!server||server.length>255||!world||world.length>255)return out({error:"Forbidden"},403);
-      const event=await rest("/mpsq_action_events",{method:"POST",body:JSON.stringify({trigger_id:null,server_id:server,world_id:world,actor_id:clientId,action_type:"KICK_ANIMATION",action_data:{targetName:name}})});
+      const rawClone=body.clone; let clone: Record<string, string | number> | undefined;
+      if(rawClone&&typeof rawClone==="object"&&!Array.isArray(rawClone)){
+        const n=(key:string)=>Number(rawClone[key]);
+        const cloneId=String(rawClone.cloneId??"");
+        const x=n("x"),y=n("y"),z=n("z"),yaw=n("yaw"),pitch=n("pitch"),sourceX=n("sourceX"),sourceZ=n("sourceZ");
+        if(/^[0-9a-f-]{36}$/i.test(cloneId)&&[x,y,z,yaw,pitch].every(Number.isFinite)){
+          clone={cloneId,x,y,z,yaw,pitch};
+          if(Number.isFinite(sourceX)&&Number.isFinite(sourceZ)){clone.sourceX=sourceX;clone.sourceZ=sourceZ;}
+        }
+      }
+      const actionData: Record<string, unknown>={targetName:name}; if(clone)actionData.clone=clone;
+      const event=await rest("/mpsq_action_events",{method:"POST",body:JSON.stringify({trigger_id:null,server_id:server,world_id:world,actor_id:clientId,action_type:"KICK_ANIMATION",action_data:actionData})});
       return out(event.ok?{ok:true}:{error:"Animation konnte nicht verteilt werden"},event.ok?202:event.status);
     }
     if (path === "/team/disqualify" && req.method === "POST") {
