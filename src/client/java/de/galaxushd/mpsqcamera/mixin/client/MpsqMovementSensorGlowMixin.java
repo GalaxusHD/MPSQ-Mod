@@ -32,7 +32,7 @@ public abstract class MpsqMovementSensorGlowMixin {
         if (MPSQ_RENDERING_SENSOR_OUTLINE.get() || !MpsqMovementSensorSystem.isActive()) return;
         int rgb;
         if (entity instanceof AbstractClientPlayerEntity player) {
-            if (player.isSpectator()) return;
+            if (player.isSpectator() || !MpsqMovementSensorSystem.shouldOutline(player)) return;
             rgb = MpsqMovementSensorSystem.outlineColor(player);
         } else if (MpsqMovementSensorSystem.isTestVillager(entity)) {
             rgb = MpsqMovementSensorSystem.testVillagerOutlineColor();
