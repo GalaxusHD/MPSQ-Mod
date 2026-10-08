@@ -177,7 +177,7 @@ public final class MpsqTriggerManager {
         String worldId = MpsqActionSync.world();
         for (MpsqTrigger trigger : TRIGGERS) {
             if (!trigger.position().equals(pos) || !trigger.worldId().equals(worldId)
-                    || !"SWITCH_SYSTEM".equals(trigger.actionType())) continue;
+                    || !isButtonAction(trigger.actionType())) continue;
             fire(trigger.id(), null, true);
             return;
         }
@@ -185,11 +185,15 @@ public final class MpsqTriggerManager {
 
     private static boolean isClickActivatedSystem(JsonObject row, MpsqTriggerBlockPolicy.Kind kind) {
         return kind == MpsqTriggerBlockPolicy.Kind.BUTTON
-                && row.has("actionType") && "SWITCH_SYSTEM".equals(row.get("actionType").getAsString());
+                && row.has("actionType") && isButtonAction(row.get("actionType").getAsString());
     }
 
     private static boolean isClickActivatedSystem(MpsqTrigger trigger, MpsqTriggerBlockPolicy.Kind kind) {
-        return kind == MpsqTriggerBlockPolicy.Kind.BUTTON && "SWITCH_SYSTEM".equals(trigger.actionType());
+        return kind == MpsqTriggerBlockPolicy.Kind.BUTTON && isButtonAction(trigger.actionType());
+    }
+
+    private static boolean isButtonAction(String action) {
+        return "SWITCH_SYSTEM".equals(action) || action.startsWith("RLGL_");
     }
 
     private static void dispatchLocal(JsonObject row, MpsqTriggerBlockPolicy.Kind kind, boolean powered) {

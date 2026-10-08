@@ -23,7 +23,7 @@ public final class MpsqBossbarManager {
     }
     public static String normalizeColor(String color) {
         return switch(String.valueOf(color).toLowerCase(java.util.Locale.ROOT)) {
-            case "pink","red" -> color.toLowerCase(java.util.Locale.ROOT);
+            case "pink","red","green" -> color.toLowerCase(java.util.Locale.ROOT);
             default -> "purple";
         };
     }
@@ -39,7 +39,9 @@ public final class MpsqBossbarManager {
                 apply(new MpsqBossbarState("countdown",title+separator+timerColor+seconds+" s",countdownColor,(float)remaining/(countdownDuration*1000),true));
             }
         }
-        return java.util.List.copyOf(STATES.values());
+        return STATES.values().stream()
+                .sorted(java.util.Comparator.comparing(state -> "rlgl_phase".equals(state.id()) ? "~~~~rlgl_phase" : state.id()))
+                .toList();
     }
     public static void clear(){STATES.clear();countdownEnd=0;countdownColor="purple";}
 }

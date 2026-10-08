@@ -15,17 +15,23 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-/** Client-side Red Light, Green Light system used by the MPSQ Redstone SWITCH_SYSTEM action. */
+/** Client-side Red Light, Green Light phase and movement sensor. */
 public final class MpsqMovementSensorSystem {
     public static final String SYSTEM_ID = "red_light_green_light";
-    private static final long ACTIVITY_GLOW_MS = 900L;
-    private static final int RESTING_GLOW = 0xFFFFFF;
-    private static final int ACTIVE_GLOW = 0xFF5555;
+    private static final long GREEN_COUNTDOWN_MS = 5_000L;
+    private static final int WAITING_GLOW = 0xFFFFFF;
+    private static final int GREEN_GLOW = 0x55FF55;
+    private static final int MOVED_GLOW = 0xFF5555;
     private static final Map<UUID, Sample> SAMPLES = new HashMap<>();
-    private static final Map<UUID, Long> ACTIVE_UNTIL = new HashMap<>();
+    private static final Set<UUID> MOVED_DURING_RED = new HashSet<>();
     private static volatile boolean active;
+    private static volatile Phase phase = Phase.WAITING;
+    private static volatile long greenUntil;
+    private static volatile long greenDurationMs = GREEN_COUNTDOWN_MS;
     private static BlockPos testVillagerAnchor;
     private static VillagerEntity testVillager;
+
+    private enum Phase { WAITING, GREEN, RED }
 
     private MpsqMovementSensorSystem() { }
 
@@ -41,6 +47,38 @@ public final class MpsqMovementSensorSystem {
 
     public static boolean isActive() { return active; }
 
+    /** Starts a new round in the waiting state; the first green/red trigger sets its phase. */
+    public static void startFromTrigger(BlockPos anchor) {
+        setTestVillagerAnchor(anchor);
+        MpsqSystemController.startSystem(SYSTEM_ID);
+    }
+
+    public static void stopRound() {
+        MpsqSystemController.stopSystem(SYSTEM_ID);
+        deactivate();
+    }
+
+    /** Green-light signal: white outlines during the configurable short countdown, then red phase. */
+    public static void beginGreenCountdown(int seconds) {
+        if (!active) return;
+        int clamped = Math.max(1, Math.min(120, seconds));
+        phase = Phase.GREEN;
+        greenDurationMs = clamped * 1000L;
+        greenUntil = System.currentTimeMillis() + greenDurationMs;
+        SAMPLES.clear();
+        MpsqBossbarManager.apply(new MpsqBossbarState("rlgl_phase", "Red Light, Green Light · Grün", "green", 1f, true));
+    }
+
+    /** Red-light signal from the redstone circuit. */
+    public static void beginRedPhase() {
+        if (!active) return;
+        phase = Phase.RED;
+        greenUntil = 0L;
+        SAMPLES.clear();
+        seedSamples(MinecraftClient.getInstance());
+        updateBossbar(System.currentTimeMillis());
+    }
+
     /** Selects a nearby manually placed villager as the visible test actor. */
     public static void setTestVillagerAnchor(BlockPos anchor) {
         testVillagerAnchor = anchor == null ? null : anchor.toImmutable();
@@ -50,25 +88,40 @@ public final class MpsqMovementSensorSystem {
         return testVillager != null && entity == testVillager;
     }
 
-    public static int outlineColor(AbstractClientPlayerEntity player) {
-        Long until = ACTIVE_UNTIL.get(player.getUuid());
-        return until != null && System.currentTimeMillis() < until ? ACTIVE_GLOW : RESTING_GLOW;
+    public static boolean shouldOutline(AbstractClientPlayerEntity player) {
+        TeamRank rank = TeamStateStore.byMinecraftName(player.getGameProfile().name())
+                .map(TeamProfile::permissionRank).orElse(TeamRank.PLAYER);
+        return rank == TeamRank.PLAYER || rank == TeamRank.STREAMER || rank == TeamRank.VIP;
     }
 
-    public static int testVillagerOutlineColor() { return 0x55FF55; }
+    public static int outlineColor(AbstractClientPlayerEntity player) {
+        if (TeamStateStore.byMinecraftName(player.getGameProfile().name())
+                .map(profile -> profile.permissionRank() == TeamRank.VIP).orElse(false)) return WAITING_GLOW;
+        if (phase != Phase.RED) return WAITING_GLOW;
+        return MOVED_DURING_RED.contains(player.getUuid()) ? MOVED_GLOW : GREEN_GLOW;
+    }
+
+    public static int testVillagerOutlineColor() { return phase == Phase.GREEN ? GREEN_GLOW : WAITING_GLOW; }
 
     private static synchronized void activate() {
         active = true;
+        phase = Phase.WAITING;
+        greenUntil = 0L;
         SAMPLES.clear();
-        ACTIVE_UNTIL.clear();
+        MOVED_DURING_RED.clear();
         seedSamples(MinecraftClient.getInstance());
         findTestVillager(MinecraftClient.getInstance());
+        updateBossbar(System.currentTimeMillis());
+        showActivationTitle();
     }
 
     private static synchronized void deactivate() {
         active = false;
+        phase = Phase.WAITING;
+        greenUntil = 0L;
         SAMPLES.clear();
-        ACTIVE_UNTIL.clear();
+        MOVED_DURING_RED.clear();
+        MpsqBossbarManager.remove("rlgl_phase");
         removeTestVillager();
     }
 
@@ -78,32 +131,32 @@ public final class MpsqMovementSensorSystem {
             return;
         }
 
+        long now = System.currentTimeMillis();
+        if (phase == Phase.GREEN && now >= greenUntil) beginRedPhase();
+        updateBossbar(now);
+
         if (testVillager == null || testVillager.isRemoved() || testVillager.getWorld() != client.world) findTestVillager(client);
+
+        if (phase != Phase.RED) return;
 
         Set<UUID> seen = new HashSet<>();
         for (PlayerEntity entity : client.world.getPlayers()) {
             if (!(entity instanceof AbstractClientPlayerEntity player)) continue;
+            if (!shouldOutline(player)) {
+                MOVED_DURING_RED.remove(player.getUuid());
+                SAMPLES.remove(player.getUuid());
+                continue;
+            }
             UUID id = player.getUuid();
             seen.add(id);
             Vec3d position = player.getPos();
-            boolean sneaking = player.isSneaking();
-            boolean swinging = player.handSwinging;
             Sample previous = SAMPLES.put(id, new Sample(position));
             if (previous == null) continue;
 
-            if (position.squaredDistanceTo(previous.position) > 0.00001D
-                    || sneaking || swinging || player.hurtTime > 0) {
-                markActive(id);
-            }
+            if (position.squaredDistanceTo(previous.position) > 0.0004D) MOVED_DURING_RED.add(id);
         }
         SAMPLES.keySet().removeIf(id -> !seen.contains(id));
-        ACTIVE_UNTIL.keySet().removeIf(id -> !seen.contains(id));
-
-        boolean attackPressed = client.options.attackKey.isPressed();
-        boolean usePressed = client.options.useKey.isPressed();
-        if (attackPressed || usePressed) {
-            markActive(client.player.getUuid());
-        }
+        MOVED_DURING_RED.removeIf(id -> !seen.contains(id));
     }
 
     private static void seedSamples(MinecraftClient client) {
@@ -114,8 +167,27 @@ public final class MpsqMovementSensorSystem {
         }
     }
 
-    private static synchronized void markActive(UUID playerId) {
-        ACTIVE_UNTIL.put(playerId, System.currentTimeMillis() + ACTIVITY_GLOW_MS);
+    private static void updateBossbar(long now) {
+        if (!active) return;
+        if (phase == Phase.GREEN && now < greenUntil) {
+            long remaining = greenUntil - now;
+            MpsqBossbarManager.apply(new MpsqBossbarState("rlgl_phase", "Red Light, Green Light · Grünphase", "green",
+                    Math.max(0f, Math.min(1f, (float) remaining / greenDurationMs)), true));
+        } else {
+            if (phase == Phase.GREEN) beginRedPhase();
+            MpsqBossbarManager.apply(new MpsqBossbarState("rlgl_phase", "Red Light, Green Light · Rotphase", "red", 1f, true));
+        }
+    }
+
+    private static void showActivationTitle() {
+        MinecraftClient client = MinecraftClient.getInstance();
+        if (client.player == null) return;
+        TeamRank rank = TeamStateStore.self().map(TeamProfile::permissionRank).orElse(TeamRank.PLAYER);
+        if (rank != TeamRank.WORKER && rank != TeamRank.SOLDIER && rank != TeamRank.OFFICER
+                && rank != TeamRank.SENIOR_OFFICER && rank != TeamRank.FRONTMAN) return;
+        client.inGameHud.setTitle(net.minecraft.text.Text.literal("Red Light, Green Light"));
+        client.inGameHud.setSubtitle(net.minecraft.text.Text.literal("Ist aktiviert"));
+        client.inGameHud.setTitleTicks(10, 70, 20);
     }
 
     private static void findTestVillager(MinecraftClient client) {

@@ -24,8 +24,8 @@ public final class MpsqActionSetupScreen extends Screen {
     private ButtonWidget playlistButton;
     private static final String[] BAR_COLORS={"purple","pink","red"};
     private static final String[] BAR_COLOR_LABELS={"Violett (Standard)","Pink (#ec2f53)","Rot (#cf2020)"};
-    private static final String[] QUICK_ACTIONS={"TOGGLE_AUDIO","START_PLAYLIST","TOGGLE_COUNTDOWN","TOGGLE_BOSSBAR","SWITCH_SYSTEM"};
-    private static final String[] BLOCK_ACTIONS={"TOGGLE_AUDIO","START_PLAYLIST","TOGGLE_COUNTDOWN","TOGGLE_BOSSBAR","SHOW_DIALOGUE","OPEN_LINK","SWITCH_SYSTEM"};
+    private static final String[] QUICK_ACTIONS={"TOGGLE_AUDIO","START_PLAYLIST","TOGGLE_COUNTDOWN","TOGGLE_BOSSBAR","SWITCH_SYSTEM","RLGL_START","RLGL_STOP","RLGL_GREEN","RLGL_RED"};
+    private static final String[] BLOCK_ACTIONS={"TOGGLE_AUDIO","START_PLAYLIST","TOGGLE_COUNTDOWN","TOGGLE_BOSSBAR","SHOW_DIALOGUE","OPEN_LINK","SWITCH_SYSTEM","RLGL_START","RLGL_STOP","RLGL_GREEN","RLGL_RED"};
     private final String[] actions;
     private List<LocalScreenStore.LocalScreenData> linkScreens=List.of();
     private List<PlaylistOption> playlists=List.of();
@@ -101,13 +101,15 @@ public final class MpsqActionSetupScreen extends Screen {
         boolean bossbar="TOGGLE_BOSSBAR".equals(selected);
         boolean switchSystem="SWITCH_SYSTEM".equals(selected);
         boolean playlist="START_PLAYLIST".equals(selected);
+        boolean rlglGreen="RLGL_GREEN".equals(selected);
         List<MpsqSystemController.SystemOption> systems=MpsqSystemController.availableSystems();
         if(!systems.isEmpty())systemIndex=Math.floorMod(systemIndex,systems.size());else systemIndex=0;
         systemButton.setMessage(Text.literal(systemLabel()));
         systemButton.visible=switchSystem;systemButton.active=switchSystem&&!systems.isEmpty();
         playlistButton.visible=playlist;playlistButton.active=playlist&&!playlistsLoading&&!playlists.isEmpty();
-        value.visible=!switchSystem&&!playlist;value.active=!switchSystem&&!playlist;
-        duration.visible=countdown;duration.active=countdown;
+        value.visible=!switchSystem&&!playlist&&!selected.startsWith("RLGL_");value.active=value.visible;
+        duration.visible=countdown||rlglGreen;duration.active=countdown||rlglGreen;
+        if(rlglGreen&&duration.getText().equals("30"))duration.setText("5");
         barColorButton.visible=countdown||bossbar;barColorButton.active=countdown||bossbar;
         linkScreenButton.visible=link;linkScreenButton.active=link&&!linkScreensLoading&&!linkScreens.isEmpty();
         value.setPlaceholder(Text.literal(link?"HTTPS-Link für den Bildschirm":audio?"minecraft:entity.cat.ambient oder MPSQ-Sound-ID":"Text oder Titel (Farben mit &c etc.)"));
@@ -165,6 +167,10 @@ public final class MpsqActionSetupScreen extends Screen {
                 data.addProperty("systemId",selected.id());
                 if("red_light_green_light".equals(selected.id()))data.addProperty("testEntityId","minecraft:villager");
             }
+            case "RLGL_GREEN" -> {
+                try { int seconds=Integer.parseInt(duration.getText()); if(seconds<1||seconds>120)throw new NumberFormatException(); data.addProperty("duration",seconds); }
+                catch(NumberFormatException e){status="Grünphasen-Countdown: 1–120 Sekunden (Standard 5)";return;}
+            }
             case "START_PLAYLIST" -> {
                 if(playlistsLoading){status="Playlists werden noch geladen.";return;}
                 if(playlists.isEmpty()){status="Keine abspielbare Playlist verfügbar.";return;}
@@ -192,7 +198,7 @@ public final class MpsqActionSetupScreen extends Screen {
         position.addProperty("x",pos.getX());position.addProperty("y",pos.getY());position.addProperty("z",pos.getZ());
         body.add("position",position);body.addProperty("serverId",server);body.addProperty("worldId",world);
         body.addProperty("blockId",block);body.addProperty("objectType",blockKind.name());body.addProperty("actionType",actions[action]);body.add("actionData",data);
-        body.addProperty("minimumRank","OPEN_LINK".equals(actions[action])?"vip":"SWITCH_SYSTEM".equals(actions[action])?"soldat":"offizier");
+        body.addProperty("minimumRank","OPEN_LINK".equals(actions[action])?"vip":actions[action].startsWith("RLGL_")?"arbeiter":"SWITCH_SYSTEM".equals(actions[action])?"soldat":"offizier");
         if(MpsqActionSync.server().isBlank()&&client.getServer()!=null){
             boolean saved=MpsqLocalActionStore.set(pos,block,blockKind.name(),actions[action],data);
             status=saved?"Aktion in dieser Einzelspielerwelt gespeichert.":"Lokale Aktion konnte nicht gespeichert werden.";return;
@@ -211,6 +217,10 @@ public final class MpsqActionSetupScreen extends Screen {
         String selected=actions[action];
         String hint="OPEN_LINK".equals(selected)?"HTTPS-Link auf dem ausgewählten Kino-Bildschirm":
                 "SWITCH_SYSTEM".equals(selected)?"Knopf schaltet Systeme durch; Red Light, Green Light nutzt testweise minecraft:villager":
+                "RLGL_START".equals(selected)?"Startknopf: startet das System und sucht einen vorhandenen Villager in der Nähe":
+                "RLGL_STOP".equals(selected)?"Stoppknopf: beendet den Modus und setzt Markierungen zurück":
+                "RLGL_GREEN".equals(selected)?"Grünphase: Countdown läuft; danach beginnt automatisch die Rotphase":
+                "RLGL_RED".equals(selected)?"Rotphase sofort starten; Bewegung wird bis zum Ende rot markiert":
                 "SHOW_DIALOGUE".equals(selected)?"Textseiten mit || trennen":
                 "TOGGLE_AUDIO".equals(selected)?"Minecraft-ID: minecraft:pfad · MPSQ-ID: ohne Namespace":
                 "TOGGLE_COUNTDOWN".equals(selected)?"Countdown-Dauer in Sekunden":"&0–&f Farben: &chellrot, &egelb, &r zurücksetzen";
@@ -221,6 +231,10 @@ public final class MpsqActionSetupScreen extends Screen {
         case "TOGGLE_AUDIO"->"Musik / Ton umschalten";case "START_PLAYLIST"->"Playlist abspielen";case "TOGGLE_COUNTDOWN"->"Countdown umschalten";
         case "TOGGLE_BOSSBAR"->"Bossbar umschalten";
         case "SWITCH_SYSTEM"->"Aktion / System starten oder wechseln";
+        case "RLGL_START"->"Red Light, Green Light aktivieren";
+        case "RLGL_STOP"->"Red Light, Green Light deaktivieren";
+        case "RLGL_GREEN"->"Spielphase: Grün + Countdown";
+        case "RLGL_RED"->"Spielphase: Rotlicht";
         case "SHOW_DIALOGUE"->"Dialog (F zum Weitergehen)";case "OPEN_LINK"->"Link öffnen";default->action;};}
     @Override public boolean shouldPause(){return false;}
     private record PlaylistOption(String name,List<String> tracks){}

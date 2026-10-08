@@ -136,6 +136,10 @@ public final class MpsqActionSync {
                 }
                 MpsqSystemController.onTrigger(systemId, stateDriven, powered);
             }
+            case "RLGL_START" -> MpsqMovementSensorSystem.startFromTrigger(triggerPosition(event));
+            case "RLGL_STOP" -> MpsqMovementSensorSystem.stopRound();
+            case "RLGL_GREEN" -> MpsqMovementSensorSystem.beginGreenCountdown(data.has("duration") ? data.get("duration").getAsInt() : 5);
+            case "RLGL_RED" -> MpsqMovementSensorSystem.beginRedPhase();
             case "SHOW_DIALOGUE" -> MpsqDialogueManager.start(data);
             case "KICK_ANIMATION" -> {
                 String targetName = data.get("targetName").getAsString();

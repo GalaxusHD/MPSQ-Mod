@@ -56,6 +56,15 @@ public final class MpsqSystemController {
 
     public static String activeSystemId() { return activeSystemId; }
 
+    /** Starts one registered system without toggling it off on repeated button presses. */
+    public static synchronized void startSystem(String systemId) { activate(normalize(systemId)); }
+
+    /** Stops the named system only when it is currently active. */
+    public static synchronized void stopSystem(String systemId) {
+        String id = normalize(systemId);
+        if (activeSystemId.equals(id)) activate("");
+    }
+
     /** Stops the selected system when the MPSQ session/world is left or disabled. */
     public static synchronized void stopActive() { activate(""); }
 

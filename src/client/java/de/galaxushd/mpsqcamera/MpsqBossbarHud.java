@@ -20,6 +20,8 @@ public final class MpsqBossbarHud {
         int y = 12;
         for (MpsqBossbarState state : MpsqBossbarManager.all()) {
             if (!state.visible()) continue;
+            // Keep the game-phase meter below the ordinary MPSQ bar row.
+            if ("rlgl_phase".equals(state.id())) y = Math.max(y, 40);
             int width = Math.min(BAR_WIDTH, client.getWindow().getScaledWidth() - 20);
             int left = (client.getWindow().getScaledWidth() - width) / 2;
             int barY = y + 10;
