@@ -73,7 +73,7 @@ public final class MpsqOwnedAccessoriesScreen extends Screen {
         MpsqApiClient.get("/me/accessories").whenComplete((data, error) -> client.execute(() -> {
             if (client.currentScreen != this) return;
             if (error == null && data != null && data.isJsonArray()) {
-                owned = data.getAsJsonArray();
+                owned = withoutLegacyDiscordHead(data.getAsJsonArray());
                 updateEquippedFromRows();
                 status = owned.isEmpty() ? "Du besitzt noch keine Accessoires." : "";
                 clampPage();
@@ -90,7 +90,7 @@ public final class MpsqOwnedAccessoriesScreen extends Screen {
         for (JsonElement element : MpsqLocalWorldStore.array("accessories_owned")) {
             JsonObject row = element.isJsonObject() ? element.getAsJsonObject().deepCopy() : new JsonObject();
             String id = element.isJsonObject() ? str(row, "accessory_id", "") : element.getAsString();
-            if (id.isBlank()) continue;
+            if (id.isBlank() || "discord_hat".equalsIgnoreCase(id)) continue;
             row.addProperty("accessory_id", id);
             row.addProperty("equipped", id.equals(equipped));
             for (JsonElement definition : catalog) {
@@ -102,7 +102,7 @@ public final class MpsqOwnedAccessoriesScreen extends Screen {
                 }
                 break;
             }
-            result.add(row);
+            if (!isLegacyDiscordHead(row)) result.add(row);
         }
         return result;
     }
@@ -159,10 +159,32 @@ public final class MpsqOwnedAccessoriesScreen extends Screen {
         String url = str(row, "url", str(definition, "url", ""));
         String assetId = str(row, "asset_id", str(definition, "asset_id", str(definition, "model_id", "")));
         String filename = str(row, "filename", str(definition, "filename", ""));
-        if ("discord_hat.json".equalsIgnoreCase(filename)) assetId = MpsqAccessoryRenderer.DISCORD_HAT_ASSET_ID;
         String filenameBuiltin = MpsqAccessoryRenderer.builtinAccessoryUrl(filename);
         if (filenameBuiltin != null) return filenameBuiltin;
         return MpsqAccessoryRenderer.assetPreviewUrl(assetId, url);
+    }
+
+    private static JsonArray withoutLegacyDiscordHead(JsonArray input) {
+        JsonArray filtered = new JsonArray();
+        for (JsonElement value : input) {
+            if (value.isJsonObject() && !isLegacyDiscordHead(value.getAsJsonObject())) filtered.add(value.deepCopy());
+        }
+        return filtered;
+    }
+
+    private static boolean isLegacyDiscordHead(JsonObject row) {
+        JsonObject definition = row.has("mpsq_accessories") && row.get("mpsq_accessories").isJsonObject()
+                ? row.getAsJsonObject("mpsq_accessories") : row;
+        for (JsonObject source : new JsonObject[]{row, definition}) {
+            for (String key : new String[]{"filename", "asset_id", "model_id", "accessory_key", "accessory_id", "id", "display_name"}) {
+                String value = str(source, key, "").replace('\\', '/').toLowerCase(java.util.Locale.ROOT);
+                int slash = value.lastIndexOf('/');
+                if (slash >= 0) value = value.substring(slash + 1);
+                if (value.equals("discord_hat") || value.equals("discord_hat.json") || value.equals("discord_hat.bbmodel")
+                        || value.equals("discord head") || value.equals("discord hat")) return true;
+            }
+        }
+        return false;
     }
 
     @Override
