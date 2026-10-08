@@ -77,8 +77,8 @@ public final class ScreenRenderer {
                     : (cameraScreen ? RemoteCameraFrameManager.texture(activeCamera) : CinemaBrowserManager.texture(screen.id()));
             CinemaBrowserManager.ScreenStatus screenStatus = cameraScreen
                     ? (!mayViewCamera ? CinemaBrowserManager.ScreenStatus.OFFLINE
-                    : (blockedCamera ? CinemaBrowserManager.ScreenStatus.BLOCKED
-                    : (texture == null ? CinemaBrowserManager.ScreenStatus.OFFLINE : CinemaBrowserManager.ScreenStatus.NONE)))
+                    : (blockedCamera ? CinemaBrowserManager.ScreenStatus.OFFLINE
+                    : (texture == null ? (activeCamera == null ? CinemaBrowserManager.ScreenStatus.OFFLINE : CinemaBrowserManager.ScreenStatus.INACTIVE) : CinemaBrowserManager.ScreenStatus.NONE)))
                     : CinemaBrowserManager.status(screen);
 
             drawScreenFace(
@@ -173,12 +173,12 @@ public final class ScreenRenderer {
         // Schwarze Bildschirmfläche.
         if (browserTexture == null) {
             quad(matrices, vertices, ax, ay, az, bx, by, bz, cx, cy, cz, dx, dy, dz, 0, 0, 0, 235);
-            drawStatusText(matrices, vertices, status, ax, ay, az, bx, by, bz, cx, cy, cz, dx, dy, dz);
+            drawStatusOverlay(matrices, consumers, status, ax, ay, az, bx, by, bz, cx, cy, cz, dx, dy, dz);
         } else {
             VertexConsumer textureVertices = MinecraftRenderCompat.textureVertices(consumers, browserTexture);
             if (textureVertices == null) {
                 quad(matrices, vertices, ax, ay, az, bx, by, bz, cx, cy, cz, dx, dy, dz, 0, 0, 0, 235);
-                drawStatusText(matrices, vertices, CinemaBrowserManager.ScreenStatus.ERROR,
+                drawStatusOverlay(matrices, consumers, CinemaBrowserManager.ScreenStatus.OFFLINE,
                         ax, ay, az, bx, by, bz, cx, cy, cz, dx, dy, dz);
             } else {
                 texturedQuad(matrices, textureVertices, ax, ay, az, bx, by, bz, cx, cy, cz, dx, dy, dz);
@@ -242,75 +242,20 @@ public final class ScreenRenderer {
                 FRAME_RED, FRAME_GREEN, FRAME_BLUE);
     }
 
-    private static void drawStatusText(
+    private static void drawStatusOverlay(
             MatrixStack matrices,
-            VertexConsumer vertices,
+            VertexConsumerProvider consumers,
             CinemaBrowserManager.ScreenStatus status,
             double ax, double ay, double az,
             double bx, double by, double bz,
             double cx, double cy, double cz,
             double dx, double dy, double dz
     ) {
-        if (status == CinemaBrowserManager.ScreenStatus.NONE) {
-            return;
-        }
-
-        Vec3d baseOrigin = new Vec3d(ax, ay, az);
-        Vec3d horizontal = new Vec3d(bx, by, bz).subtract(baseOrigin);
-        Vec3d vertical = new Vec3d(dx, dy, dz).subtract(baseOrigin);
-
-        double width = horizontal.length();
-        double height = vertical.length();
-
-        if (width <= 0.0 || height <= 0.0) {
-            return;
-        }
-
-        horizontal = horizontal.normalize();
-        vertical = vertical.normalize();
-        // Keep status pixels slightly in front of the black plane to prevent z-fighting while moving.
-        Vec3d origin = baseOrigin.add(horizontal.crossProduct(vertical).multiply(0.001));
-
-        String text = status.label();
-        double cellSize = Math.min(width / (text.length() * 4.0 + 1.0), height / 7.0);
-
-        if (cellSize < 0.025) {
-            return;
-        }
-
-        double totalWidth = (text.length() * 4.0 - 1.0) * cellSize;
-        double left = (width - totalWidth) / 2.0;
-        double bottom = (height - 5.0 * cellSize) / 2.0;
-        double inset = cellSize * 0.12;
-
-        for (int character = 0; character < text.length(); character++) {
-            String[] pixels = glyph(text.charAt(character));
-
-            for (int row = 0; row < pixels.length; row++) {
-                for (int column = 0; column < pixels[row].length(); column++) {
-                    if (pixels[row].charAt(column) != '1') {
-                        continue;
-                    }
-
-                    double u = left + (character * 4.0 + column) * cellSize + inset;
-                    double v = bottom + (4 - row) * cellSize + inset;
-
-                    Vec3d a = origin.add(horizontal.multiply(u)).add(vertical.multiply(v));
-                    Vec3d b = a.add(horizontal.multiply(cellSize - 2 * inset));
-                    Vec3d d = a.add(vertical.multiply(cellSize - 2 * inset));
-                    Vec3d c = b.add(vertical.multiply(cellSize - 2 * inset));
-
-                    coloredQuad(
-                            matrices,
-                            vertices,
-                            a, b, c, d,
-                            status.red(),
-                            status.green(),
-                            status.blue()
-                    );
-                }
-            }
-        }
+        Identifier texture = status.overlayTexture();
+        if (texture == null) return;
+        VertexConsumer overlayVertices = MinecraftRenderCompat.translucentTextureVertices(consumers, texture);
+        if (overlayVertices == null) return;
+        texturedQuad(matrices, overlayVertices, ax, ay, az, bx, by, bz, cx, cy, cz, dx, dy, dz);
     }
 
     private static String[] glyph(char character) {
@@ -405,6 +350,18 @@ public final class ScreenRenderer {
         private static boolean warningLogged;
 
         private MinecraftRenderCompat() {
+        }
+
+        private static VertexConsumer translucentTextureVertices(VertexConsumerProvider consumers, Identifier texture) {
+            try {
+                return consumers.getBuffer(RenderLayer.getEntityTranslucent(texture));
+            } catch (RuntimeException exception) {
+                if (!warningLogged) {
+                    warningLogged = true;
+                    MpsqCameraClient.LOGGER.warn("Bildschirm-Overlay konnte nicht gerendert werden", exception);
+                }
+                return null;
+            }
         }
 
         private static VertexConsumer textureVertices(VertexConsumerProvider consumers, Identifier texture) {

@@ -70,11 +70,14 @@ public final class CinemaBrowserManager {
     /** Human-readable state used by the screen renderer while no browser image is available. */
     public static ScreenStatus status(LocalScreenStore.LocalScreenData screen) {
         if (!isVideoScreen(screen)) return ScreenStatus.NONE;
-        if (screen.url().isBlank()) return screen.inputType() == LocalScreenStore.ScreenInputType.MPSQ_REDSTONE ? ScreenStatus.REDSTONE_OFFLINE : ScreenStatus.NO_LINK;
-        if (normalizeHttpUrl(screen.url()) == null || FAILED_BROWSERS.contains(screen.id())) return ScreenStatus.ERROR;
-        if (!MCEF.isInitialized()) return ScreenStatus.LOADING;
-        if (!CinemaPlaybackStore.get(screen.id()).playing()) return screen.inputType() == LocalScreenStore.ScreenInputType.MPSQ_REDSTONE ? ScreenStatus.REDSTONE_OFFLINE : ScreenStatus.OFFLINE;
-        return texture(screen.id()) == null ? ScreenStatus.LOADING : ScreenStatus.NONE;
+        if (screen.url().isBlank()) return ScreenStatus.OFFLINE;
+        if (normalizeHttpUrl(screen.url()) == null || FAILED_BROWSERS.contains(screen.id())) return ScreenStatus.INACTIVE;
+        if (!CinemaPlaybackStore.get(screen.id()).playing()) {
+            return screen.inputType() == LocalScreenStore.ScreenInputType.MPSQ_REDSTONE
+                    ? ScreenStatus.BUTTON_PRESS : ScreenStatus.INACTIVE;
+        }
+        if (!MCEF.isInitialized() || texture(screen.id()) == null) return ScreenStatus.INACTIVE;
+        return ScreenStatus.NONE;
     }
 
     public static void synchronize() {
@@ -323,25 +326,36 @@ public final class CinemaBrowserManager {
 
     public enum ScreenStatus {
         NONE("", 0, 0, 0),
-        NO_LINK("KEIN LINK", 140, 140, 140),
-        OFFLINE("OFFLINE", 155, 155, 155),
-        REDSTONE_OFFLINE("REDSTONE OFFLINE", 155, 155, 155),
-        BLOCKED("BLOCKIERT", 210, 60, 55),
-        LOADING("LAEDT", 225, 180, 55),
-        ERROR("FEHLER", 210, 60, 55);
+        OFFLINE("OFFLINE", 155, 155, 155, "screen_offline"),
+        INACTIVE("INAKTIV", 155, 155, 155, "screen_inactive"),
+        BUTTON_PRESS("KNOPF DRUECKEN", 155, 155, 155, "screen_button_press"),
+        NO_LINK("OFFLINE", 155, 155, 155, "screen_offline"),
+        REDSTONE_OFFLINE("OFFLINE", 155, 155, 155, "screen_offline"),
+        BLOCKED("INAKTIV", 155, 155, 155, "screen_inactive"),
+        LOADING("INAKTIV", 155, 155, 155, "screen_inactive"),
+        ERROR("INAKTIV", 155, 155, 155, "screen_inactive");
 
         private final String label;
         private final int red;
         private final int green;
         private final int blue;
+        private final String overlay;
 
         ScreenStatus(String label, int red, int green, int blue) {
+            this(label, red, green, blue, null);
+        }
+
+        ScreenStatus(String label, int red, int green, int blue, String overlay) {
             this.label = label;
             this.red = red;
             this.green = green;
             this.blue = blue;
+            this.overlay = overlay;
         }
 
+        public Identifier overlayTexture() {
+            return overlay == null ? null : Identifier.of(MpsqCameraClient.MOD_ID, "textures/screens/" + overlay + ".png");
+        }
         public String label() { return label; }
         public int red() { return red; }
         public int green() { return green; }

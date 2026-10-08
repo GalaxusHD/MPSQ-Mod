@@ -37,17 +37,19 @@ public final class MpsqQuestsScreen extends Screen {
     private TextFieldWidget titleField,descriptionField,iconField,itemField,countField,pointsField,accessoryField;
     private ButtonWidget saveButton;
     private long lastScan;
+    private final String initialQuestId;
     private boolean localWorld(){return MpsqActionSync.server().isBlank()&&MpsqLocalWorldStore.available();}
     private boolean canEdit(){return staff()||localWorld();}
 
-    public MpsqQuestsScreen(Screen parent,String npcId){super(Text.literal("Quests"));this.parent=parent;this.npcId=npcId;}
+    public MpsqQuestsScreen(Screen parent,String npcId){this(parent,npcId,"");}
+    public MpsqQuestsScreen(Screen parent,String npcId,String initialQuestId){super(Text.literal("Quests"));this.parent=parent;this.npcId=npcId;this.initialQuestId=initialQuestId==null?"":initialQuestId;}
 
     @Override protected void init(){
         if(!editing){
             if(localWorld()){loadLocalQuests();return;}
             String path="/npcs/"+npcId+"/quests?server="+enc(MpsqActionSync.server())+"&world="+enc(MpsqActionSync.world());
             MpsqApiClient.get(path).whenComplete((data,error)->client.execute(()->{
-                if(error==null&&data.isJsonArray()){quests=data.getAsJsonArray();status=quests.isEmpty()?"Noch keine Quests vorhanden.":"";}
+                if(error==null&&data.isJsonArray()){quests=data.getAsJsonArray();status=quests.isEmpty()?"Noch keine Quests vorhanden.":"";selectedQuestId=initialQuestId;}
                 else status="Quests konnten nicht geladen werden.";
                 clamp();
             }));
@@ -55,7 +57,7 @@ public final class MpsqQuestsScreen extends Screen {
         }else {initEditor();loadAccessoryCatalog();}
     }
 
-    private void loadLocalQuests(){quests=new JsonArray();for(JsonElement e:MpsqLocalWorldStore.array("quests")){if(!e.isJsonObject())continue;JsonObject q=e.getAsJsonObject();if(npcId.equals(str(q,"npc_id","")))quests.add(q.deepCopy());}status=quests.isEmpty()?"Noch keine Quests vorhanden.":"Questdaten dieser privaten Welt geladen.";}
+    private void loadLocalQuests(){quests=new JsonArray();for(JsonElement e:MpsqLocalWorldStore.array("quests")){if(!e.isJsonObject())continue;JsonObject q=e.getAsJsonObject();if(npcId.equals(str(q,"npc_id","")))quests.add(q.deepCopy());}status=quests.isEmpty()?"Noch keine Quests vorhanden.":"Questdaten dieser privaten Welt geladen.";selectedQuestId=initialQuestId;}
 
     private void initEditor(){
         int x=width/2-150,y=88,w=240;

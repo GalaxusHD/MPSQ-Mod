@@ -104,7 +104,7 @@ public final class MpsqNpcManager {
             return;
         }
         if ("quest".equals(task)) {
-            MinecraftClient.getInstance().setScreen(new MpsqQuestsScreen(null, npcId));
+            MinecraftClient.getInstance().setScreen(new MpsqQuestMenuScreen(null, npcId));
             return;
         }
         JsonObject data = interaction;
