@@ -34,9 +34,11 @@ public abstract class MpsqMovementSensorGlowMixin {
         if (entity instanceof AbstractClientPlayerEntity player) {
             if (player.isSpectator() || !MpsqMovementSensorSystem.shouldOutline(player)) return;
             rgb = MpsqMovementSensorSystem.outlineColor(player);
-        } else if (MpsqMovementSensorSystem.isTestVillager(entity)) {
-            rgb = MpsqMovementSensorSystem.testVillagerOutlineColor();
-        } else return;
+        } else {
+            // All entities already present in the synchronized world can be used
+            // as test targets; this never creates client-side entities.
+            rgb = MpsqMovementSensorSystem.worldEntityOutlineColor();
+        }
         OutlineVertexConsumerProvider outline = bufferBuilders.getOutlineVertexConsumers();
         outline.setColor(ColorHelper.getRed(rgb), ColorHelper.getGreen(rgb), ColorHelper.getBlue(rgb), 255);
         matrices.push();
