@@ -89,13 +89,13 @@ public final class MpsqMovementSensorSystem {
     }
 
     public static boolean shouldOutline(AbstractClientPlayerEntity player) {
-        TeamRank rank = TeamStateStore.byMinecraftName(player.getGameProfile().name())
+        TeamRank rank = TeamStateStore.byMinecraftName(player.getGameProfile().getName())
                 .map(TeamProfile::permissionRank).orElse(TeamRank.PLAYER);
         return rank == TeamRank.PLAYER || rank == TeamRank.STREAMER || rank == TeamRank.VIP;
     }
 
     public static int outlineColor(AbstractClientPlayerEntity player) {
-        if (TeamStateStore.byMinecraftName(player.getGameProfile().name())
+        if (TeamStateStore.byMinecraftName(player.getGameProfile().getName())
                 .map(profile -> profile.permissionRank() == TeamRank.VIP).orElse(false)) return WAITING_GLOW;
         if (phase != Phase.RED) return WAITING_GLOW;
         return MOVED_DURING_RED.contains(player.getUuid()) ? MOVED_GLOW : GREEN_GLOW;

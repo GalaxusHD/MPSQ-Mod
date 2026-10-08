@@ -106,11 +106,11 @@ public final class MpsqQuestMenuScreen extends Screen {
             if (item != Items.AIR) {
                 int x = drawLeft + Math.round((GRID_X + col * SLOT + 9) * drawScale);
                 int y = drawTop + Math.round((GRID_Y + row * SLOT + 9) * drawScale);
-                context.getMatrices().push();
-                context.getMatrices().translate(x, y, 0);
-                context.getMatrices().scale(drawScale, drawScale, 1.0f);
+                context.getMatrices().pushMatrix();
+                context.getMatrices().translate(x, y);
+                context.getMatrices().scale(drawScale, drawScale);
                 context.drawItem(new ItemStack(item), 0, 0);
-                context.getMatrices().pop();
+                context.getMatrices().popMatrix();
             }
         } catch (RuntimeException ignored) { }
     }
