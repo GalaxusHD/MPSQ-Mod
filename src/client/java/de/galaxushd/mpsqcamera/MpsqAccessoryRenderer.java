@@ -29,13 +29,15 @@ public final class MpsqAccessoryRenderer {
     private record HeadBounds(float centerX,float minY,float centerZ,float width,float depth){}
     public static final String WUMPUS_ASSET_ID="mpsq_wumpus";
     private static final String WUMPUS_MODEL_URL="builtin://mpsq/wumpus";
+    public static final String HEDGEHOG_HAT_ASSET_ID="nm_hat_hedgehog";
+    private static final String HEDGEHOG_HAT_MODEL_URL="builtin://mpsq/nm_hat_hedgehog";
     public static final String BUDGIE_HAT_ASSET_ID="nm_hat_budgie";
     private static final String BUDGIE_HAT_MODEL_URL="builtin://mpsq/nm_hat_budgie";
     public static final String NM_WUMPUS_HAT_ASSET_ID="nm_hat_wumpus";
     private static final String NM_WUMPUS_HAT_MODEL_URL="builtin://mpsq/nm_hat_wumpus";
     private static final float WUMPUS_WAVE_FACING_OFFSET=200f;
-    private static boolean isBuiltinModel(String url){return WUMPUS_MODEL_URL.equals(url)||BUDGIE_HAT_MODEL_URL.equals(url)||NM_WUMPUS_HAT_MODEL_URL.equals(url);}
-    public static String assetPreviewUrl(String assetId,String fallback){if(WUMPUS_ASSET_ID.equals(assetId))return WUMPUS_MODEL_URL;if("discord_hat".equalsIgnoreCase(assetId))return NM_WUMPUS_HAT_MODEL_URL;if(BUDGIE_HAT_ASSET_ID.equalsIgnoreCase(assetId))return BUDGIE_HAT_MODEL_URL;if(NM_WUMPUS_HAT_ASSET_ID.equalsIgnoreCase(assetId))return NM_WUMPUS_HAT_MODEL_URL;return fallback;}
+    private static boolean isBuiltinModel(String url){return WUMPUS_MODEL_URL.equals(url)||HEDGEHOG_HAT_MODEL_URL.equals(url)||BUDGIE_HAT_MODEL_URL.equals(url)||NM_WUMPUS_HAT_MODEL_URL.equals(url);}
+    public static String assetPreviewUrl(String assetId,String fallback){if(WUMPUS_ASSET_ID.equals(assetId))return WUMPUS_MODEL_URL;if("discord_hat".equalsIgnoreCase(assetId))return NM_WUMPUS_HAT_MODEL_URL;if(HEDGEHOG_HAT_ASSET_ID.equalsIgnoreCase(assetId))return HEDGEHOG_HAT_MODEL_URL;if(BUDGIE_HAT_ASSET_ID.equalsIgnoreCase(assetId))return BUDGIE_HAT_MODEL_URL;if(NM_WUMPUS_HAT_ASSET_ID.equalsIgnoreCase(assetId))return NM_WUMPUS_HAT_MODEL_URL;return fallback;}
     /** Resolves model files that are bundled directly with the mod. */
     public static String builtinAccessoryUrl(String filename){
         String name=filename==null?"":filename.replace('\\','/');
@@ -44,6 +46,7 @@ public final class MpsqAccessoryRenderer {
             // Legacy Discord Head entries now resolve to the single Wumpus Hat asset.
             case "discord_hat.json","discord_hat.bbmodel"->NM_WUMPUS_HAT_MODEL_URL;
             case "wumpus.json","wumpus.bbmodel"->WUMPUS_MODEL_URL;
+            case "nm_hat_hedgehog.json","nm_hat_hedgehog.bbmodel"->HEDGEHOG_HAT_MODEL_URL;
             case "nm_hat_budgie.json","nm_hat_budgie.bbmodel","nm_hat_budgie (1).bbmodel"->BUDGIE_HAT_MODEL_URL;
             case "nm_hat_wumpus.json","nm_hat_wumpus.bbmodel"->NM_WUMPUS_HAT_MODEL_URL;
             default->null;
@@ -515,7 +518,7 @@ public final class MpsqAccessoryRenderer {
         CompletableFuture.supplyAsync(()->{
             try{
                 byte[] bytes;
-                if(isBuiltinModel(url)){String path=BUDGIE_HAT_MODEL_URL.equals(url)?"/assets/mpsqcamera/models/accessories/nm_hat_budgie.json":NM_WUMPUS_HAT_MODEL_URL.equals(url)?"/assets/mpsqcamera/models/accessories/nm_hat_wumpus.json":"/assets/mpsqcamera/models/wumpus.json";try(InputStream stream=MpsqAccessoryRenderer.class.getResourceAsStream(path)){if(stream==null)throw new IOException("Modell fehlt: "+path);bytes=stream.readNBytes(12000001);}}
+                if(isBuiltinModel(url)){String path=BUDGIE_HAT_MODEL_URL.equals(url)?"/assets/mpsqcamera/models/accessoires/nm_hat_budgie.json":HEDGEHOG_HAT_MODEL_URL.equals(url)?"/assets/mpsqcamera/models/accessoires/nm_hat_hedgehog.json":NM_WUMPUS_HAT_MODEL_URL.equals(url)?"/assets/mpsqcamera/models/accessoires/nm_hat_wumpus.json":"/assets/mpsqcamera/models/wumpus.json";try(InputStream stream=MpsqAccessoryRenderer.class.getResourceAsStream(path)){if(stream==null)throw new IOException("Modell fehlt: "+path);bytes=stream.readNBytes(12000001);}}
                 else {URI uri=URI.create(url), api=URI.create(MpsqApiClient.API_URL);if(!"https".equals(uri.getScheme())||!api.getHost().equals(uri.getHost()))throw new IOException("Unzulässige Modellquelle");bytes=MpsqLocalWorldStore.readAsset(url,12000000);if(bytes==null){var response=HTTP.send(HttpRequest.newBuilder(uri).timeout(Duration.ofSeconds(20)).GET().build(),HttpResponse.BodyHandlers.ofInputStream());try(InputStream stream=response.body()){if(response.statusCode()!=200)throw new IOException("Modell nicht verfügbar");bytes=stream.readNBytes(12000001);if(bytes.length>12000000)throw new IOException("Modell zu groß");MpsqLocalWorldStore.writeAsset(url,bytes);}}}
                 return JsonParser.parseString(new String(bytes,java.nio.charset.StandardCharsets.UTF_8)).getAsJsonObject();
             }catch(Exception e){throw new java.util.concurrent.CompletionException(e);}
