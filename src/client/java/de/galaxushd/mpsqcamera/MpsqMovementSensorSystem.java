@@ -4,10 +4,7 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.AbstractClientPlayerEntity;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.entity.passive.VillagerEntity;
 import net.minecraft.util.math.Vec3d;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Box;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -28,8 +25,6 @@ public final class MpsqMovementSensorSystem {
     private static volatile Phase phase = Phase.WAITING;
     private static volatile long greenUntil;
     private static volatile long greenDurationMs = GREEN_COUNTDOWN_MS;
-    private static BlockPos testVillagerAnchor;
-    private static VillagerEntity testVillager;
 
     private enum Phase { WAITING, GREEN, RED }
 
@@ -46,17 +41,6 @@ public final class MpsqMovementSensorSystem {
     }
 
     public static boolean isActive() { return active; }
-
-    /** Starts a new round in the waiting state; the first green/red trigger sets its phase. */
-    public static void startFromTrigger(BlockPos anchor) {
-        setTestVillagerAnchor(anchor);
-        MpsqSystemController.startSystem(SYSTEM_ID);
-    }
-
-    public static void stopRound() {
-        MpsqSystemController.stopSystem(SYSTEM_ID);
-        deactivate();
-    }
 
     /** Green-light signal: white outlines during the configurable short countdown, then red phase. */
     public static void beginGreenCountdown(int seconds) {
@@ -79,15 +63,6 @@ public final class MpsqMovementSensorSystem {
         updateBossbar(System.currentTimeMillis());
     }
 
-    /** Selects a nearby manually placed villager as the visible test actor. */
-    public static void setTestVillagerAnchor(BlockPos anchor) {
-        testVillagerAnchor = anchor == null ? null : anchor.toImmutable();
-    }
-
-    public static boolean isTestVillager(net.minecraft.entity.Entity entity) {
-        return testVillager != null && entity == testVillager;
-    }
-
     public static boolean shouldOutline(AbstractClientPlayerEntity player) {
         TeamRank rank = TeamStateStore.byMinecraftName(player.getGameProfile().getName())
                 .map(TeamProfile::permissionRank).orElse(TeamRank.PLAYER);
@@ -101,7 +76,8 @@ public final class MpsqMovementSensorSystem {
         return MOVED_DURING_RED.contains(player.getUuid()) ? MOVED_GLOW : GREEN_GLOW;
     }
 
-    public static int testVillagerOutlineColor() { return phase == Phase.GREEN ? GREEN_GLOW : WAITING_GLOW; }
+    /** Shared preview color for world entities; player colors remain rank/movement-aware. */
+    public static int worldEntityOutlineColor() { return phase == Phase.GREEN ? GREEN_GLOW : WAITING_GLOW; }
 
     private static synchronized void activate() {
         active = true;
@@ -110,7 +86,6 @@ public final class MpsqMovementSensorSystem {
         SAMPLES.clear();
         MOVED_DURING_RED.clear();
         seedSamples(MinecraftClient.getInstance());
-        findTestVillager(MinecraftClient.getInstance());
         updateBossbar(System.currentTimeMillis());
         showActivationTitle();
     }
@@ -122,7 +97,6 @@ public final class MpsqMovementSensorSystem {
         SAMPLES.clear();
         MOVED_DURING_RED.clear();
         MpsqBossbarManager.remove("rlgl_phase");
-        removeTestVillager();
     }
 
     private static void tick(MinecraftClient client) {
@@ -134,8 +108,6 @@ public final class MpsqMovementSensorSystem {
         long now = System.currentTimeMillis();
         if (phase == Phase.GREEN && now >= greenUntil) beginRedPhase();
         updateBossbar(now);
-
-        if (testVillager == null || testVillager.isRemoved() || testVillager.getWorld() != client.world) findTestVillager(client);
 
         if (phase != Phase.RED) return;
 
@@ -188,21 +160,6 @@ public final class MpsqMovementSensorSystem {
         client.inGameHud.setTitle(net.minecraft.text.Text.literal("Red Light, Green Light"));
         client.inGameHud.setSubtitle(net.minecraft.text.Text.literal("Ist aktiviert"));
         client.inGameHud.setTitleTicks(10, 70, 20);
-    }
-
-    private static void findTestVillager(MinecraftClient client) {
-        testVillager = null;
-        BlockPos anchor = testVillagerAnchor;
-        if (!active || client.world == null || anchor == null) return;
-        Box search = new Box(anchor).expand(24.0D);
-        testVillager = client.world.getEntitiesByClass(VillagerEntity.class, search, entity -> !entity.isRemoved())
-                .stream().min(java.util.Comparator.comparingDouble(entity -> entity.squaredDistanceTo(anchor.toCenterPos())))
-                .orElse(null);
-    }
-
-    private static void removeTestVillager() {
-        testVillager = null;
-        testVillagerAnchor = null;
     }
 
     private record Sample(Vec3d position) { }

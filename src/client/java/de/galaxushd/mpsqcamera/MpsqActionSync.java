@@ -131,15 +131,9 @@ public final class MpsqActionSync {
             case "STOP_AUDIO" -> {MpsqAudioManager.stop();MpsqMediaAudioManager.stop();}
             case "SWITCH_SYSTEM" -> {
                 String systemId = data.get("systemId").getAsString();
-                if ("red_light_green_light".equals(systemId)) {
-                    MpsqMovementSensorSystem.setTestVillagerAnchor(triggerPosition(event));
-                }
                 MpsqSystemController.onTrigger(systemId, stateDriven, powered);
             }
-            case "RLGL_START" -> MpsqMovementSensorSystem.startFromTrigger(triggerPosition(event));
-            case "RLGL_STOP" -> MpsqMovementSensorSystem.stopRound();
             case "RLGL_GREEN" -> MpsqMovementSensorSystem.beginGreenCountdown(data.has("duration") ? data.get("duration").getAsInt() : 5);
-            case "RLGL_RED" -> MpsqMovementSensorSystem.beginRedPhase();
             case "SHOW_DIALOGUE" -> MpsqDialogueManager.start(data);
             case "KICK_ANIMATION" -> {
                 String targetName = data.get("targetName").getAsString();
@@ -166,19 +160,6 @@ public final class MpsqActionSync {
         }
     }
     private static String barColor(JsonObject data){return MpsqBossbarManager.normalizeColor(data.has("color")&&!data.get("color").isJsonNull()?data.get("color").getAsString():"purple");}
-    private static net.minecraft.util.math.BlockPos triggerPosition(JsonObject event) {
-        if (event.has("trigger_position") && event.get("trigger_position").isJsonObject()) {
-            JsonObject p = event.getAsJsonObject("trigger_position");
-            if (p.has("x") && p.has("y") && p.has("z")) {
-                return new net.minecraft.util.math.BlockPos(p.get("x").getAsInt(), p.get("y").getAsInt(), p.get("z").getAsInt());
-            }
-        }
-        if (event.has("trigger_id") && !event.get("trigger_id").isJsonNull()) {
-            try { return MpsqTriggerManager.position(java.util.UUID.fromString(event.get("trigger_id").getAsString())); }
-            catch (IllegalArgumentException ignored) { }
-        }
-        return null;
-    }
     private static void startTriggerAudio(JsonObject data){String source=data.has("sourceType")?data.get("sourceType").getAsString():"auto";String sound=data.has("sound")?data.get("sound").getAsString():"";if(source.equals("mp3")||source.equals("mp4")){MpsqAudioManager.stop();MpsqMediaAudioManager.play(source,java.util.List.of(sound));}else if(source.equals("auto")){MpsqAudioManager.stop();MpsqMediaAudioManager.playAuto(sound);}else{MpsqMediaAudioManager.stop();var id=net.minecraft.util.Identifier.tryParse(sound);MpsqAudioManager.startPlaylist("MPSQ",java.util.List.of(sound),MpsqAudioManager.categoryForSoundId(id));}}
     private static void openLinkOnScreen(JsonObject data, String triggerId) {
         try {
