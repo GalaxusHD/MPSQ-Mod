@@ -250,7 +250,7 @@ public final class MpsqOwnedAccessoriesScreen extends Screen {
         int right = drawLeft + Math.round((PREVIEW_LEFT + PREVIEW_WIDTH - 5) * drawScale);
         int top = drawTop + Math.round((PREVIEW_TOP + 5) * drawScale);
         int bottom = drawTop + Math.round((PREVIEW_TOP + PREVIEW_HEIGHT - 3) * drawScale);
-        float modelSize = 36.0f * drawScale;
+        float modelSize = 28.0f * drawScale;
         String url = previewUrl(selectedItem());
         MpsqAccessoryRenderer.beginMenuPlayerPreview(url);
         try {
@@ -317,6 +317,7 @@ public final class MpsqOwnedAccessoriesScreen extends Screen {
 
     private void setEquipped(String id) {
         if (pending) return;
+        String equippedUrl = id == null ? null : previewUrl(selectedItem());
         if (localWorld()) {
             boolean saved = MpsqLocalWorldStore.equip(id);
             if (saved) {
@@ -325,6 +326,7 @@ public final class MpsqOwnedAccessoriesScreen extends Screen {
                 updateEquippedFlags();
                 status = id == null ? "Accessoire abgelegt." : "Accessoire angelegt.";
                 MpsqAccessoryRenderer.refresh();
+                MpsqAccessoryRenderer.setLocalEquippedAccessory(equippedUrl);
             } else {
                 status = "Accessoire konnte nicht geändert werden.";
             }
@@ -343,6 +345,7 @@ public final class MpsqOwnedAccessoriesScreen extends Screen {
                 updateEquippedFlags();
                 status = id == null ? "Accessoire abgelegt." : "Accessoire angelegt.";
                 MpsqAccessoryRenderer.refresh();
+                MpsqAccessoryRenderer.setLocalEquippedAccessory(equippedUrl);
             } else {
                 status = "Accessoire konnte nicht geändert werden.";
             }
