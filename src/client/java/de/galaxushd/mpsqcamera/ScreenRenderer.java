@@ -18,9 +18,9 @@ public final class ScreenRenderer {
     private static final double SURFACE_OFFSET = 0.003;
     private static final double FRAME_THICKNESS = 0.075;
     private static final int STATUS_OVERLAY_ALPHA = 230;
-    private static final Identifier INACTIVE_OVERLAY = Identifier.of("mpsqcamera", "textures/screens/inactive.png");
-    private static final Identifier REDSTONE_BUTTON_OVERLAY = Identifier.of("mpsqcamera", "textures/screens/redstone-button.png");
-    private static final Identifier OFFLINE_OVERLAY = Identifier.of("mpsqcamera", "textures/screens/offline.png");
+    private static final Identifier INACTIVE_OVERLAY = Identifier.of("mpsqcamera", "textures/screens/screen_inactive.png");
+    private static final Identifier REDSTONE_BUTTON_OVERLAY = Identifier.of("mpsqcamera", "textures/screens/screen_button_press.png");
+    private static final Identifier OFFLINE_OVERLAY = Identifier.of("mpsqcamera", "textures/screens/screen_offline.png");
 
     private static final int FRAME_RED = 48;
     private static final int FRAME_GREEN = 52;
