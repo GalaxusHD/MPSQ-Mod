@@ -38,6 +38,21 @@ public final class MpsqAccessoryRenderer {
     private static final float WUMPUS_WAVE_FACING_OFFSET=200f;
     private static boolean isBuiltinModel(String url){return WUMPUS_MODEL_URL.equals(url)||HEDGEHOG_HAT_MODEL_URL.equals(url)||BUDGIE_HAT_MODEL_URL.equals(url)||NM_WUMPUS_HAT_MODEL_URL.equals(url);}
     public static String assetPreviewUrl(String assetId,String fallback){if(WUMPUS_ASSET_ID.equals(assetId))return WUMPUS_MODEL_URL;if("discord_hat".equalsIgnoreCase(assetId))return NM_WUMPUS_HAT_MODEL_URL;if(HEDGEHOG_HAT_ASSET_ID.equalsIgnoreCase(assetId))return HEDGEHOG_HAT_MODEL_URL;if(BUDGIE_HAT_ASSET_ID.equalsIgnoreCase(assetId))return BUDGIE_HAT_MODEL_URL;if(NM_WUMPUS_HAT_ASSET_ID.equalsIgnoreCase(assetId))return NM_WUMPUS_HAT_MODEL_URL;return fallback;}
+    private static String builtinAccessoryKey(String value){
+        String name=value==null?"":value.replace('\\','/').toLowerCase(Locale.ROOT);
+        int slash=name.lastIndexOf('/');if(slash>=0)name=name.substring(slash+1);
+        int query=name.indexOf('?');if(query>=0)name=name.substring(0,query);
+        if(name.endsWith(".bbmodel"))name=name.substring(0,name.length()-8);
+        else if(name.endsWith(".json"))name=name.substring(0,name.length()-5);
+        name=name.replaceAll("[^a-z0-9]","");
+        return switch(name){
+            case "nmhathedgehog","hedgehoghat","hedgehoghead","igelhat","igelhead"->HEDGEHOG_HAT_MODEL_URL;
+            case "nmhatbudgie","budgiehat","budgiehead","birdhat","birdhead","vogelhat","vogelhead"->BUDGIE_HAT_MODEL_URL;
+            // The current Wumpus cosmetic is the same model formerly listed as Discord Head.
+            case "nmhatwumpus","wumpus","wumpushat","wumpushead","discordhat","discordhead"->NM_WUMPUS_HAT_MODEL_URL;
+            default->null;
+        };
+    }
     /** Resolves model files that are bundled directly with the mod. */
     public static String builtinAccessoryUrl(String filename){
         String name=filename==null?"":filename.replace('\\','/');
@@ -57,9 +72,14 @@ public final class MpsqAccessoryRenderer {
         if(row==null)return null;
         JsonObject definition=row.has("mpsq_accessories")&&row.get("mpsq_accessories").isJsonObject()
                 ?row.getAsJsonObject("mpsq_accessories"):row;
-        String filename=str(row,"filename",str(definition,"filename",""));
-        String builtin=builtinAccessoryUrl(filename);
-        if(builtin!=null)return builtin;
+        String builtin;
+        for(JsonObject source:new JsonObject[]{row,definition}){
+            for(String key:new String[]{"filename","path","url","accessory_key","accessory_id","asset_id","model_id","id","display_name"}){
+                String value=str(source,key,"");
+                builtin=builtinAccessoryUrl(value);if(builtin!=null)return builtin;
+                builtin=builtinAccessoryKey(value);if(builtin!=null)return builtin;
+            }
+        }
         String assetId=str(row,"asset_id",str(definition,"asset_id",str(definition,"model_id","")));
         return assetPreviewUrl(assetId,null);
     }
