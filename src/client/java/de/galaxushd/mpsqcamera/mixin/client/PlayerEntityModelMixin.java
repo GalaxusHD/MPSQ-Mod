@@ -2,10 +2,10 @@ package de.galaxushd.mpsqcamera.mixin.client;
 
 import de.galaxushd.mpsqcamera.MpsqKickAnimationManager;
 import de.galaxushd.mpsqcamera.MpsqPetModelContext;
-import net.minecraft.client.model.ModelPart;
-import net.minecraft.client.render.entity.model.BipedEntityModel;
-import net.minecraft.client.render.entity.model.PlayerEntityModel;
-import net.minecraft.client.render.entity.state.PlayerEntityRenderState;
+import net.minecraft.client.model.HumanoidModel;
+import net.minecraft.client.model.player.PlayerModel;
+import net.minecraft.client.model.geom.ModelPart;
+import net.minecraft.client.renderer.entity.state.AvatarRenderState;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -16,7 +16,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 /**
  * Applies the bundled death-animation limb keyframes to the live player's skin model.
  */
-@Mixin(PlayerEntityModel.class)
+@Mixin(PlayerModel.class)
 public abstract class PlayerEntityModelMixin {
 
     @Shadow @Final private ModelPart leftSleeve;
@@ -25,31 +25,32 @@ public abstract class PlayerEntityModelMixin {
     @Shadow @Final private ModelPart rightPants;
     @Shadow @Final private ModelPart jacket;
 
-    @Inject(method = "setAngles", at = @At("TAIL"))
-    private void mpsq$applyKickKeyframes(PlayerEntityRenderState state, CallbackInfo ci) {
-        if (state == null || state.name == null) {
+    @Inject(method = "setupAnim(Lnet/minecraft/client/renderer/entity/state/AvatarRenderState;)V", at = @At("TAIL"))
+    private void mpsq$applyKickKeyframes(AvatarRenderState state, CallbackInfo ci) {
+        if (state == null || de.galaxushd.mpsqcamera.compat.AvatarIdentity.name(state) == null) {
             return;
         }
 
-        BipedEntityModel<?> model = (BipedEntityModel<?>) (Object) this;
+        HumanoidModel<?> model = (HumanoidModel<?>) (Object) this;
 
-        apply(model.head, MpsqKickAnimationManager.rotation(state.name, "head"));
-        // The hat part is the player's outer head/hat skin layer. It must follow
-        // the same pivots as the head or the outer texture separates in the fall.
-        apply(model.hat, MpsqKickAnimationManager.rotation(state.name, "head"));
-        apply(model.rightArm, MpsqKickAnimationManager.rotation(state.name, "rightArm"));
-        apply(rightSleeve, MpsqKickAnimationManager.rotation(state.name, "rightArm"));
-        apply(model.leftArm, MpsqKickAnimationManager.rotation(state.name, "leftArm"));
-        apply(leftSleeve, MpsqKickAnimationManager.rotation(state.name, "leftArm"));
-        apply(model.rightLeg, MpsqKickAnimationManager.rotation(state.name, "rightLeg"));
-        apply(rightPants, MpsqKickAnimationManager.rotation(state.name, "rightLeg"));
-        apply(model.leftLeg, MpsqKickAnimationManager.rotation(state.name, "leftLeg"));
-        apply(leftPants, MpsqKickAnimationManager.rotation(state.name, "leftLeg"));
+        apply(model.head, MpsqKickAnimationManager.rotation(de.galaxushd.mpsqcamera.compat.AvatarIdentity.name(state), "head"));
+        // In 1.21.8 overlays are children of their body parts. They inherit
+        // transforms; applying the parent's transform again detaches the skin.
+        apply(model.rightArm, MpsqKickAnimationManager.rotation(de.galaxushd.mpsqcamera.compat.AvatarIdentity.name(state), "rightArm"));
+        apply(model.leftArm, MpsqKickAnimationManager.rotation(de.galaxushd.mpsqcamera.compat.AvatarIdentity.name(state), "leftArm"));
+        apply(model.rightLeg, MpsqKickAnimationManager.rotation(de.galaxushd.mpsqcamera.compat.AvatarIdentity.name(state), "rightLeg"));
+        apply(model.leftLeg, MpsqKickAnimationManager.rotation(de.galaxushd.mpsqcamera.compat.AvatarIdentity.name(state), "leftLeg"));
+        if(MpsqKickAnimationManager.elapsedSeconds(de.galaxushd.mpsqcamera.compat.AvatarIdentity.name(state))>=0){
+            move(model.rightArm,MpsqKickAnimationManager.position(de.galaxushd.mpsqcamera.compat.AvatarIdentity.name(state),"rightArm"));
+            move(model.leftArm,MpsqKickAnimationManager.position(de.galaxushd.mpsqcamera.compat.AvatarIdentity.name(state),"leftArm"));
+            move(model.rightLeg,MpsqKickAnimationManager.position(de.galaxushd.mpsqcamera.compat.AvatarIdentity.name(state),"rightLeg"));
+            move(model.leftLeg,MpsqKickAnimationManager.position(de.galaxushd.mpsqcamera.compat.AvatarIdentity.name(state),"leftLeg"));
+        }
     }
 
-    @Inject(method = "setAngles", at = @At("TAIL"))
-    private void mpsq$applyPetProportions(PlayerEntityRenderState state, CallbackInfo ci) {
-        BipedEntityModel<?> model = (BipedEntityModel<?>) (Object) this;
+    @Inject(method = "setupAnim(Lnet/minecraft/client/renderer/entity/state/AvatarRenderState;)V", at = @At("TAIL"))
+    private void mpsq$applyPetProportions(AvatarRenderState state, CallbackInfo ci) {
+        HumanoidModel<?> model = (HumanoidModel<?>) (Object) this;
 
         // The vanilla player geometry is shared by all players, so restore its
         // proportions first and only then reshape the marked pet render.
@@ -65,8 +66,8 @@ public abstract class PlayerEntityModelMixin {
         scale(model.leftLeg, 1.0f, 1.0f, 1.0f);
         scale(rightPants, 1.0f, 1.0f, 1.0f);
         scale(leftPants, 1.0f, 1.0f, 1.0f);
-        model.rightLeg.originY = 12.0f;
-        model.leftLeg.originY = 12.0f;
+        model.rightLeg.y = 12.0f;
+        model.leftLeg.y = 12.0f;
 
         if (!MpsqPetModelContext.isRenderingPet()) return;
 
@@ -84,8 +85,8 @@ public abstract class PlayerEntityModelMixin {
         scale(model.leftLeg, 0.9f, 0.65f, 0.9f);
         scale(rightPants, 0.9f, 0.65f, 0.9f);
         scale(leftPants, 0.9f, 0.65f, 0.9f);
-        model.rightLeg.originY = 8.0f;
-        model.leftLeg.originY = 8.0f;
+        model.rightLeg.y = 8.0f;
+        model.leftLeg.y = 8.0f;
     }
 
     private static void scale(ModelPart part, float x, float y, float z) {
@@ -95,13 +96,17 @@ public abstract class PlayerEntityModelMixin {
         part.zScale = z;
     }
 
+    private static void move(ModelPart part,float[] position){
+        if(position==null)return;
+        part.x+=position[0];part.y+=position[1];part.z+=position[2];
+    }
     private static void apply(ModelPart part, float[] rotation) {
         if (part == null || rotation == null) {
             return;
         }
 
-        part.pitch = rotation[0];
-        part.yaw = rotation[1];
-        part.roll = rotation[2];
+        part.xRot = rotation[0];
+        part.yRot = rotation[1];
+        part.zRot = rotation[2];
     }
 }

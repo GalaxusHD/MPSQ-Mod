@@ -3,28 +3,28 @@ package de.galaxushd.mpsqcamera.mixin.client;
 import de.galaxushd.mpsqcamera.CinemaAudioManager;
 import de.galaxushd.mpsqcamera.MpsqAudioManager;
 import de.galaxushd.mpsqcamera.MpsqMediaAudioManager;
-import net.minecraft.client.sound.SoundInstance;
-import net.minecraft.client.sound.SoundSystem;
-import net.minecraft.sound.SoundCategory;
+import net.minecraft.client.resources.sounds.SoundInstance;
+import net.minecraft.client.sounds.SoundEngine;
+import net.minecraft.sounds.SoundSource;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /** Suppresses vanilla jukebox and note-block audio while MPSQ audio is active. */
-@Mixin(SoundSystem.class)
+@Mixin(SoundEngine.class)
 public abstract class SoundSystemMixin {
     @Inject(
-            method = "play(Lnet/minecraft/client/sound/SoundInstance;)Lnet/minecraft/client/sound/SoundSystem$PlayResult;",
+            method = "play(Lnet/minecraft/client/resources/sounds/SoundInstance;)Lnet/minecraft/client/sounds/SoundEngine$PlayResult;",
             at = @At("HEAD"),
             cancellable = true
     )
     private void mpsq$cancelVanillaMusicBlocksDuringMpsqAudio(
             SoundInstance sound,
-            CallbackInfoReturnable<SoundSystem.PlayResult> cir
+            CallbackInfoReturnable<SoundEngine.PlayResult> cir
     ) {
         if (sound != null && isMinecraftMusicBlock(sound) && isMpsqAudioActive()) {
-            cir.setReturnValue(SoundSystem.PlayResult.NOT_STARTED);
+            cir.setReturnValue(SoundEngine.PlayResult.NOT_STARTED);
         }
     }
 
@@ -35,8 +35,8 @@ public abstract class SoundSystemMixin {
     }
 
     private static boolean isMinecraftMusicBlock(SoundInstance sound) {
-        return sound.getCategory() == SoundCategory.RECORDS
-                || ("minecraft".equals(sound.getId().getNamespace())
-                && sound.getId().getPath().startsWith("block.note_block."));
+        return sound.getSource() == SoundSource.RECORDS
+                || ("minecraft".equals(sound.getIdentifier().getNamespace())
+                && sound.getIdentifier().getPath().startsWith("block.note_block."));
     }
 }

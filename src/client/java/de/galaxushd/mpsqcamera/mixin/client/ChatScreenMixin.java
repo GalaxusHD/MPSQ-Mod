@@ -1,7 +1,7 @@
 package de.galaxushd.mpsqcamera.mixin.client;
 
-import net.minecraft.client.gui.screen.ChatScreen;
-import net.minecraft.client.gui.widget.TextFieldWidget;
+import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.screens.ChatScreen;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -14,10 +14,10 @@ public abstract class ChatScreenMixin {
     private static final int DEFAULT_TEXT_COLOR = 0xFFE0E0E0;
 
     @Shadow
-    protected TextFieldWidget chatField;
+    protected EditBox input;
 
-    @Inject(method = "onChatFieldUpdate", at = @At("TAIL"))
+    @Inject(method = "onEdited", at = @At("TAIL"))
     private void mpsqteam$colorMpsqInput(String value, CallbackInfo ci) {
-        chatField.setEditableColor(DEFAULT_TEXT_COLOR);
+        input.setTextColor(DEFAULT_TEXT_COLOR);
     }
 }
