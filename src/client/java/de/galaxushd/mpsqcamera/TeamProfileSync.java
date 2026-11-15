@@ -11,7 +11,7 @@ public final class TeamProfileSync {
 
     public static void initialize() {
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
-            if (client.world == null || !MpsqApiClient.isReady()) return;
+            if (client.level == null || !MpsqApiClient.isReady()) return;
             long now = System.nanoTime();
             if (now < nextRefresh || !IN_FLIGHT.compareAndSet(false, true)) return;
             nextRefresh = now + 5_000_000_000L;

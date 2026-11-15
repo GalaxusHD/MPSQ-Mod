@@ -1,23 +1,22 @@
 package de.galaxushd.mpsqcamera;
 
 import com.mojang.authlib.GameProfile;
-import net.minecraft.client.gui.screen.ingame.InventoryScreen;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.network.OtherClientPlayerEntity;
-import net.minecraft.client.util.SkinTextures;
-import net.minecraft.client.world.ClientWorld;
-import net.minecraft.client.gl.RenderPipelines;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
-
 import java.util.List;
 import java.util.UUID;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.inventory.InventoryScreen;
+import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.client.player.RemotePlayer;
+import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.world.entity.player.PlayerSkin;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
 
 /** Shared inventory-style screen for the player's Mini-Me and animal pets. */
 public final class MpsqPetMenuScreen extends Screen {
     private static final int ART_WIDTH = 352;
-    private static final int ART_HEIGHT = 250;
+    private static final int ART_HEIGHT = 264;
     private static final int GRID_LEFT = 14;
     private static final int GRID_TOP = 70;
     private static final int SLOT_SIZE = 36;
@@ -26,11 +25,11 @@ public final class MpsqPetMenuScreen extends Screen {
     private static final int ACTION_MAX_WIDTH = SLOT_SIZE * 2;
     private static final int ACTION_TEXTURE_WIDTH = 1984;
     private static final int ACTION_TEXTURE_HEIGHT = 352;
-    private static final Identifier BACKGROUND = Identifier.of(
+    private static final Identifier BACKGROUND = Identifier.fromNamespaceAndPath(
             MpsqCameraClient.MOD_ID, "textures/gui/mpsq_pets_menu.png");
-    private static final Identifier EQUIP_ACTION = Identifier.of(
+    private static final Identifier EQUIP_ACTION = Identifier.fromNamespaceAndPath(
             MpsqCameraClient.MOD_ID, "textures/gui/pet_equip.png");
-    private static final Identifier EQUIPPED_ACTION = Identifier.of(
+    private static final Identifier EQUIPPED_ACTION = Identifier.fromNamespaceAndPath(
             MpsqCameraClient.MOD_ID, "textures/gui/pet_equipped.png");
 
     public enum PetKind { MINI_ME, ANIMALS }
@@ -38,6 +37,9 @@ public final class MpsqPetMenuScreen extends Screen {
     private final Screen parent;
     private final PetKind kind;
     private String selectedId;
+    private boolean variantsOpen;
+    private static final List<String> BUDGIES=List.of("green","blue_spangle","cobalt","gray","green_spangle","light_green","olive","sky_blue","white","yellow");
+    private static final List<String> OWLS=List.of("barn","horned","long_eared","snowy");
     private float drawScale;
     private int drawLeft;
     private int drawTop;
@@ -48,7 +50,7 @@ public final class MpsqPetMenuScreen extends Screen {
     }
 
     public MpsqPetMenuScreen(Screen parent, PetKind kind) {
-        super(Text.literal(kind == PetKind.MINI_ME ? "Pets · Mini-Me" : "Pets · Tiere & Co."));
+        super(Component.literal(kind == PetKind.MINI_ME ? "Pets · Mini-Me" : "Pets · Tiere & Co."));
         this.parent = parent;
         this.kind = kind;
         // Opening the menu does not open the action tag automatically.
@@ -56,14 +58,14 @@ public final class MpsqPetMenuScreen extends Screen {
     }
 
     @Override
-    public void renderBackground(DrawContext context, int mouseX, int mouseY, float delta) {
-        super.renderBackground(context, mouseX, mouseY, delta);
+    public void extractBackground(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
+        super.extractBackground(context, mouseX, mouseY, delta);
         context.fillGradient(0, 0, width, height, 0xD91A1A1A, 0xE6050505);
     }
 
     @Override
-    public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        super.render(context, mouseX, mouseY, delta);
+    public void extractRenderState(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
+        super.extractRenderState(context, mouseX, mouseY, delta);
 
         drawScale = Math.min(1.0f, Math.min((width - 16.0f) / ART_WIDTH, (height - 16.0f) / ART_HEIGHT));
         drawScale = Math.max(0.1f, drawScale);
@@ -72,9 +74,9 @@ public final class MpsqPetMenuScreen extends Screen {
         drawLeft = (width - drawWidth) / 2;
         drawTop = (height - drawHeight) / 2;
 
-        context.drawTexture(RenderPipelines.GUI_TEXTURED, BACKGROUND,
+        context.blit(RenderPipelines.GUI_TEXTURED, BACKGROUND,
                 drawLeft, drawTop, 0, 0, drawWidth, drawHeight,
-                ART_WIDTH, ART_HEIGHT, ART_WIDTH, ART_HEIGHT);
+                ART_WIDTH, ART_HEIGHT, ART_WIDTH, 442);
 
         if (kind == PetKind.MINI_ME) {
             drawMiniMePets(context);
@@ -82,9 +84,16 @@ public final class MpsqPetMenuScreen extends Screen {
             drawAnimalPets(context);
         }
         drawSelectedPetAction(context);
+        drawVariants(context);
+        double tx=(mouseX-drawLeft)/drawScale,ty=(mouseY-drawTop)/drawScale;
+        if(inside(tx,ty,GRID_LEFT,GRID_TOP,PET_COLUMNS*SLOT_SIZE,PET_ROWS*SLOT_SIZE)){
+            int index=(int)(ty-GRID_TOP)/SLOT_SIZE*PET_COLUMNS+(int)(tx-GRID_LEFT)/SLOT_SIZE;
+            var pets=kind==PetKind.MINI_ME?miniYouEntries():animalEntries();
+            if(index<pets.size())MpsqDescriptionTooltips.draw(context,"pet",pets.get(index).id(),mouseX,mouseY,width,height);
+        }
     }
 
-    private void drawMiniMePets(DrawContext context) {
+    private void drawMiniMePets(GuiGraphicsExtractor context) {
         List<MpsqPetCatalog.Pet> pets = miniYouEntries();
         for (int index = 0; index < pets.size() && index < PET_ROWS * PET_COLUMNS; index++) {
             MpsqPetCatalog.Pet pet = pets.get(index);
@@ -99,24 +108,20 @@ public final class MpsqPetMenuScreen extends Screen {
         }
     }
 
-    private void drawAnimalPets(DrawContext context) {
-        List<MpsqPetCatalog.Pet> pets = MpsqPetCatalog.group(MpsqPetCatalog.Group.ANIMAL);
+    private void drawAnimalPets(GuiGraphicsExtractor context) {
+        List<MpsqPetCatalog.Pet> pets = animalEntries();
         for (int index = 0; index < pets.size() && index < PET_ROWS * PET_COLUMNS; index++) {
             MpsqPetCatalog.Pet pet = pets.get(index);
             int column = index % PET_COLUMNS, row = index / PET_COLUMNS;
             int x = drawLeft + Math.round((GRID_LEFT + column * SLOT_SIZE) * drawScale);
             int y = drawTop + Math.round((GRID_TOP + row * SLOT_SIZE) * drawScale);
-            int textureSize = pet.textureHeight();
-            int size = Math.max(1, Math.round(26 * drawScale));
-            int iconX = x + Math.round((SLOT_SIZE - 26) * drawScale / 2);
-            int iconY = y + Math.round((SLOT_SIZE - 26) * drawScale / 2);
-            context.drawTexture(RenderPipelines.GUI_TEXTURED, pet.textureId(), iconX, iconY,
-                    0, 0, size, size, textureSize, textureSize, textureSize, textureSize);
+            drawPetModel(context,pet,x,y);
         }
     }
 
     private static List<MpsqPetCatalog.Pet> miniYouEntries() {
         return MpsqPetCatalog.group(MpsqPetCatalog.Group.MINI_YOU).stream()
+                
                 .filter(pet -> pet.issuerRole() == null || hasOfficerPetAccess()).toList();
     }
 
@@ -129,16 +134,17 @@ public final class MpsqPetMenuScreen extends Screen {
         return pet.issuerRole() == null || hasOfficerPetAccess();
     }
 
-    private void drawPetModel(DrawContext context, MpsqPetCatalog.Pet pet, int slotX, int slotY) {
-        if (client == null) return;
+    private void drawPetModel(GuiGraphicsExtractor context, MpsqPetCatalog.Pet pet, int slotX, int slotY) {drawPetModel(context,pet,slotX,slotY,drawScale);}
+    private void drawPetModel(GuiGraphicsExtractor context, MpsqPetCatalog.Pet pet, int slotX, int slotY,float drawScale) {
+        if (minecraft == null) return;
         MpsqNpcSkinRenderer.Skin skin = MpsqPetRenderer.skinFor(pet);
-        if (skin == null) return;
+        if (skin == null && pet.miniModel()!=null) return;
 
-        if (client.world == null) return;
-        if (previewPlayer == null || previewPlayer.getWorld() != client.world) {
-            previewPlayer = new PetPreviewPlayer(client.world);
+        if (minecraft.level == null) return;
+        if (previewPlayer == null || previewPlayer.level() != minecraft.level) {
+            previewPlayer = new PetPreviewPlayer(minecraft.level);
         }
-        previewPlayer.setPreviewSkin(skin);
+        if(skin!=null)previewPlayer.setPreviewSkin(skin);
         int left = slotX + Math.round(3 * drawScale);
         int top = slotY + Math.round(2 * drawScale);
         int right = slotX + Math.round((SLOT_SIZE - 3) * drawScale);
@@ -148,15 +154,23 @@ public final class MpsqPetMenuScreen extends Screen {
         float centerY = (top + bottom) * 0.5f;
 
         // InventoryScreen manages the GUI's 3D target and MatrixStack. The
-        // preview entity supplies the preset texture and slim/wide model.
-        MpsqPetModelContext.render(() -> InventoryScreen.drawEntity(context, left, top, right, bottom,
-                size, 1.0f, centerX, centerY, previewPlayer));
+        // custom model needs its own vertical centre rather than the player bounds.
+        // Centres of the scaled preview geometry, including tail/outer layers.
+        float modelCentre = switch (pet.id()) {
+            case "nogs_budgie" -> 0.28f;
+            case "nocsy_otter" -> 0.76f;
+            case "nogs_hedgehog" -> 0.70f;
+            default -> 0.84f;
+        };
+        float verticalOffset = modelCentre - previewPlayer.getBbHeight() * 0.5f;
+        MpsqPetPreview.extract(pet.id(), () -> InventoryScreen.extractEntityInInventoryFollowsMouse(context, left, top, right, bottom,
+                size, verticalOffset, centerX, centerY, previewPlayer));
     }
 
-    private void drawSelectedPetAction(DrawContext context) {
+    private void drawSelectedPetAction(GuiGraphicsExtractor context) {
         if (selectedId == null) return;
         List<MpsqPetCatalog.Pet> pets = kind == PetKind.MINI_ME
-                ? miniYouEntries() : MpsqPetCatalog.group(MpsqPetCatalog.Group.ANIMAL);
+                ? miniYouEntries() : animalEntries();
         int index = -1;
         for (int i = 0; i < pets.size(); i++) {
             if (pets.get(i).id().equals(selectedId)) { index = i; break; }
@@ -178,7 +192,7 @@ public final class MpsqPetMenuScreen extends Screen {
         int screenHeight = Math.max(1, Math.round(buttonHeight * drawScale));
         Identifier texture = selectedId.equals(MpsqPetSelectionStore.selectedId())
                 ? EQUIPPED_ACTION : EQUIP_ACTION;
-        context.drawTexture(RenderPipelines.GUI_TEXTURED, texture, screenX, screenY,
+        context.blit(RenderPipelines.GUI_TEXTURED, texture, screenX, screenY,
                 0, 0, screenWidth, screenHeight,
                 ACTION_TEXTURE_WIDTH, ACTION_TEXTURE_HEIGHT,
                 ACTION_TEXTURE_WIDTH, ACTION_TEXTURE_HEIGHT);
@@ -187,7 +201,7 @@ public final class MpsqPetMenuScreen extends Screen {
     private boolean clickSelectedPetAction(double guiX, double guiY) {
         if (selectedId == null) return false;
         List<MpsqPetCatalog.Pet> pets = kind == PetKind.MINI_ME
-                ? miniYouEntries() : MpsqPetCatalog.group(MpsqPetCatalog.Group.ANIMAL);
+                ? miniYouEntries() : animalEntries();
         int index = -1;
         for (int i = 0; i < pets.size(); i++) {
             if (pets.get(i).id().equals(selectedId)) { index = i; break; }
@@ -207,47 +221,97 @@ public final class MpsqPetMenuScreen extends Screen {
         return true;
     }
 
-    private static final class PetPreviewPlayer extends OtherClientPlayerEntity {
-        private SkinTextures previewSkin;
+    private static List<MpsqPetCatalog.Pet> animalEntries(){
+        return java.util.stream.Stream.of("nogs_budgie","nocsy_otter","nogs_hedgehog",
+                MpsqPetSelectionStore.owlVariant(),"mpsq_baby_happy_ghast","mpsq_zekk_the_zombie",
+                "mpsq_slak_the_skeleton","mpsq_colin_the_creeper","mpsq_exo_the_enderman",
+                "mpsq_crab","mpsq_penguin",MpsqPetSelectionStore.tigerVariant()).map(MpsqPetCatalog::byId).toList();
+    }
+    private boolean hasVariants(){return kind==PetKind.ANIMALS&&selectedId!=null&&(selectedId.equals("nogs_budgie")||selectedId.startsWith("nogs_owl_")||MpsqPetSelectionStore.isTiger(selectedId));}
+    /** Coordinates in the original menu pixels; each variant slot is 18 rather than 36 pixels. */
+    private int[] variantLayout(){
+        var pets=animalEntries();int index=0;for(int i=0;i<pets.size();i++)if(pets.get(i).id().equals(selectedId))index=i;
+        int center=GRID_LEFT+(index%PET_COLUMNS)*SLOT_SIZE+SLOT_SIZE/2;
+        int buttonX=Math.clamp(center-36,0,ART_WIDTH-72),y=GRID_TOP+(index/PET_COLUMNS+1)*SLOT_SIZE+14;
+        int barWidth=selectedId.equals("nogs_budgie")?194:MpsqPetSelectionStore.isTiger(selectedId)?50:86;
+        int barX=selectedId.equals("nogs_budgie")?0:Math.clamp(center-barWidth/2,0,ART_WIDTH-barWidth);
+        return new int[]{buttonX,y,barX,y+15,barWidth};
+    }
+    private void drawVariants(GuiGraphicsExtractor g){
+        if(!hasVariants())return;var b=variantLayout();
+        g.pose().pushMatrix();g.pose().translate(drawLeft,drawTop);g.pose().scale(drawScale);
+        g.blit(RenderPipelines.GUI_TEXTURED,Identifier.fromNamespaceAndPath(MpsqCameraClient.MOD_ID,"textures/gui/pet_variant_button.png"),b[0],b[1],0,0,72,13,1968,352,1968,352);
+        if(variantsOpen){
+            boolean budgie=selectedId.equals("nogs_budgie");boolean tiger=MpsqPetSelectionStore.isTiger(selectedId);var variants=budgie?BUDGIES:tiger?List.of("mpsq_tiger","mpsq_tiger_baby"):OWLS;
+            var texture=Identifier.fromNamespaceAndPath(MpsqCameraClient.MOD_ID,"textures/gui/pet_variants_"+(budgie?"10":tiger?"2":"4")+".png");
+            g.blit(RenderPipelines.GUI_TEXTURED,texture,b[2],b[3],0,0,b[4],32,b[4]*2,64,b[4]*2,64);
+            String current=budgie?MpsqPetSelectionStore.budgieVariant():tiger?MpsqPetSelectionStore.tigerVariant():MpsqPetSelectionStore.owlVariant().substring("nogs_owl_".length());
+            for(int i=0;i<variants.size();i++){
+                int x=b[2]+7+i*18,y=b[3]+7;
+                if(variants.get(i).equals(current)){g.fill(x,y,x+17,y+17,0xFFFFC34A);g.fill(x+1,y+1,x+16,y+16,0xFF707070);}
+                if(!tiger)g.item(MpsqCinematicNpcScreen.stack("mpsqcamera:nm_head_"+(budgie?"budgie_":"owl_")+variants.get(i)),x+1,y+1);
+            }
+        }g.pose().popMatrix();
+        if(variantsOpen&&MpsqPetSelectionStore.isTiger(selectedId)){for(int i=0;i<2;i++)drawPetModel(g,MpsqPetCatalog.byId(i==0?"mpsq_tiger":"mpsq_tiger_baby"),drawLeft+Math.round((b[2]+7+i*18)*drawScale),drawTop+Math.round((b[3]+7)*drawScale),drawScale*.5f);}
+    }
+    private boolean clickVariants(double x,double y){
+        if(!hasVariants())return false;var b=variantLayout();
+        if(inside(x,y,b[0],b[1],72,13)){variantsOpen=!variantsOpen;return true;}
+        if(!variantsOpen||!inside(x,y,b[2],b[3],b[4],32))return false;
+        boolean budgie=selectedId.equals("nogs_budgie");boolean tiger=MpsqPetSelectionStore.isTiger(selectedId);var variants=budgie?BUDGIES:tiger?List.of("mpsq_tiger","mpsq_tiger_baby"):OWLS;
+        if(y>=b[3]+7&&y<b[3]+25){int i=(int)Math.floor((x-b[2]-7)/18);if(i>=0&&i<variants.size()){
+            if(budgie)MpsqPetSelectionStore.selectBudgieVariant(variants.get(i));
+            else if(tiger){if(MpsqPetSelectionStore.selectTigerVariant(variants.get(i)))selectedId=variants.get(i);}
+            else if(MpsqPetSelectionStore.selectOwlVariant("nogs_owl_"+variants.get(i)))selectedId="nogs_owl_"+variants.get(i);
+        }}return true;
+    }
 
-        private PetPreviewPlayer(ClientWorld world) {
+    private static final class PetPreviewPlayer extends RemotePlayer {
+        private PlayerSkin previewSkin;
+
+        private PetPreviewPlayer(ClientLevel world) {
             super(world, new GameProfile(UUID.randomUUID(), "MPSQ Pet Preview"));
+            setId(-2000000000); // Render-only preview; never added to the world.
         }
 
         private void setPreviewSkin(MpsqNpcSkinRenderer.Skin skin) {
-            previewSkin = new SkinTextures(skin.texture(), "", null, null,
-                    skin.slim() ? SkinTextures.Model.SLIM : SkinTextures.Model.WIDE, false);
+            previewSkin = new PlayerSkin(new net.minecraft.core.ClientAsset.ResourceTexture(skin.texture(), skin.texture()), null, null,
+                    skin.slim() ? net.minecraft.world.entity.player.PlayerModelType.SLIM : net.minecraft.world.entity.player.PlayerModelType.WIDE, false);
         }
 
         @Override
-        public SkinTextures getSkinTextures() {
-            return previewSkin == null ? super.getSkinTextures() : previewSkin;
+        public PlayerSkin getSkin() {
+            return previewSkin == null ? super.getSkin() : previewSkin;
         }
     }
 
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if ((button != 0 && button != 1) || drawScale <= 0) return true;
+    public boolean mouseClicked(net.minecraft.client.input.MouseButtonEvent event, boolean doubled) {
+        double mouseX = event.x(), mouseY = event.y();
+        int button = event.button();
+
+        if ((button != com.mojang.blaze3d.platform.InputConstants.MOUSE_BUTTON_LEFT && button != com.mojang.blaze3d.platform.InputConstants.MOUSE_BUTTON_RIGHT) || drawScale <= 0) return true;
 
         double guiX = (mouseX - drawLeft) / drawScale;
         double guiY = (mouseY - drawTop) / drawScale;
 
         // The arrows and wiki icon occupy the bottom row of the artwork.
         if (inside(guiX, guiY, 17, 216, 32, 33)) {
-            close();
+            onClose();
             return true;
         }
         if (inside(guiX, guiY, 157, 212, 38, 39)) {
-            client.setScreen(new MpsqCollectionTutorialScreen(this, "Pets"));
+            minecraft.gui.setScreen(new MpsqCollectionTutorialScreen(this, "Pets"));
             return true;
         }
         if (inside(guiX, guiY, 307, 216, 34, 33)) {
             PetKind other = kind == PetKind.MINI_ME ? PetKind.ANIMALS : PetKind.MINI_ME;
-            client.setScreen(new MpsqPetMenuScreen(parent, other));
+            minecraft.gui.setScreen(new MpsqPetMenuScreen(parent, other));
             return true;
         }
 
-        if (button == 0 && clickSelectedPetAction(guiX, guiY)) return true;
+        if(button==com.mojang.blaze3d.platform.InputConstants.MOUSE_BUTTON_LEFT && clickVariants(guiX,guiY))return true;
+        if (button == com.mojang.blaze3d.platform.InputConstants.MOUSE_BUTTON_LEFT && clickSelectedPetAction(guiX, guiY)) return true;
 
         if (inside(guiX, guiY, GRID_LEFT, GRID_TOP,
                 PET_COLUMNS * SLOT_SIZE, PET_ROWS * SLOT_SIZE)) {
@@ -255,22 +319,22 @@ public final class MpsqPetMenuScreen extends Screen {
             int row = (int) (guiY - GRID_TOP) / SLOT_SIZE;
             int index = row * PET_COLUMNS + column;
             List<MpsqPetCatalog.Pet> pets = kind == PetKind.MINI_ME
-                    ? miniYouEntries() : MpsqPetCatalog.group(MpsqPetCatalog.Group.ANIMAL);
+                    ? miniYouEntries() : animalEntries();
             if (index >= 0 && index < pets.size()) {
                 MpsqPetCatalog.Pet pet = pets.get(index);
-                if (button == 1 && pet.id().equals("nogs_budgie")) {
-                    client.setScreen(new MpsqBudgieSkinScreen(this));
+                if (button == com.mojang.blaze3d.platform.InputConstants.MOUSE_BUTTON_RIGHT && pet.id().equals("nogs_budgie")) {
+                    selectedId=pet.id();variantsOpen=!variantsOpen;
                     return true;
                 }
-                if (button == 0) {
+                if (button == com.mojang.blaze3d.platform.InputConstants.MOUSE_BUTTON_LEFT) {
                     if (canEquip(pet)) {
-                        selectedId = pet.id().equals(selectedId) ? null : pet.id();
+                        selectedId = pet.id().equals(selectedId) ? null : pet.id();variantsOpen=false;
                     }
                 }
             }
         }
 
-        if (button == 0 && !inside(guiX, guiY, GRID_LEFT, GRID_TOP,
+        if (button == com.mojang.blaze3d.platform.InputConstants.MOUSE_BUTTON_LEFT && !inside(guiX, guiY, GRID_LEFT, GRID_TOP,
                 PET_COLUMNS * SLOT_SIZE, PET_ROWS * SLOT_SIZE)) selectedId = null;
 
         // There is no container inventory: empty slots and decorative X areas
@@ -283,12 +347,12 @@ public final class MpsqPetMenuScreen extends Screen {
     }
 
     @Override
-    public void close() {
-        if (client != null) client.setScreen(parent);
+    public void onClose() {
+        if (minecraft != null) minecraft.gui.setScreen(parent);
     }
 
     @Override
-    public boolean shouldPause() {
+    public boolean isPauseScreen() {
         return false;
     }
 }

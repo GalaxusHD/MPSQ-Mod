@@ -1,11 +1,10 @@
 package de.galaxushd.mpsqcamera;
 
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.text.MutableText;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
-
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -23,7 +22,7 @@ public final class TeamChatRelayManager {
         ClientTickEvents.END_CLIENT_TICK.register(TeamChatRelayManager::tick);
     }
 
-    private static void tick(MinecraftClient client) {
+    private static void tick(Minecraft client) {
         if (client.player == null || loading || !MpsqApiClient.isReady() || !TeamVisibilitySettings.visible()) return;
         if (++ticks < 20) return;
         ticks = 0;
@@ -39,7 +38,7 @@ public final class TeamChatRelayManager {
                 return;
             }
             for (TeamChatMessage message : messages) {
-                if (KNOWN.add(key(message)) && client.player != null) client.player.sendMessage(format(message), false);
+                if (KNOWN.add(key(message)) && client.player != null) de.galaxushd.mpsqcamera.compat.PlayerMessages.send(client.player, format(message), false);
             }
             while (KNOWN.size() > 300) {
                 var iterator = KNOWN.iterator();
@@ -53,17 +52,17 @@ public final class TeamChatRelayManager {
         return message.id();
     }
 
-    private static Text format(TeamChatMessage message) {
-        MutableText text = Text.literal("<").formatted(Formatting.GRAY)
-                .append(Text.literal("MPSQ").formatted(Formatting.DARK_RED, Formatting.BOLD))
-                .append(Text.literal("> ").formatted(Formatting.GRAY));
+    private static Component format(TeamChatMessage message) {
+        MutableComponent text = Component.literal("<").withStyle(ChatFormatting.GRAY)
+                .append(Component.literal("MPSQ").withStyle(ChatFormatting.DARK_RED, ChatFormatting.BOLD))
+                .append(Component.literal("> ").withStyle(ChatFormatting.GRAY));
         String content = message.message();
         if (content.equalsIgnoreCase(message.senderName())) content = "";
         String duplicatePrefix = message.senderName() + ": ";
         if (content.regionMatches(true, 0, duplicatePrefix, 0, duplicatePrefix.length())) content = content.substring(duplicatePrefix.length());
-        if (content.matches("(?i).+ wurde disqualifiziert\\.")) return text.append(Text.literal(content).formatted(Formatting.WHITE));
-        text.append(Text.literal(message.senderName()).formatted(message.senderRank().chatColor()));
-        text.append(Text.literal(": ").formatted(Formatting.GRAY));
-        return text.append(TeamChatText.fromAmpersandCodes(content, Formatting.WHITE));
+        if (content.matches("(?i).+ wurde disqualifiziert\\.")) return text.append(Component.literal(content).withStyle(ChatFormatting.WHITE));
+        text.append(Component.literal(message.senderName()).withStyle(message.senderRank().chatColor()));
+        text.append(Component.literal(": ").withStyle(ChatFormatting.GRAY));
+        return text.append(TeamChatText.fromAmpersandCodes(content, ChatFormatting.WHITE));
     }
 }

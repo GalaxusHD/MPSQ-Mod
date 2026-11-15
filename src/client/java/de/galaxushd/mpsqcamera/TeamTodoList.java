@@ -1,6 +1,6 @@
 package de.galaxushd.mpsqcamera;
 
-import net.minecraft.text.Text;
+import net.minecraft.network.chat.Component;
 
 /** The four MPSQ Team work lists. Sr Offizier belongs to OFFICER. */
 public enum TeamTodoList {
@@ -12,7 +12,7 @@ public enum TeamTodoList {
     private final String id;
     TeamTodoList(String id) { this.id = id; }
     public String id() { return id; }
-    public Text title() { return Text.translatable("gui.mpsqcamera.team.todo.list." + id); }
+    public Component title() { return Component.translatable("gui.mpsqcamera.team.todo.list." + id); }
 
     public static TeamTodoList fromId(String id) {
         for (TeamTodoList value : values()) if (value.id.equalsIgnoreCase(id)) return value;

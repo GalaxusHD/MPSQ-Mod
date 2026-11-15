@@ -1,6 +1,6 @@
 package de.galaxushd.mpsqcamera;
 
-import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 
 /**
  * Zentrale Theme-Konstanten und Hilfsrenderer für alle Mod-Screens.
@@ -38,10 +38,10 @@ public final class MpsqTheme {
 
     /**
      * Zeichnet den benutzerdefinierten Hintergrund.
-     * Muss nach {@code super.renderBackground(...)} aufgerufen werden.
+     * Muss nach {@code super.extractBackground(...)} aufgerufen werden.
      * Transparenter, neutraler dunkler Hintergrund – kein Rot-Ton mehr.
      */
-    public static void drawBackground(DrawContext context, int width, int height) {
+    public static void drawBackground(GuiGraphicsExtractor context, int width, int height) {
         // Transparenter dunkelgrauer Hintergrund
         context.fillGradient(0, 0, width, height, 0x991A1A1A, 0x99050505);
     }
@@ -49,7 +49,7 @@ public final class MpsqTheme {
     /**
      * Zeichnet ein halbtransparentes Panel mit weinrotem Rahmen.
      */
-    public static void drawPanel(DrawContext context, int x, int y, int w, int h) {
+    public static void drawPanel(GuiGraphicsExtractor context, int x, int y, int w, int h) {
         context.fill(x, y, x + w, y + h, PANEL_BG);
     }
 }

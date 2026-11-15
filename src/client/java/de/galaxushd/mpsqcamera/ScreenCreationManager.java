@@ -1,31 +1,30 @@
 package de.galaxushd.mpsqcamera;
 
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
-import net.minecraft.block.BlockState;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.network.ClientPlayerEntity;
-import net.minecraft.client.option.KeyBinding;
-import net.minecraft.client.option.Perspective;
-import net.minecraft.client.util.InputUtil;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.decoration.ArmorStandEntity;
-import net.minecraft.item.Item;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.Items;
-import net.minecraft.registry.Registries;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.text.Text;
-import net.minecraft.util.hit.BlockHitResult;
-import net.minecraft.util.hit.HitResult;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.world.World;
-import org.lwjgl.glfw.GLFW;
+import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
+import net.minecraft.client.CameraType;
+import net.minecraft.client.KeyMapping;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.Identifier;
+import net.minecraft.util.Mth;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.decoration.ArmorStand;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.HitResult;
+import net.minecraft.world.phys.Vec3;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -47,7 +46,7 @@ public final class ScreenCreationManager {
 	private static long lastOfflineHintMs = 0L;
 
 	/** K – Hauptmenü des Mods */
-	private static KeyBinding hauptMenuKey;
+	private static KeyMapping hauptMenuKey;
 
 	private static ViewSession activeViewSession;
 	private static boolean exitSnapshotPending;
@@ -55,18 +54,18 @@ public final class ScreenCreationManager {
 	private ScreenCreationManager() {}
 
 	public static void initialize() {
-		hauptMenuKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
+		hauptMenuKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
 				"key.mpsqcamera.hauptmenu",
-				GLFW.GLFW_KEY_K,
-				"category.mpsqcamera.main"
+				com.mojang.blaze3d.platform.InputConstants.KEY_K,
+				MpsqKeyCategories.MAIN
 		));
 
 		ClientTickEvents.START_CLIENT_TICK.register(ScreenCreationManager::onStartTick);
 		ClientTickEvents.END_CLIENT_TICK.register(ScreenCreationManager::onEndTick);
 	}
 
-	private static void onStartTick(MinecraftClient client) {
-		if (activeViewSession == null || client.player == null || client.world == null || client.options == null) {
+	private static void onStartTick(Minecraft client) {
+		if (activeViewSession == null || client.player == null || client.level == null || client.options == null) {
 			return;
 		}
 
@@ -75,7 +74,7 @@ public final class ScreenCreationManager {
 		// causes repeated position/rotation corrections, which in turn makes the
 		// client camera snap back or spin. The disabled movement keys and zero
 		// velocity keep the body in place without fighting the server.
-		client.player.setVelocity(Vec3d.ZERO);
+		client.player.setDeltaMovement(Vec3.ZERO);
 		updateBodycamProxy(client, activeViewSession);
 		activeViewSession.applyViewRotation();
 	}
@@ -101,15 +100,15 @@ public final class ScreenCreationManager {
 		activeViewSession.applyMouseLook(cursorDeltaX, cursorDeltaY);
 	}
 
-	private static void onEndTick(MinecraftClient client) {
+	private static void onEndTick(Minecraft client) {
 		if (client.options == null) return;
 
-		boolean usePressed = client.options.useKey.isPressed();
-		boolean escPressed = InputUtil.isKeyPressed(client.getWindow().getHandle(), GLFW.GLFW_KEY_ESCAPE);
-		boolean previousCameraPressed = InputUtil.isKeyPressed(client.getWindow().getHandle(), GLFW.GLFW_KEY_LEFT);
-		boolean nextCameraPressed = InputUtil.isKeyPressed(client.getWindow().getHandle(), GLFW.GLFW_KEY_RIGHT);
+		boolean usePressed = client.options.keyUse.isDown();
+		boolean escPressed = InputConstants.isKeyDown(com.mojang.blaze3d.platform.InputConstants.KEY_ESCAPE);
+		boolean previousCameraPressed = InputConstants.isKeyDown(com.mojang.blaze3d.platform.InputConstants.KEY_LEFT);
+		boolean nextCameraPressed = InputConstants.isKeyDown(com.mojang.blaze3d.platform.InputConstants.KEY_RIGHT);
 
-		if (client.player == null || client.world == null) {
+		if (client.player == null || client.level == null) {
 			if (activeViewSession != null) {
 				exitViewMode(client, false);
 			}
@@ -118,8 +117,8 @@ public final class ScreenCreationManager {
 			return;
 		}
 
-		ClientPlayerEntity player = client.player;
-		showSelectionDimensions(player);
+		LocalPlayer player = client.player; if(activeViewSession!=null&&!TeamVisibilitySettings.inArea())finishExitViewMode(client,activeViewSession,false);
+		// Selection size is drawn by the selection UI; do not overwrite its action bar.
 
 		if (activeViewSession != null) {
 			if (activeViewSession.isMobile()) {
@@ -148,9 +147,9 @@ public final class ScreenCreationManager {
 		}
 
 		// K => Hauptmenü öffnen
-		while (hauptMenuKey.wasPressed()) {
-			if (client.currentScreen == null) {
-				client.setScreen(new ModConfigScreen());
+		while (hauptMenuKey.consumeClick()) {
+			if (client.gui.screen() == null) {
+				client.gui.setScreen(new ModConfigScreen());
 			}
 		}
 
@@ -163,14 +162,14 @@ public final class ScreenCreationManager {
 	private static void switchCamera(UUID screenId, int direction) {
 		UUID camera = ScreenCameraStore.next(screenId, direction);
 		if (camera == null) return;
-		MinecraftClient client = MinecraftClient.getInstance();
+		Minecraft client = Minecraft.getInstance();
 
 		// The selected camera is always scoped to the selected screen by
 		// ScreenCameraStore. While a local view is active, move that view and
 		// the optional remote broadcaster to the newly selected camera as well.
 		if (activeViewSession != null && activeViewSession.sourceAnchor() != null) {
 			LocalCameraStore.find(camera).ifPresent(data -> {
-				Vec3d position = cameraPosition(client, data);
+				Vec3 position = cameraPosition(client, data);
 				if (position != null) {
 					placeCameraProxy(activeViewSession.cameraEntity(), position, cameraYaw(client, data), cameraPitch(client, data));
 					activeViewSession.setViewRotation(cameraYaw(client, data), cameraPitch(client, data));
@@ -184,7 +183,7 @@ public final class ScreenCreationManager {
 			int current = ScreenCameraStore.activePosition(screenId);
 			int total = ScreenCameraStore.cameras(screenId).size();
 			if (client.player != null) {
-				client.player.sendMessage(Text.literal(data.name() + " " + current + "/" + total), true);
+				de.galaxushd.mpsqcamera.compat.PlayerMessages.send(client.player, Component.literal(data.name() + " " + current + "/" + total), true);
 			}
 		});
 		MpsqCameraClient.LOGGER.info("[MPSQ] Aktive Kamera gewechselt: {}", camera);
@@ -197,9 +196,9 @@ public final class ScreenCreationManager {
 		int current = cameras.indexOf(activeViewSession.cameraId());
 		int next = Math.floorMod((current < 0 ? 0 : current) + direction, cameras.size());
 		UUID cameraId = cameras.get(next);
-		MinecraftClient client = MinecraftClient.getInstance();
+		Minecraft client = Minecraft.getInstance();
 		LocalCameraStore.find(cameraId).ifPresent(camera -> {
-			Vec3d position = cameraPosition(client, camera);
+			Vec3 position = cameraPosition(client, camera);
 			if (position == null || CameraSafety.isStaticCameraBlocked(client, camera)) return;
 			placeCameraProxy(activeViewSession.cameraEntity(), position,
 					cameraYaw(client, camera), cameraPitch(client, camera));
@@ -207,7 +206,7 @@ public final class ScreenCreationManager {
 			activeViewSession.setCameraId(cameraId);
 			RemoteCameraFrameManager.startPublishing(cameraId);
 			if (client.player != null) {
-				client.player.sendMessage(Text.literal(camera.name() + " " + (next + 1) + "/" + cameras.size()), true);
+				de.galaxushd.mpsqcamera.compat.PlayerMessages.send(client.player, Component.literal(camera.name() + " " + (next + 1) + "/" + cameras.size()), true);
 			}
 		});
 	}
@@ -217,39 +216,39 @@ public final class ScreenCreationManager {
 		return active != null ? active : screen.cameraId();
 	}
 
-	private static PlayerEntity bodycamWearer(MinecraftClient client, LocalCameraStore.CameraData camera) {
-		if (camera.kind() != LocalCameraStore.CameraKind.BODYCAM || client.world == null) return null;
+	private static Player bodycamWearer(Minecraft client, LocalCameraStore.CameraData camera) {
+		if (camera.kind() != LocalCameraStore.CameraKind.BODYCAM || client.level == null) return null;
 		if (camera.wearerId() != null) {
-			PlayerEntity byUuid = client.world.getPlayerByUuid(camera.wearerId());
+			Player byUuid = client.level.getPlayerByUUID(camera.wearerId());
 			if (byUuid != null) return byUuid;
 		}
 		if (camera.wearerName() != null && !camera.wearerName().isBlank()) {
-			for (PlayerEntity candidate : client.world.getPlayers()) {
+			for (Player candidate : client.level.players()) {
 				if (camera.wearerName().equalsIgnoreCase(candidate.getName().getString())) return candidate;
 			}
 		}
 		return null;
 	}
 
-	private static Vec3d cameraPosition(MinecraftClient client, LocalCameraStore.CameraData camera) {
-		PlayerEntity wearer = bodycamWearer(client, camera);
-		return wearer != null ? wearer.getEyePos() : camera.position();
+	private static Vec3 cameraPosition(Minecraft client, LocalCameraStore.CameraData camera) {
+		Player wearer = bodycamWearer(client, camera);
+		return wearer != null ? wearer.getEyePosition() : camera.position();
 	}
 
-	private static float cameraYaw(MinecraftClient client, LocalCameraStore.CameraData camera) {
-		PlayerEntity wearer = bodycamWearer(client, camera);
-		return wearer != null ? wearer.getYaw() : camera.yaw();
+	private static float cameraYaw(Minecraft client, LocalCameraStore.CameraData camera) {
+		Player wearer = bodycamWearer(client, camera);
+		return wearer != null ? wearer.getYRot() : camera.yaw();
 	}
 
-	private static float cameraPitch(MinecraftClient client, LocalCameraStore.CameraData camera) {
-		PlayerEntity wearer = bodycamWearer(client, camera);
-		return wearer != null ? wearer.getPitch() : camera.pitch();
+	private static float cameraPitch(Minecraft client, LocalCameraStore.CameraData camera) {
+		Player wearer = bodycamWearer(client, camera);
+		return wearer != null ? wearer.getXRot() : camera.pitch();
 	}
 
-	private static void updateBodycamProxy(MinecraftClient client, ViewSession session) {
+	private static void updateBodycamProxy(Minecraft client, ViewSession session) {
 		LocalCameraStore.find(session.cameraId).ifPresent(camera -> {
 			if (camera.kind() != LocalCameraStore.CameraKind.BODYCAM) return;
-			Vec3d position = cameraPosition(client, camera);
+			Vec3 position = cameraPosition(client, camera);
 			if (position != null) {
 				float yaw = cameraYaw(client, camera);
 				float pitch = cameraPitch(client, camera);
@@ -261,7 +260,7 @@ public final class ScreenCreationManager {
 		});
 	}
 
-	private static void handlePassiveScreenLook(MinecraftClient client, ClientPlayerEntity player) {
+	private static void handlePassiveScreenLook(Minecraft client, LocalPlayer player) {
 		LocalScreenStore.LocalScreenData screen = getScreenAtCrosshair(client).orElse(null);
 		UUID cameraId = screen == null ? null : activeCameraId(screen);
 		if (screen == null || screen.inputType() != LocalScreenStore.ScreenInputType.CAMERA || cameraId == null) {
@@ -278,29 +277,29 @@ public final class ScreenCreationManager {
 			return;
 		}
 
-		Vec3d cameraPos = cameraPosition(client, cameraScreen.get());
+		Vec3 cameraPos = cameraPosition(client, cameraScreen.get());
 		if (!isCameraAreaLoadedByAnyPlayer(client, cameraPos)) {
 			sendOfflineHint(player);
 		}
 	}
 
-	private static void sendOfflineHint(ClientPlayerEntity player) {
+	private static void sendOfflineHint(LocalPlayer player) {
 		long now = System.currentTimeMillis();
 		if (now - lastOfflineHintMs >= OFFLINE_HINT_INTERVAL_MS) {
-			player.sendMessage(Text.translatable("status.mpsqcamera.camera_offline"), true);
+			de.galaxushd.mpsqcamera.compat.PlayerMessages.send(player, Component.translatable("status.mpsqcamera.camera_offline"), true);
 			lastOfflineHintMs = now;
 		}
 	}
 
-	private static void sendBlockedHint(ClientPlayerEntity player) {
+	private static void sendBlockedHint(LocalPlayer player) {
 		long now = System.currentTimeMillis();
 		if (now - lastOfflineHintMs >= OFFLINE_HINT_INTERVAL_MS) {
-			player.sendMessage(Text.translatable("status.mpsqcamera.camera_blocked"), true);
+			de.galaxushd.mpsqcamera.compat.PlayerMessages.send(player, Component.translatable("status.mpsqcamera.camera_blocked"), true);
 			lastOfflineHintMs = now;
 		}
 	}
 
-	private static void tryEnterViewMode(MinecraftClient client, ClientPlayerEntity player) {
+	private static void tryEnterViewMode(Minecraft client, LocalPlayer player) { if(!TeamVisibilitySettings.inArea())return;
 		if (!TeamStateStore.self().map(TeamProfile::canViewCameras).orElse(false)) return;
 		long now = System.currentTimeMillis();
 		if (now - lastViewEnterAttemptMs < VIEW_ENTER_COOLDOWN_MS) {
@@ -324,21 +323,21 @@ public final class ScreenCreationManager {
 			return;
 		}
 
-		Vec3d cameraPos = cameraPosition(client, cameraScreen);
+		Vec3 cameraPos = cameraPosition(client, cameraScreen);
 		if (!isCameraAreaLoadedByAnyPlayer(client, cameraPos)) {
 			sendOfflineHint(player);
 			return;
 		}
 
-		beginViewMode(client, player, cameraScreen, screen.pos1().toImmutable(), List.of());
+		beginViewMode(client, player, cameraScreen, screen.pos1().immutable(), List.of());
 	}
 
 	/** Opens the normal camera view from the player-bound mobile clock. */
 	public static boolean enterMobileView(List<UUID> linkedCameraIds) {
-		MinecraftClient client = MinecraftClient.getInstance();
-		ClientPlayerEntity player = client.player;
-		if (player == null || client.world == null || activeViewSession != null) return false;
-		if (!TeamVisibilitySettings.visible()) return false;
+		Minecraft client = Minecraft.getInstance();
+		LocalPlayer player = client.player; if(activeViewSession!=null&&!TeamVisibilitySettings.inArea())finishExitViewMode(client,activeViewSession,false);
+		if (player == null || client.level == null || activeViewSession != null) return false;
+		if (!TeamVisibilitySettings.inArea()) return false;
 		if (!TeamStateStore.self().map(TeamProfile::canViewCameras).orElse(false)) return false;
 
 		List<UUID> available = linkedCameraIds.stream()
@@ -358,16 +357,16 @@ public final class ScreenCreationManager {
 		return false;
 	}
 
-	private static void beginViewMode(MinecraftClient client, ClientPlayerEntity player,
+	private static void beginViewMode(Minecraft client, LocalPlayer player,
 			LocalCameraStore.CameraData cameraScreen, BlockPos sourceAnchor, List<UUID> mobileCameraIds) {
 		UUID cameraId = cameraScreen.id();
-		Vec3d cameraPos = cameraPosition(client, cameraScreen);
+		Vec3 cameraPos = cameraPosition(client, cameraScreen);
 		if (cameraPos == null) return;
 
 		// Die gespeicherte Position ist der Blickpunkt der Kamera. Die genaue
 		// Augenhoehe des unsichtbaren Proxis wird deshalb nach dem Erzeugen
 		// dynamisch ausgeglichen, statt durch einen festen Wert geschaetzt.
-		ArmorStandEntity cameraEntity = new ArmorStandEntity(client.world, cameraPos.x, cameraPos.y, cameraPos.z);
+		ArmorStand cameraEntity = new ArmorStand(client.level, cameraPos.x, cameraPos.y, cameraPos.z);
 		cameraEntity.setId(nextCameraProxyEntityId++);
 		cameraEntity.setNoGravity(true);
 		cameraEntity.setInvisible(true);
@@ -375,16 +374,16 @@ public final class ScreenCreationManager {
 		// A camera entity must be present in the client world. An untracked entity
 		// has no stable previous render position, which makes Minecraft interpolate
 		// the view between unrelated places and causes the visible flicker.
-		client.world.addEntity(cameraEntity);
+		client.level.addEntity(cameraEntity);
 
 		Entity previousCamera = client.getCameraEntity();
-		Perspective previousPerspective = client.options.getPerspective();
+		CameraType previousPerspective = client.options.getCameraType();
 
 		activeViewSession = new ViewSession(
 				sourceAnchor,
 				cameraId,
-				player.getPos(),
-				client.world.getRegistryKey(),
+				player.position(),
+				client.level.dimension(),
 				previousCamera,
 				previousPerspective,
 				cameraEntity,
@@ -399,15 +398,15 @@ public final class ScreenCreationManager {
 		wasUsePressedLastTick = true;
 
 		client.setCameraEntity(cameraEntity);
-		client.options.setPerspective(Perspective.FIRST_PERSON);
+		client.options.setCameraType(CameraType.FIRST_PERSON);
 		CameraHologramManager.hideForCameraView();
 		RemoteCameraFrameManager.startPublishing(cameraId);
-		player.sendMessage(Text.translatable("status.mpsqcamera.view_enter"), true);
+		de.galaxushd.mpsqcamera.compat.PlayerMessages.send(player, Component.translatable("status.mpsqcamera.view_enter"), true);
 	}
 
 	private static void handleActiveViewSession(
-			MinecraftClient client,
-			ClientPlayerEntity player,
+			Minecraft client,
+			LocalPlayer player,
 			boolean usePressed,
 			boolean escPressed
 	) {
@@ -433,10 +432,10 @@ public final class ScreenCreationManager {
 		}
 	}
 
-	private static boolean isSessionStillValid(MinecraftClient client, ClientPlayerEntity player, ViewSession session) {
+	private static boolean isSessionStillValid(Minecraft client, LocalPlayer player, ViewSession session) {
 		if (player.isRemoved() || !player.isAlive()) return false;
-		if (client.world == null) return false;
-		if (!client.world.getRegistryKey().equals(session.originDimension())) return false;
+		if (client.level == null) return false;
+		if (!client.level.dimension().equals(session.originDimension())) return false;
 		// Do not abort a remote view merely because Windows temporarily steals
 		// focus or Minecraft briefly creates an overlay while focus returns.
 		// A deliberate ESC press is handled separately in handleActiveViewSession.
@@ -455,23 +454,23 @@ public final class ScreenCreationManager {
 		return cameraScreen != null && cameraPosition(client, cameraScreen) != null;
 	}
 
-	private static void suppressMovementAndInteraction(MinecraftClient client) {
-		client.options.forwardKey.setPressed(false);
-		client.options.backKey.setPressed(false);
-		client.options.leftKey.setPressed(false);
-		client.options.rightKey.setPressed(false);
-		client.options.jumpKey.setPressed(false);
-		client.options.sneakKey.setPressed(false);
-		client.options.sprintKey.setPressed(false);
-		client.options.attackKey.setPressed(false);
-		client.options.useKey.setPressed(false);
+	private static void suppressMovementAndInteraction(Minecraft client) {
+		client.options.keyUp.setDown(false);
+		client.options.keyDown.setDown(false);
+		client.options.keyLeft.setDown(false);
+		client.options.keyRight.setDown(false);
+		client.options.keyJump.setDown(false);
+		client.options.keyShift.setDown(false);
+		client.options.keySprint.setDown(false);
+		client.options.keyAttack.setDown(false);
+		client.options.keyUse.setDown(false);
 	}
 
-	private static void lockPlayerPosition(ClientPlayerEntity player, Vec3d originPos) {
-		player.setVelocity(Vec3d.ZERO);
+	private static void lockPlayerPosition(LocalPlayer player, Vec3 originPos) {
+		player.setDeltaMovement(Vec3.ZERO);
 	}
 
-	private static void exitViewMode(MinecraftClient client, boolean notify) {
+	private static void exitViewMode(Minecraft client, boolean notify) {
 		if (activeViewSession == null || exitSnapshotPending) return;
 		ViewSession session = activeViewSession;
 
@@ -479,7 +478,7 @@ public final class ScreenCreationManager {
 		// camera direction after leaving. Keep the proxy camera active until
 		// WorldRenderEvents captured that one frame.
 		LocalCameraStore.find(session.cameraId).ifPresentOrElse(camera -> {
-			Vec3d position = cameraPosition(client, camera);
+			Vec3 position = cameraPosition(client, camera);
 			if (position == null) {
 				finishExitViewMode(client, session, notify);
 				return;
@@ -491,7 +490,7 @@ public final class ScreenCreationManager {
 		}, () -> finishExitViewMode(client, session, notify));
 	}
 
-	private static void finishExitViewMode(MinecraftClient client, ViewSession session, boolean notify) {
+	private static void finishExitViewMode(Minecraft client, ViewSession session, boolean notify) {
 		if (activeViewSession != session) return;
 		activeViewSession = null;
 		exitSnapshotPending = false;
@@ -499,7 +498,7 @@ public final class ScreenCreationManager {
 		CameraHologramManager.showAfterCameraView();
 
 		if (client.options != null) {
-			client.options.setPerspective(session.previousPerspective());
+			client.options.setCameraType(session.previousPerspective());
 		}
 
 		Entity fallbackCamera = client.player == null ? null : client.player;
@@ -509,25 +508,25 @@ public final class ScreenCreationManager {
 		if (client.player != null) {
 			lockPlayerPosition(client.player, session.originPos());
 			if (notify) {
-				client.player.sendMessage(Text.translatable("status.mpsqcamera.view_exit"), true);
+				de.galaxushd.mpsqcamera.compat.PlayerMessages.send(client.player, Component.translatable("status.mpsqcamera.view_exit"), true);
 			}
 		}
 	}
 
-	private static Optional<LocalScreenStore.LocalScreenData> getScreenAtCrosshair(MinecraftClient client) {
-		if (client.player == null) return Optional.empty();
+	private static Optional<LocalScreenStore.LocalScreenData> getScreenAtCrosshair(Minecraft client) {
+		if (client.player == null || !TeamVisibilitySettings.visible()) return Optional.empty();
 
-		double reach = client.player.getBlockInteractionRange();
-		Vec3d eye = client.player.getCameraPosVec(1.0f);
-		Vec3d direction = client.player.getRotationVec(1.0f);
+		double reach = client.player.blockInteractionRange();
+		Vec3 eye = client.player.getEyePosition(1.0f);
+		Vec3 direction = client.player.getViewVector(1.0f);
 
 		// Prüfe alle Bildschirme via Ray-AABB-Test (keine Block-Abhängigkeit mehr)
 		LocalScreenStore.LocalScreenData closest = null;
 		double closestDist = Double.MAX_VALUE;
 
 		for (LocalScreenStore.LocalScreenData screen : LocalScreenStore.getAllScreens()) {
-			if (testRayBox(eye, direction, reach, screen.pos1(), screen.pos2())) {
-				double dist = screen.pos1().getSquaredDistance(eye.x, eye.y, eye.z);
+			if ((screen.inputType()==LocalScreenStore.ScreenInputType.LINK||TeamVisibilitySettings.inArea()) && testRayBox(eye, direction, reach, screen.pos1(), screen.pos2())) {
+				double dist = screen.pos1().distToLowCornerSqr(eye.x, eye.y, eye.z);
 				if (dist < closestDist) {
 					closestDist = dist;
 					closest = screen;
@@ -538,9 +537,9 @@ public final class ScreenCreationManager {
 		if (closest != null) return Optional.of(closest);
 
 		// Fallback: Legacy-Prüfung via Block-Treffer
-		if (client.crosshairTarget instanceof BlockHitResult hit
-				&& client.crosshairTarget.getType() == HitResult.Type.BLOCK) {
-			return LocalScreenStore.findByAnchor(hit.getBlockPos());
+		if (client.hitResult instanceof BlockHitResult hit
+				&& client.hitResult.getType() == HitResult.Type.BLOCK) {
+			return LocalScreenStore.findByAnchor(hit.getBlockPos()).filter(s->s.inputType()==LocalScreenStore.ScreenInputType.LINK||TeamVisibilitySettings.inArea());
 		}
 
 		return Optional.empty();
@@ -550,7 +549,7 @@ public final class ScreenCreationManager {
 	 * Prüft ob ein Strahl (Ursprung + Richtung, max. Länge reach) die Bounding-Box
 	 * eines Bildschirms (pos1..pos2) schneidet (Slab-Methode / AABB-Ray-Test).
 	 */
-	private static boolean testRayBox(Vec3d eye, Vec3d dir, double reach,
+	private static boolean testRayBox(Vec3 eye, Vec3 dir, double reach,
 			BlockPos p1, BlockPos p2) {
 		double minX = Math.min(p1.getX(), p2.getX());
 		double minY = Math.min(p1.getY(), p2.getY());
@@ -601,22 +600,22 @@ public final class ScreenCreationManager {
 		return tFar > 0.0;
 	}
 
-	private static boolean isCameraAreaLoadedByAnyPlayer(MinecraftClient client, Vec3d cameraPos) {
+	private static boolean isCameraAreaLoadedByAnyPlayer(Minecraft client, Vec3 cameraPos) {
 		// The integrated singleplayer server belongs to this client. There is no
 		// second mod user required to make one of its cameras available.
-		if (client.isInSingleplayer()) {
+		if (client.isLocalServer()) {
 			return true;
 		}
 		double maxDistSq = CAMERA_LOAD_RANGE * CAMERA_LOAD_RANGE;
-		for (PlayerEntity worldPlayer : client.world.getPlayers()) {
-			if (worldPlayer.squaredDistanceTo(cameraPos) <= maxDistSq) {
+		for (Player worldPlayer : client.level.players()) {
+			if (worldPlayer.distanceToSqr(cameraPos) <= maxDistSq) {
 				return true;
 			}
 		}
 		return false;
 	}
 
-	private static void showSelectionDimensions(ClientPlayerEntity player) {
+	private static void showSelectionDimensions(LocalPlayer player) {
 		if (selectionPos1 == null || !isHoldingToolItem(player)) {
 			return;
 		}
@@ -629,28 +628,29 @@ public final class ScreenCreationManager {
 				Math.abs(preview.getZ() - selectionPos1.getZ())
 		) + 1;
 		int height = Math.abs(preview.getY() - selectionPos1.getY()) + 1;
-		player.sendMessage(Text.translatable("gui.mpsqcamera.selection.dimensions", width, height), true);
+		de.galaxushd.mpsqcamera.compat.PlayerMessages.send(player, Component.translatable("gui.mpsqcamera.selection.dimensions", width, height), true);
 	}
 
-	private static Vec3d toCameraProxyPos(ArmorStandEntity proxy, Vec3d cameraEyePos) {
+	private static Vec3 toCameraProxyPos(ArmorStand proxy, Vec3 cameraEyePos) {
 		double eyeOffset = proxy.getEyeY() - proxy.getY();
 		return cameraEyePos.add(0.0, -eyeOffset, 0.0);
 	}
 
-	private static void placeCameraProxy(ArmorStandEntity proxy, Vec3d cameraEyePos, float yaw, float pitch) {
-		Vec3d bodyPos = toCameraProxyPos(proxy, cameraEyePos);
-		proxy.refreshPositionAndAngles(bodyPos.x, bodyPos.y, bodyPos.z, yaw, pitch);
+	private static void placeCameraProxy(ArmorStand proxy, Vec3 cameraEyePos, float yaw, float pitch) {
+		Vec3 bodyPos = toCameraProxyPos(proxy, cameraEyePos);
+		proxy.snapTo(bodyPos.x, bodyPos.y, bodyPos.z, yaw, pitch);
 		applyProxyRotation(proxy, yaw, pitch);
 	}
 
-	private static void applyProxyRotation(ArmorStandEntity proxy, float yaw, float pitch) {
-		proxy.setYaw(yaw);
-		proxy.setPitch(pitch);
+	private static void applyProxyRotation(ArmorStand proxy, float yaw, float pitch) {
+		proxy.setYRot(yaw);
+		proxy.setXRot(pitch);
 		// Armor stands keep body and head yaw separately. Minecraft's camera
 		// follows the head direction, so all three values must agree for a full
 		// horizontal (green axis) rotation.
-		proxy.setBodyYaw(yaw);
-		proxy.setHeadYaw(yaw);
+		proxy.setYBodyRot(yaw);
+		proxy.setYHeadRot(yaw);
+        proxy.yRotO=yaw;proxy.xRotO=pitch;proxy.yHeadRotO=yaw;proxy.yBodyRotO=yaw;
 	}
 
 	static BlockPos getSelectionPos1() {
@@ -661,60 +661,60 @@ public final class ScreenCreationManager {
 		if (selectionPos1 == null) {
 			return null;
 		}
-		MinecraftClient client = MinecraftClient.getInstance();
-		if (client == null || client.crosshairTarget == null || client.crosshairTarget.getType() != HitResult.Type.BLOCK) {
+		Minecraft client = Minecraft.getInstance();
+		if (client == null || client.hitResult == null || client.hitResult.getType() != HitResult.Type.BLOCK) {
 			return selectionPos1;
 		}
-		return ((BlockHitResult) client.crosshairTarget).getBlockPos();
+		return ((BlockHitResult) client.hitResult).getBlockPos();
 	}
 
-	private static void tryCreateScreen(MinecraftClient client, ClientPlayerEntity player) {
-		if (!isHoldingToolItem(player)) return;
+	private static void tryCreateScreen(Minecraft client, LocalPlayer player) {
+		if (!TeamVisibilitySettings.visible() || !isHoldingToolItem(player)) return;
 
-		if (client.crosshairTarget == null || client.crosshairTarget.getType() != HitResult.Type.BLOCK) {
+		if (client.hitResult == null || client.hitResult.getType() != HitResult.Type.BLOCK) {
 			MpsqCameraClient.LOGGER.info("[MPSQ Team] Kein Block anvisiert.");
 			return;
 		}
 
-		BlockHitResult hit    = (BlockHitResult) client.crosshairTarget;
+		BlockHitResult hit    = (BlockHitResult) client.hitResult;
 		BlockPos       target = hit.getBlockPos();
-		BlockState     state  = client.world.getBlockState(target);
+		BlockState     state  = client.level.getBlockState(target);
 
 		if (state.isAir()) {
-			player.sendMessage(
-					Text.translatable("gui.mpsqcamera.auswahl.luft"), true);
+			de.galaxushd.mpsqcamera.compat.PlayerMessages.send(player, 
+					Component.translatable("gui.mpsqcamera.auswahl.luft"), true);
 			return;
 		}
 
 		if (selectionPos1 == null) {
 			// ── Erster Klick: Startpunkt markieren ───────────────────────────
-			selectionPos1 = target.toImmutable();
-			selectionSide = hit.getSide();
-			player.sendMessage(
-					Text.translatable("gui.mpsqcamera.auswahl.pos1_gesetzt"), true);
+			selectionPos1 = target.immutable();
+			selectionSide = hit.getDirection();
+			de.galaxushd.mpsqcamera.compat.PlayerMessages.send(player, 
+					Component.translatable("gui.mpsqcamera.auswahl.pos1_gesetzt"), true);
 			MpsqCameraClient.LOGGER.info("[MPSQ Team] Pos 1 markiert: {}", selectionPos1);
 		} else {
 			// ── Zweiter Klick: Endpunkt → automatisch bestätigen & Menü öffnen
 			BlockPos pos1 = selectionPos1;
-			BlockPos pos2 = target.toImmutable();
+			BlockPos pos2 = target.immutable();
 			Direction side = selectionSide;
 			selectionPos1 = null; // Auswahl-Modus beenden
 			selectionSide = null;
 
 			MpsqCameraClient.LOGGER.info("[MPSQ Team] Pos 2 markiert: {} → Erstell-Menü öffnen", pos2);
-			client.setScreen(new BildschirmErstellenScreen(pos1, pos2, side));
+			client.gui.setScreen(new BildschirmErstellenScreen(pos1, pos2, side));
 		}
 	}
 
-	private static boolean isHoldingToolItem(ClientPlayerEntity player) {
+	private static boolean isHoldingToolItem(LocalPlayer player) {
 		Item toolItem = getConfiguredToolItem();
-		return player.getMainHandStack().isOf(toolItem) || player.getOffHandStack().isOf(toolItem);
+		return player.getMainHandItem().is(toolItem) || player.getOffhandItem().is(toolItem);
 	}
 
 	private static Item getConfiguredToolItem() {
 		Identifier identifier = Identifier.tryParse(ModConfig.toolItemId);
-		if (identifier != null && Registries.ITEM.containsId(identifier)) {
-			return Registries.ITEM.get(identifier);
+		if (identifier != null && BuiltInRegistries.ITEM.containsKey(identifier)) {
+			return BuiltInRegistries.ITEM.getValue(identifier);
 		}
 		return Items.INK_SAC;
 	}
@@ -722,18 +722,18 @@ public final class ScreenCreationManager {
 	private static final class ViewSession {
 		private final BlockPos sourceAnchor;
 		private UUID cameraId;
-		private final Vec3d originPos;
-		private final RegistryKey<World> originDimension;
+		private final Vec3 originPos;
+		private final ResourceKey<Level> originDimension;
 		private final Entity previousCameraEntity;
-		private final Perspective previousPerspective;
-		private final ArmorStandEntity cameraEntity;
+		private final CameraType previousPerspective;
+		private final ArmorStand cameraEntity;
 		private float viewYaw;
 		private float viewPitch;
 		private final List<UUID> mobileCameraIds;
 
-		private ViewSession(BlockPos sourceAnchor, UUID cameraId, Vec3d originPos,
-				RegistryKey<World> originDimension, Entity previousCameraEntity,
-				Perspective previousPerspective, ArmorStandEntity cameraEntity,
+		private ViewSession(BlockPos sourceAnchor, UUID cameraId, Vec3 originPos,
+				ResourceKey<Level> originDimension, Entity previousCameraEntity,
+				CameraType previousPerspective, ArmorStand cameraEntity,
 				float viewYaw, float viewPitch, List<UUID> mobileCameraIds) {
 			this.sourceAnchor = sourceAnchor;
 			this.cameraId = cameraId;
@@ -748,11 +748,11 @@ public final class ScreenCreationManager {
 		}
 
 		private BlockPos sourceAnchor() { return sourceAnchor; }
-		private Vec3d originPos() { return originPos; }
-		private RegistryKey<World> originDimension() { return originDimension; }
+		private Vec3 originPos() { return originPos; }
+		private ResourceKey<Level> originDimension() { return originDimension; }
 		private Entity previousCameraEntity() { return previousCameraEntity; }
-		private Perspective previousPerspective() { return previousPerspective; }
-		private ArmorStandEntity cameraEntity() { return cameraEntity; }
+		private CameraType previousPerspective() { return previousPerspective; }
+		private ArmorStand cameraEntity() { return cameraEntity; }
 		private UUID cameraId() { return cameraId; }
 		private boolean isMobile() { return sourceAnchor == null; }
 		private List<UUID> mobileCameraIds() { return mobileCameraIds; }
@@ -761,14 +761,14 @@ public final class ScreenCreationManager {
 		private void applyMouseLook(double cursorDeltaX, double cursorDeltaY) {
 			// Matches Minecraft's normal Entity.changeLookDirection scale, but
 			// retains the values independently from ArmorStandEntity's own tick.
-			viewYaw = MathHelper.wrapDegrees(viewYaw + (float) cursorDeltaX * 0.15F);
-			viewPitch = MathHelper.clamp(viewPitch + (float) cursorDeltaY * 0.15F, -90.0F, 90.0F);
+			viewYaw = Mth.wrapDegrees(viewYaw + (float) cursorDeltaX * 0.15F);
+			viewPitch = Mth.clamp(viewPitch + (float) cursorDeltaY * 0.15F, -90.0F, 90.0F);
 			applyViewRotation();
 		}
 
 		private void setViewRotation(float yaw, float pitch) {
 			viewYaw = yaw;
-			viewPitch = MathHelper.clamp(pitch, -90.0F, 90.0F);
+			viewPitch = Mth.clamp(pitch, -90.0F, 90.0F);
 			applyViewRotation();
 		}
 

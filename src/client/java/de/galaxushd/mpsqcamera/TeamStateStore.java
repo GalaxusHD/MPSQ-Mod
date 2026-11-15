@@ -26,6 +26,8 @@ public final class TeamStateStore {
     }
     public static Optional<TeamProfile> byMinecraftName(String name) {
         if (name == null) return Optional.empty();
+        TeamProfile local=self;
+        if(local!=null&&local.displayName().trim().equalsIgnoreCase(name.trim()))return Optional.of(local);
         return members.stream().filter(profile -> profile.displayName().trim().equalsIgnoreCase(name.trim())).findFirst();
     }
     public static synchronized void setMembers(List<TeamProfile> value) {

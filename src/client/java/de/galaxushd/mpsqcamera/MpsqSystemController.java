@@ -16,6 +16,12 @@ public final class MpsqSystemController {
     private static final Map<String, Listener> LISTENERS = new ConcurrentHashMap<>();
     private static final Map<String, String> SYSTEM_LABELS = new ConcurrentHashMap<>();
     private static volatile String activeSystemId = "";
+    private static final List<String> ORDER = List.of("red_light_green_light", "dalgona", "tug_of_war", "marbles", "glass_bridge", "finale", "six_leg", "room_game", "hide_and_seek", "rope_jump", "sky_squid");
+    static {
+        String[] labels = {"Dalgona", "Tauziehen", "Murmelspiel", "Glass Bridge", "Finale", "Sechsbein-Spiel", "Raumspiel", "Hide and Seek", "Seilspringen", "Sky Squid Game"};
+        for (int i = 0; i < labels.length; i++) SYSTEM_LABELS.put(ORDER.get(i + 1), labels[i] + " (Platzhalter)");
+    }
+    public static boolean implemented(String id) { return LISTENERS.containsKey(normalize(id)); }
 
     private MpsqSystemController() { }
 
@@ -43,7 +49,7 @@ public final class MpsqSystemController {
     public static List<SystemOption> availableSystems() {
         return SYSTEM_LABELS.entrySet().stream()
                 .map(entry -> new SystemOption(entry.getKey(), entry.getValue()))
-                .sorted(Comparator.comparing(SystemOption::label, String.CASE_INSENSITIVE_ORDER))
+                .sorted(Comparator.comparingInt(option -> ORDER.indexOf(option.id()) < 0 ? 999 : ORDER.indexOf(option.id())))
                 .toList();
     }
 
@@ -84,11 +90,19 @@ public final class MpsqSystemController {
     }
 
     private static void activate(String nextId) {
+        if (!nextId.isEmpty() && MpsqReplayPlayback.active()) return;
+        if (!nextId.isEmpty() && !implemented(nextId)) return;
+        if(!nextId.isEmpty()){
+            String error=MpsqGamesRuntime.configurationError(nextId);
+            if(!error.isEmpty()){var c=net.minecraft.client.Minecraft.getInstance();if(c.player!=null)de.galaxushd.mpsqcamera.compat.PlayerMessages.send(c.player, net.minecraft.network.chat.Component.literal(error),false);return;}
+        }
         if (activeSystemId.equals(nextId)) return;
+        MpsqReplayManager.finish();
         String previous = activeSystemId;
         activeSystemId = nextId;
         notifyListener(previous, false);
         notifyListener(nextId, true);
+        MpsqReplayManager.transition(nextId);
     }
 
     private static void notifyListener(String id, boolean activated) {

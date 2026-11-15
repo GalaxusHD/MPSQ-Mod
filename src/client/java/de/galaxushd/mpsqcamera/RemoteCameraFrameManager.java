@@ -2,14 +2,13 @@ package de.galaxushd.mpsqcamera;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.mojang.blaze3d.platform.NativeImage;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
-import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.texture.NativeImage;
-import net.minecraft.client.texture.NativeImageBackedTexture;
-import net.minecraft.client.util.ScreenshotRecorder;
-import net.minecraft.util.Identifier;
-
+import de.galaxushd.mpsqcamera.compat.WorldRenderEvents;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.Screenshot;
+import net.minecraft.client.renderer.texture.DynamicTexture;
+import net.minecraft.resources.Identifier;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.URI;
@@ -52,7 +51,7 @@ public final class RemoteCameraFrameManager {
     private static final int STREAM_HEIGHT = 360;
     private static final HttpClient HTTP = HttpClient.newHttpClient();
     private static final Map<UUID, Identifier> TEXTURE_IDS = new ConcurrentHashMap<>();
-    private static final Map<UUID, NativeImageBackedTexture> TEXTURES = new ConcurrentHashMap<>();
+    private static final Map<UUID, DynamicTexture> TEXTURES = new ConcurrentHashMap<>();
     private static final Map<UUID, Long> LAST_REQUEST_MS = new ConcurrentHashMap<>();
     private static final Map<UUID, String> FRAME_URLS = new ConcurrentHashMap<>();
     private static final Map<UUID, Long> FRAME_URL_EXPIRY_MS = new ConcurrentHashMap<>();
@@ -110,14 +109,14 @@ public final class RemoteCameraFrameManager {
     }
 
     public static Identifier texture(UUID cameraId) {
-        if (cameraId == null) return null;
+        if (cameraId == null || !TeamVisibilitySettings.inArea()) return null;
         requestLatestFrame(cameraId);
         return TEXTURE_IDS.get(cameraId);
     }
 
     private static void captureProviderFrame() {
-        MinecraftClient client = MinecraftClient.getInstance();
-        refreshMyBodycams();
+        Minecraft client = Minecraft.getInstance();
+        if(!TeamVisibilitySettings.inArea()){if(snapshotCompleteCallback!=null)finishSnapshot();stopPublishing();return;}refreshMyBodycams();
         if (providerCamera != null && LocalCameraStore.find(providerCamera)
                 .map(camera -> CameraSafety.isStaticCameraBlocked(client, camera)).orElse(false)) {
             // Never encode or upload a frame that was captured through terrain.
@@ -130,7 +129,7 @@ public final class RemoteCameraFrameManager {
         }
         boolean hasBodycams;
         synchronized (OWN_BODYCAMS) { hasBodycams = !OWN_BODYCAMS.isEmpty(); }
-        if ((providerCamera == null && !hasBodycams) || publishing || client.getFramebuffer() == null) return;
+        if ((providerCamera == null && !hasBodycams) || publishing || client.gameRenderer.mainRenderTarget() == null) return;
         long now = System.currentTimeMillis();
         if (providerCamera != null && now - lastPresenceMs >= 5_000L) {
             lastPresenceMs = now;
@@ -143,7 +142,7 @@ public final class RemoteCameraFrameManager {
         if (providerCamera == null) lastBodycamPublishMs = now;
         publishing = true;
 
-        ScreenshotRecorder.takeScreenshot(client.getFramebuffer(), 1, image -> {
+        Screenshot.takeScreenshot(client.gameRenderer.mainRenderTarget(), 1, image -> {
             Set<UUID> targets;
             synchronized (OWN_BODYCAMS) {
                 targets = new HashSet<>(OWN_BODYCAMS);
@@ -188,7 +187,7 @@ public final class RemoteCameraFrameManager {
 		if (callback == null) return;
 		snapshotCompleteCallback = null;
 		providerCamera = null;
-		MinecraftClient.getInstance().execute(callback);
+		Minecraft.getInstance().execute(callback);
 	}
 
     private static void refreshMyBodycams() {
@@ -211,7 +210,7 @@ public final class RemoteCameraFrameManager {
     private static byte[] encode(NativeImage image) throws IOException {
         Path file = Files.createTempFile("mpsq-camera-frame-", ".png");
         try {
-            image.writeTo(file);
+            image.writeToFile(file);
             return Files.readAllBytes(file);
         } finally {
             Files.deleteIfExists(file);
@@ -240,35 +239,13 @@ public final class RemoteCameraFrameManager {
     }
 
     private static void requestLatestFrame(UUID cameraId) {
-        long now = System.currentTimeMillis();
-        if (now - LAST_REQUEST_MS.getOrDefault(cameraId, 0L) < FRAME_INTERVAL_MS) return;
-        LAST_REQUEST_MS.put(cameraId, now);
-        String frameUrl = FRAME_URLS.get(cameraId);
-        if (frameUrl != null && now < FRAME_URL_EXPIRY_MS.getOrDefault(cameraId, 0L)) {
-            if (!FRAME_DOWNLOADS_IN_FLIGHT.add(cameraId)) return;
-            downloadFrame(frameUrl)
-                    .thenAccept(image -> MinecraftClient.getInstance().execute(() -> install(cameraId, image)))
-                    .exceptionally(error -> {
-                        invalidateFrameUrl(cameraId);
-                        MpsqCameraClient.LOGGER.debug("Direkter Kamera-Abruf fehlgeschlagen", error);
-                        return null;
-                    })
-                    .whenComplete((ignored, error) -> FRAME_DOWNLOADS_IN_FLIGHT.remove(cameraId));
-            return;
-        }
-        if (!URL_REQUESTS_IN_FLIGHT.add(cameraId)) return;
-        MpsqApiClient.get("/cameras/" + cameraId + "/frame")
-                .thenCompose(result -> rememberAndDownload(cameraId, result))
-                .thenAccept(image -> MinecraftClient.getInstance().execute(() -> install(cameraId, image)))
-                .exceptionally(error -> {
-                    // A static camera intentionally stops uploading after its
-                    // final snapshot. Keep an already received image visible
-                    // when a later poll briefly reports it as offline.
-                    MinecraftClient.getInstance().execute(() -> {
-                        if (!TEXTURE_IDS.containsKey(cameraId)) removeTexture(cameraId);
-                    });
-                    return null;
-                }).whenComplete((ignored, error) -> URL_REQUESTS_IN_FLIGHT.remove(cameraId));
+        long now=System.currentTimeMillis();
+        if(now-LAST_REQUEST_MS.getOrDefault(cameraId,0L)<FRAME_INTERVAL_MS || !LocalCameraFrameStore.hasFrame(cameraId))return;
+        LAST_REQUEST_MS.put(cameraId,now);
+        if(!FRAME_DOWNLOADS_IN_FLIGHT.add(cameraId))return;
+        LocalCameraFrameStore.load(cameraId)
+            .thenAccept(image->Minecraft.getInstance().execute(()->install(cameraId,image)))
+            .whenComplete((ignored,error)->FRAME_DOWNLOADS_IN_FLIGHT.remove(cameraId));
     }
 
     private static CompletableFuture<NativeImage> rememberAndDownload(UUID cameraId, JsonElement result) {
@@ -334,22 +311,22 @@ public final class RemoteCameraFrameManager {
     }
 
     private static void install(UUID cameraId, NativeImage image) {
-        NativeImageBackedTexture texture = TEXTURES.get(cameraId);
+        DynamicTexture texture = TEXTURES.get(cameraId);
         if (texture == null) {
-            texture = new NativeImageBackedTexture(() -> "mpsq-camera-" + cameraId, image);
-            Identifier id = Identifier.of(MpsqCameraClient.MOD_ID, "remote_camera/" + cameraId);
-            MinecraftClient.getInstance().getTextureManager().registerTexture(id, texture);
+            texture = new DynamicTexture(() -> "mpsq-camera-" + cameraId, image);
+            Identifier id = Identifier.fromNamespaceAndPath(MpsqCameraClient.MOD_ID, "remote_camera/" + cameraId);
+            Minecraft.getInstance().getTextureManager().register(id, texture);
             texture.upload();
             TEXTURES.put(cameraId, texture);
             TEXTURE_IDS.put(cameraId, id);
         } else {
-            texture.setImage(image);
+            texture.setPixels(image);
             texture.upload();
         }
     }
 
     private static void removeTexture(UUID cameraId) {
-        NativeImageBackedTexture texture = TEXTURES.remove(cameraId);
+        DynamicTexture texture = TEXTURES.remove(cameraId);
         if (texture != null) texture.close();
         TEXTURE_IDS.remove(cameraId);
     }
@@ -357,7 +334,7 @@ public final class RemoteCameraFrameManager {
     private static void clear() {
         stopPublishing();
         snapshotCompleteCallback = null;
-        TEXTURES.values().forEach(NativeImageBackedTexture::close);
+        TEXTURES.values().forEach(DynamicTexture::close);
         TEXTURES.clear();
         TEXTURE_IDS.clear();
         LAST_REQUEST_MS.clear();

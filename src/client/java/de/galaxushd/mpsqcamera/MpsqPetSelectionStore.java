@@ -18,6 +18,21 @@ public final class MpsqPetSelectionStore {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static String selected = load();
     private static String budgieVariant = loadBudgieVariant();
+    private static String owlVariant = loadOwlVariant();
+    private static String tigerVariant = loadTigerVariant();
+    public static boolean isTiger(String id){return "mpsq_tiger".equals(id)||"mpsq_tiger_baby".equals(id);}
+    public static synchronized String tigerVariant(){return tigerVariant;}
+    private static String loadTigerVariant(){
+        if(isTiger(selected))return selected;
+        var data=readData();String id=data.has("tiger_variant")&&data.get("tiger_variant").isJsonPrimitive()?data.get("tiger_variant").getAsString():"mpsq_tiger";
+        return isTiger(id)?id:"mpsq_tiger";
+    }
+    public static synchronized boolean selectTigerVariant(String id){
+        if(!isTiger(id))return false;
+        var data=readData();data.addProperty("tiger_variant",id);boolean equipped=isTiger(selected);
+        if(equipped)data.addProperty("selected_pet",id);
+        if(!save(data))return false;tigerVariant=id;if(equipped)selected=id;return true;
+    }
     public static synchronized String budgieVariant() { return budgieVariant; }
     public static synchronized boolean selectBudgieVariant(String variant) {
         if (!MpsqBudgiePetRenderer.isVariant(variant)) return false;
@@ -28,18 +43,36 @@ public final class MpsqPetSelectionStore {
         return true;
     }
 
+    public static synchronized String owlVariant(){ return owlVariant; }
+    private static String loadOwlVariant(){
+        if(selected!=null&&selected.startsWith("nogs_owl_"))return selected;
+        var data=readData();String id=data.has("owl_variant")&&data.get("owl_variant").isJsonPrimitive()?data.get("owl_variant").getAsString():"nogs_owl_barn";
+        return MpsqPetCatalog.byId(id)!=null&&id.startsWith("nogs_owl_")?id:"nogs_owl_barn";
+    }
+    public static synchronized boolean selectOwlVariant(String id){
+        if(id==null||!id.startsWith("nogs_owl_")||MpsqPetCatalog.byId(id)==null)return false;
+        var data=readData();data.addProperty("owl_variant",id);
+        boolean equipped=selected!=null&&selected.startsWith("nogs_owl_");
+        if(equipped)data.addProperty("selected_pet",id);
+        if(!save(data))return false;owlVariant=id;if(equipped)selected=id;return true;
+    }
     private MpsqPetSelectionStore() { }
 
     public static synchronized String selectedId() { return selected; }
+    public static synchronized String activeId() { return MpsqPetVisibility.suppressed()?null:selected; }
 
     public static synchronized boolean select(String id) {
         if (id != null && MpsqPetCatalog.byId(id) == null) return false;
         JsonObject data = readData();
         data.addProperty("schema", 2);
+        if(isTiger(id))data.addProperty("tiger_variant",id);
+        if(id!=null&&id.startsWith("nogs_owl_"))data.addProperty("owl_variant",id);
         if (id == null) data.add("selected_pet", com.google.gson.JsonNull.INSTANCE);
         else data.addProperty("selected_pet", id);
         if (!save(data)) return false;
         selected = id;
+        if(isTiger(id))tigerVariant=id;
+        if(id!=null&&id.startsWith("nogs_owl_"))owlVariant=id;
         return true;
     }
 
@@ -83,4 +116,6 @@ public final class MpsqPetSelectionStore {
         return MpsqBudgiePetRenderer.isVariant(variant) ? variant : "green";
     }
 }
+
+
 

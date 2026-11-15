@@ -1,9 +1,9 @@
 package de.galaxushd.mpsqcamera;
 
-import net.minecraft.client.gl.RenderPipelines;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.util.Formatting;
-import net.minecraft.util.Identifier;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.resources.Identifier;
 
 /** Shared MPSQ Team roles. The order is the permission order, not a public leaderboard. */
 public enum TeamRank {
@@ -34,23 +34,23 @@ public enum TeamRank {
     public String label() { return label; }
     public int level() { return level; }
     /** Colour used for the normal Minecraft chat name, not for the rank image. */
-    public Formatting chatColor() {
+    public ChatFormatting chatColor() {
         return switch (this) {
-            case UNDERCOVER_001, VIP -> Formatting.GOLD;
-            case STREAMER -> Formatting.LIGHT_PURPLE;
-            case SOLDIER, WORKER, OFFICER -> Formatting.RED;
-            case FRONTMAN, SENIOR_OFFICER -> Formatting.DARK_GRAY;
-            case PLAYER -> Formatting.AQUA;
+            case UNDERCOVER_001, VIP -> ChatFormatting.GOLD;
+            case STREAMER -> ChatFormatting.LIGHT_PURPLE;
+            case SOLDIER, WORKER, OFFICER -> ChatFormatting.RED;
+            case FRONTMAN, SENIOR_OFFICER -> ChatFormatting.DARK_GRAY;
+            case PLAYER -> ChatFormatting.AQUA;
         };
     }
     public boolean canViewCameras() { return this == STREAMER || level >= SOLDIER.level; }
     public boolean canSeeHiddenNames() { return level >= SOLDIER.level; }
-    public Identifier texture() { return Identifier.of(MpsqCameraClient.MOD_ID, "textures/gui/ranks/" + id + ".png"); }
+    public Identifier texture() { return Identifier.fromNamespaceAndPath(MpsqCameraClient.MOD_ID, "textures/gui/ranks/" + id + ".png"); }
     public int widthForHeight(int height) { return Math.max(1, textureWidth * height / TEXTURE_HEIGHT); }
 
-    public void draw(DrawContext context, int x, int y, int height) {
+    public void draw(GuiGraphicsExtractor context, int x, int y, int height) {
         int width = widthForHeight(height);
-        context.drawTexture(RenderPipelines.GUI_TEXTURED, texture(), x, y, 0, 0, width, height,
+        context.blit(RenderPipelines.GUI_TEXTURED, texture(), x, y, 0, 0, width, height,
                 textureWidth, TEXTURE_HEIGHT, textureWidth, TEXTURE_HEIGHT);
     }
 

@@ -3,9 +3,6 @@ package de.galaxushd.mpsqcamera;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Vec3d;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -17,17 +14,25 @@ import java.time.Instant;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CompletableFuture;
+import net.minecraft.client.Minecraft;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.phys.Vec3;
 
 /** Fetches screens and their server-only metadata in one request. */
 public final class ScreenSyncManager {
     private ScreenSyncManager() { }
     public static CompletableFuture<Void> refresh() {
+        var requestWorld = Minecraft.getInstance().level;
+        if (requestWorld == null) return CompletableFuture.completedFuture(null);
         String server=MpsqActionSync.server(),world=MpsqActionSync.world();
         String path="/screens?server="+URLEncoder.encode(server,StandardCharsets.UTF_8)+"&world="+URLEncoder.encode(world,StandardCharsets.UTF_8);
         return MpsqApiClient.get(path).thenCompose(json -> {
             List<LocalScreenStore.LocalScreenData> screens = new ArrayList<>(); Map<UUID, String> codes = new HashMap<>(); Map<UUID, LocalScreenStore.LocalGroupData> groups = new HashMap<>(); Set<UUID> owned = new HashSet<>(),triggerLinkedOnly=new HashSet<>(); Map<UUID, CinemaPlaybackStore.PlaybackState> playbackStates = new HashMap<>();
             for (JsonElement item : json.getAsJsonArray()) {
-                JsonObject row = item.getAsJsonObject(); UUID id = UUID.fromString(row.get("id").getAsString());
+                JsonObject row = item.getAsJsonObject();
+                if (row.has("dimension") && !row.get("dimension").isJsonNull()
+                        && !world.equals(row.get("dimension").getAsString())) continue;
+                UUID id = UUID.fromString(row.get("id").getAsString());
                 BlockPos p1 = new BlockPos(row.get("pos1_x").getAsInt(), row.get("pos1_y").getAsInt(), row.get("pos1_z").getAsInt()); BlockPos p2 = new BlockPos(row.get("pos2_x").getAsInt(), row.get("pos2_y").getAsInt(), row.get("pos2_z").getAsInt());
                 UUID groupId = row.has("group_id") && !row.get("group_id").isJsonNull() ? UUID.fromString(row.get("group_id").getAsString()) : null;
                 codes.put(id, row.has("activation_code")&&!row.get("activation_code").isJsonNull()?row.get("activation_code").getAsString():"------"); if (row.has("is_owner") && row.get("is_owner").getAsBoolean()) owned.add(id);
@@ -71,13 +76,38 @@ public final class ScreenSyncManager {
                     } catch (RuntimeException ignored) { }
                     playbackStates.put(id, new CinemaPlaybackStore.PlaybackState(playing, Math.max(0L, positionMs), revision, updatedAtMs));
                 }
-                screens.add(new LocalScreenStore.LocalScreenData(id, p1, p2, row.get("name").getAsString(), new Vec3d(p1.getX(), p1.getY(), p1.getZ()), mode, row.get("cinema_url").getAsString(), firstCameraId, groupId));
+                screens.add(new LocalScreenStore.LocalScreenData(id, p1, p2, row.get("name").getAsString(), new Vec3(p1.getX(), p1.getY(), p1.getZ()), mode, row.get("cinema_url").getAsString(), firstCameraId, groupId));
             }
             CompletableFuture<Void> applied = new CompletableFuture<>();
-            MinecraftClient.getInstance().execute(() -> {
+            Minecraft.getInstance().execute(() -> {
+                if (Minecraft.getInstance().level != requestWorld
+                        || !server.equals(MpsqActionSync.server())) {
+                    applied.complete(null);
+                    return;
+                }
+                CinemaBrowserManager.checkWorld();
+                // Local redstone commands have no backend playback persistence.
+                if (server.isBlank()) {
+                    for (var screen : screens) {
+                        if (screen.inputType() == LocalScreenStore.ScreenInputType.MPSQ_REDSTONE) {
+                            playbackStates.remove(screen.id());
+                        }
+                    }
+                }
+                for (int i = 0; i < screens.size(); i++) {
+                    var incoming = screens.get(i);
+                    var previous = LocalScreenStore.findById(incoming.id()).orElse(null);
+                    var state = playbackStates.get(incoming.id());
+                    if (previous != null && (state == null
+                            || state.revision() < CinemaPlaybackStore.get(incoming.id()).revision())) {
+                        screens.set(i, new LocalScreenStore.LocalScreenData(incoming.id(), incoming.pos1(),
+                                incoming.pos2(), incoming.name(), incoming.createdFrom(), incoming.inputType(),
+                                previous.url(), incoming.cameraId(), incoming.groupId()));
+                    }
+                }
                 LocalScreenStore.replaceAll(screens);
                 ScreenAccessStore.replace(codes, groups, owned, triggerLinkedOnly);
-                CinemaPlaybackStore.replace(playbackStates);
+                CinemaPlaybackStore.merge(playbackStates);
                 CinemaBrowserManager.synchronize();
                 applied.complete(null);
             });

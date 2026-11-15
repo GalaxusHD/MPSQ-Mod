@@ -1,23 +1,23 @@
 package de.galaxushd.mpsqcamera;
 
-import net.minecraft.text.MutableText;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
-
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
+import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 
 /** Turns familiar ampersand Minecraft codes into safe client chat text. */
 public final class TeamChatText {
+    private static int rgb(ChatFormatting format) { var color=net.minecraft.network.chat.TextColor.fromLegacyFormat(format); return color==null?0xFFFFFF:color.getValue(); }
     private TeamChatText() {
     }
 
-    public static MutableText fromAmpersandCodes(String raw, Formatting initialColor) {
-        MutableText result = Text.empty();
+    public static MutableComponent fromAmpersandCodes(String raw, ChatFormatting initialColor) {
+        MutableComponent result = Component.empty();
         String text = raw == null ? "" : raw;
-        int color = initialColor.getColorValue() == null ? 0xFFFFFF : initialColor.getColorValue();
-        EnumSet<Formatting> styles = EnumSet.noneOf(Formatting.class);
+        int color = rgb(initialColor);
+        EnumSet<ChatFormatting> styles = EnumSet.noneOf(ChatFormatting.class);
         StringBuilder part = new StringBuilder();
 
         for (int index = 0; index < text.length(); index++) {
@@ -25,18 +25,18 @@ public final class TeamChatText {
             if (current == '&' && index + 1 < text.length()) {
                 char rawCode = Character.toLowerCase(text.charAt(index + 1));
                 Integer customColor = customColor(rawCode);
-                Formatting code = formatting(rawCode);
+                ChatFormatting code = formatting(rawCode);
                 if (code != null || customColor != null) {
                     append(result, part, color, styles);
                     part.setLength(0);
                     if (customColor != null) {
                         color = customColor;
                         styles.clear();
-                    } else if (code == Formatting.RESET) {
-                        color = initialColor.getColorValue() == null ? 0xFFFFFF : initialColor.getColorValue();
+                    } else if (code == ChatFormatting.RESET) {
+                        color = rgb(initialColor);
                         styles.clear();
-                    } else if (code.isColor()) {
-                        color = code.getColorValue();
+                    } else if (net.minecraft.network.chat.TextColor.fromLegacyFormat(code) != null) {
+                        color = rgb(code);
                         styles.clear();
                     } else {
                         styles.add(code);
@@ -51,11 +51,11 @@ public final class TeamChatText {
         return result;
     }
 
-    private static void append(MutableText target, StringBuilder part, int color, EnumSet<Formatting> styles) {
+    private static void append(MutableComponent target, StringBuilder part, int color, EnumSet<ChatFormatting> styles) {
         if (part.isEmpty()) return;
-        target.append(Text.literal(part.toString())
-                .formatted(styles.toArray(Formatting[]::new))
-                .styled(style -> style.withColor(color)));
+        target.append(Component.literal(part.toString())
+                .withStyle(styles.toArray(ChatFormatting[]::new))
+                .withStyle(style -> style.withColor(color)));
     }
 
     /** Extra MixelPixel chat colors that deliberately do not collide with vanilla codes. */
@@ -71,30 +71,30 @@ public final class TeamChatText {
         };
     }
 
-    private static Formatting formatting(char code) {
+    private static ChatFormatting formatting(char code) {
         return switch (Character.toLowerCase(code)) {
-            case '0' -> Formatting.BLACK;
-            case '1' -> Formatting.DARK_BLUE;
-            case '2' -> Formatting.DARK_GREEN;
-            case '3' -> Formatting.DARK_AQUA;
-            case '4' -> Formatting.DARK_RED;
-            case '5' -> Formatting.DARK_PURPLE;
-            case '6' -> Formatting.GOLD;
-            case '7' -> Formatting.GRAY;
-            case '8' -> Formatting.DARK_GRAY;
-            case '9' -> Formatting.BLUE;
-            case 'a' -> Formatting.GREEN;
-            case 'b' -> Formatting.AQUA;
-            case 'c' -> Formatting.RED;
-            case 'd' -> Formatting.LIGHT_PURPLE;
-            case 'e' -> Formatting.YELLOW;
-            case 'f' -> Formatting.WHITE;
-            case 'k' -> Formatting.OBFUSCATED;
-            case 'l' -> Formatting.BOLD;
-            case 'm' -> Formatting.STRIKETHROUGH;
-            case 'n' -> Formatting.UNDERLINE;
-            case 'o' -> Formatting.ITALIC;
-            case 'r' -> Formatting.RESET;
+            case '0' -> ChatFormatting.BLACK;
+            case '1' -> ChatFormatting.DARK_BLUE;
+            case '2' -> ChatFormatting.DARK_GREEN;
+            case '3' -> ChatFormatting.DARK_AQUA;
+            case '4' -> ChatFormatting.DARK_RED;
+            case '5' -> ChatFormatting.DARK_PURPLE;
+            case '6' -> ChatFormatting.GOLD;
+            case '7' -> ChatFormatting.GRAY;
+            case '8' -> ChatFormatting.DARK_GRAY;
+            case '9' -> ChatFormatting.BLUE;
+            case 'a' -> ChatFormatting.GREEN;
+            case 'b' -> ChatFormatting.AQUA;
+            case 'c' -> ChatFormatting.RED;
+            case 'd' -> ChatFormatting.LIGHT_PURPLE;
+            case 'e' -> ChatFormatting.YELLOW;
+            case 'f' -> ChatFormatting.WHITE;
+            case 'k' -> ChatFormatting.OBFUSCATED;
+            case 'l' -> ChatFormatting.BOLD;
+            case 'm' -> ChatFormatting.STRIKETHROUGH;
+            case 'n' -> ChatFormatting.UNDERLINE;
+            case 'o' -> ChatFormatting.ITALIC;
+            case 'r' -> ChatFormatting.RESET;
             default -> null;
         };
     }

@@ -1,14 +1,14 @@
 package de.galaxushd.mpsqcamera;
 
-import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
-import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
-import net.minecraft.client.render.RenderLayer;
-import net.minecraft.client.render.VertexConsumer;
-import net.minecraft.client.render.VertexConsumerProvider;
-import net.minecraft.client.render.VertexRendering;
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Vec3d;
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.VertexConsumer;
+import de.galaxushd.mpsqcamera.compat.WorldRenderContext;
+import de.galaxushd.mpsqcamera.compat.WorldRenderEvents;
+import de.galaxushd.mpsqcamera.compat.MultiBufferSource;
+import net.minecraft.client.renderer.rendertype.RenderType;
+import de.galaxushd.mpsqcamera.compat.ShapeRenderer;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.phys.Vec3;
 
 /**
  * Zeichnet einen roten Wireframe-Rahmen im Welt-Raum während der zweistufigen
@@ -25,22 +25,34 @@ public final class SelectionRenderer {
     }
 
     private static void render(WorldRenderContext ctx) {
+        if(MpsqFinishZoneTool.editorEnabled()&&ctx.consumers()!=null&&ctx.matrixStack()!=null){
+            var m=ctx.matrixStack();var cam=ctx.camera().getPos();m.pushPose();m.translate(-cam.x,-cam.y,-cam.z);
+            var lines=ctx.consumers().getBuffer(net.minecraft.client.renderer.rendertype.RenderTypes.lines());
+            for(var entry:MpsqZoneCatalog.all()){
+                var b=entry.box();int color=MpsqZoneCatalog.frameColor(entry.kind());
+                ShapeRenderer.renderLineBox(m,lines,b.minX(),b.minY(),b.minZ(),b.maxX(),b.maxY(),b.maxZ(),((color>>16)&255)/255f,((color>>8)&255)/255f,(color&255)/255f,1f);
+            }
+            m.popPose();
+        }
         BlockPos pos1 = ScreenCreationManager.getSelectionPos1();
+        boolean gameZone = MpsqFinishZoneTool.firstCorner() != null;
+        if(gameZone) pos1=MpsqFinishZoneTool.firstCorner();
         if (pos1 == null) return;
 
         // Vorschau-Endpunkt: aktuell anvisierter Block (oder pos1 wenn kein Block)
         BlockPos pos2 = ScreenCreationManager.getSelectionPos2Preview();
+        if(gameZone && net.minecraft.client.Minecraft.getInstance().hitResult instanceof net.minecraft.world.phys.BlockHitResult hit) pos2=hit.getBlockPos();
         if (pos2 == null) pos2 = pos1;
 
-        VertexConsumerProvider consumers = ctx.consumers();
+        MultiBufferSource consumers = ctx.consumers();
         if (consumers == null) return;
 
-        MatrixStack matrices = ctx.matrixStack();
+        PoseStack matrices = ctx.matrixStack();
         if (matrices == null) return;
 
-        Vec3d camPos = ctx.camera().getPos();
+        Vec3 camPos = ctx.camera().getPos();
 
-        matrices.push();
+        matrices.pushPose();
         matrices.translate(-camPos.x, -camPos.y, -camPos.z);
 
         // Begrenzende Box zwischen den beiden Positionen (je +1 für volle Blockausdehnung)
@@ -51,11 +63,12 @@ public final class SelectionRenderer {
         double y2 = Math.max(pos1.getY(), pos2.getY()) + 1.0;
         double z2 = Math.max(pos1.getZ(), pos2.getZ()) + 1.0;
 
-        VertexConsumer vc = consumers.getBuffer(RenderLayer.getLines());
+        VertexConsumer vc = consumers.getBuffer(net.minecraft.client.renderer.rendertype.RenderTypes.lines());
         // Roter Wireframe-Rahmen (R=1.0, G=0.0, B=0.0, A=0.8)
-        VertexRendering.drawBox(matrices, vc, x1, y1, z1, x2, y2, z2,
-                1.0f, 0.0f, 0.0f, 0.8f);
+        int color=gameZone?MpsqFinishZoneTool.selectedColor():0xFF0000;
+        ShapeRenderer.renderLineBox(matrices, vc, x1, y1, z1, x2, y2, z2,
+                ((color>>16)&255)/255f,((color>>8)&255)/255f,(color&255)/255f,0.8f);
 
-        matrices.pop();
+        matrices.popPose();
     }
 }

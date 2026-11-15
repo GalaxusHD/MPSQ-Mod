@@ -1,26 +1,27 @@
 package de.galaxushd.mpsqcamera;
 
-import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
-import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
-import net.minecraft.client.render.RenderLayer;
-import net.minecraft.client.render.OverlayTexture;
-import net.minecraft.client.render.VertexConsumer;
-import net.minecraft.client.render.VertexConsumerProvider;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Vec3d;
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.VertexConsumer;
+import de.galaxushd.mpsqcamera.compat.WorldRenderContext;
+import de.galaxushd.mpsqcamera.compat.WorldRenderEvents;
+import net.minecraft.client.Minecraft;
+import de.galaxushd.mpsqcamera.compat.MultiBufferSource;
+import net.minecraft.client.renderer.rendertype.RenderType;
+import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.core.BlockPos;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.phys.Vec3;
 
 
 public final class ScreenRenderer {
-    private static final double RENDER_RANGE = 64.0;
+private static final double RENDER_RANGE = 64.0;
     private static final double SURFACE_OFFSET = 0.003;
     private static final double FRAME_THICKNESS = 0.075;
-    private static final int STATUS_OVERLAY_ALPHA = 230;
-    private static final Identifier INACTIVE_OVERLAY = Identifier.of("mpsqcamera", "textures/screens/screen_inactive.png");
-    private static final Identifier REDSTONE_BUTTON_OVERLAY = Identifier.of("mpsqcamera", "textures/screens/screen_button_press.png");
-    private static final Identifier OFFLINE_OVERLAY = Identifier.of("mpsqcamera", "textures/screens/screen_offline.png");
+    private static final double DECORATION_OFFSET = 0.002;
+    private static final int STATUS_OVERLAY_ALPHA = 255;
+    private static final Identifier INACTIVE_OVERLAY = Identifier.fromNamespaceAndPath("mpsqcamera", "textures/screens/screen_inactive.png");
+    private static final Identifier REDSTONE_BUTTON_OVERLAY = Identifier.fromNamespaceAndPath("mpsqcamera", "textures/screens/screen_button_press.png");
+    private static final Identifier OFFLINE_OVERLAY = Identifier.fromNamespaceAndPath("mpsqcamera", "textures/screens/screen_offline.png");
 
     private static final int FRAME_RED = 48;
     private static final int FRAME_GREEN = 52;
@@ -30,40 +31,93 @@ public final class ScreenRenderer {
     }
 
     public static void initialize() {
-        WorldRenderEvents.AFTER_ENTITIES.register(ScreenRenderer::render);
+        ScreenStatusTextures.initialize();
+        WorldRenderEvents.LAST.register(ScreenRenderer::render);
+        WorldRenderEvents.BEFORE_BLOCK_OUTLINE.register((context, hit) ->
+                !(hit instanceof net.minecraft.world.phys.BlockHitResult blockHit)
+                        || !screenOccludesBlock(context.camera().getPos(), blockHit.getLocation()));
     }
 
-    private static void render(WorldRenderContext context) {
-        VertexConsumerProvider consumers = context.consumers();
-        MatrixStack matrices = context.matrixStack();
+    /** Cancel only outlines whose sight line crosses the visible screen face first. */
+    static boolean screenOccludesBlock(Vec3 camera, Vec3 target) {return targetedScreen(camera,target)!=null;}
+    static LocalScreenStore.LocalScreenData targetedScreen(Vec3 camera, Vec3 target) {
+        LocalScreenStore.LocalScreenData chosen=null;double nearest=Double.POSITIVE_INFINITY;
+        for (var screen : LocalScreenStore.getAllScreens()) {
+            var first = screen.pos1();
+            var second = screen.pos2();
+            if (first.distToLowCornerSqr(camera.x, camera.y, camera.z) > MpsqRenderRange.squared()) continue;
+            double minX = Math.min(first.getX(), second.getX());
+            double minY = Math.min(first.getY(), second.getY());
+            double minZ = Math.min(first.getZ(), second.getZ());
+            double maxX = Math.max(first.getX(), second.getX()) + 1.0;
+            double maxY = Math.max(first.getY(), second.getY()) + 1.0;
+            double maxZ = Math.max(first.getZ(), second.getZ()) + 1.0;
+            int axis;
+            double plane, sign;
+            String front = ScreenAccessStore.front(screen.id());
+            switch (front == null ? "NORTH" : front) {
+                case "SOUTH" -> { axis = 2; sign = 1; plane = maxZ + SURFACE_OFFSET; }
+                case "WEST" -> { axis = 0; sign = -1; plane = minX - SURFACE_OFFSET; }
+                case "EAST" -> { axis = 0; sign = 1; plane = maxX + SURFACE_OFFSET; }
+                case "UP" -> { axis = 1; sign = 1; plane = maxY + SURFACE_OFFSET; }
+                case "DOWN" -> { axis = 1; sign = -1; plane = minY - SURFACE_OFFSET; }
+                default -> { axis = 2; sign = -1; plane = minZ - SURFACE_OFFSET; }
+            }
+            double start = axis == 0 ? camera.x : axis == 1 ? camera.y : camera.z;
+            double end = axis == 0 ? target.x : axis == 1 ? target.y : target.z;
+            if ((start - plane) * sign <= 0 || Math.abs(end - start) < 1.0e-9) continue;
+            double t = (plane - start) / (end - start);
+            if (t < 0 || t > 1) continue;
+            Vec3 crossing = camera.add(target.subtract(camera).scale(t));
+            boolean inside = switch (axis) {
+                case 0 -> crossing.y >= minY && crossing.y <= maxY && crossing.z >= minZ && crossing.z <= maxZ;
+                case 1 -> crossing.x >= minX && crossing.x <= maxX && crossing.z >= minZ && crossing.z <= maxZ;
+                default -> crossing.x >= minX && crossing.x <= maxX && crossing.y >= minY && crossing.y <= maxY;
+            };
+            if (inside&&t<nearest){nearest=t;chosen=screen;}
+        }
+        return chosen;
+    }
+
+    public static boolean handleRightClick(){
+        var c=Minecraft.getInstance();
+        if(c.player==null||c.level==null||c.gui.screen()!=null||!c.options.keyShift.isDown()||!TeamVisibilitySettings.inArea()||ScreenCreationManager.isCameraViewActive())return false;
+        var eye=c.player.getEyePosition();
+        var end=c.hitResult instanceof net.minecraft.world.phys.BlockHitResult hit&&hit.getType()==net.minecraft.world.phys.HitResult.Type.BLOCK?hit.getLocation():eye.add(c.player.getViewVector(1).scale(6));
+        var screen=targetedScreen(eye,end);if(screen==null)return false;
+        c.gui.setScreen(new BildschirmDetailScreen(null,screen.id().toString(),screen.name(),ScreenAccessStore.isOwner(screen.id())));return true;
+    }
+
+    private static void render(WorldRenderContext context) { if(!TeamVisibilitySettings.visible())return;
+        MultiBufferSource.BufferSource consumers = context.consumers();
+        PoseStack matrices = context.matrixStack();
 
         if (consumers == null || matrices == null) {
             return;
         }
 
-        Vec3d camera = context.camera().getPos();
+        Vec3 camera = context.camera().getPos();
 
-        matrices.push();
-        matrices.translate(-camera.x, -camera.y, -camera.z);
+        matrices.pushPose();
+        // Subtract the camera before converting to float, preserving the small
+        // layer separation even at large world coordinates.
 
-        VertexConsumer vertices = consumers.getBuffer(RenderLayer.getDebugQuads());
-
-        for (LocalScreenStore.LocalScreenData screen : LocalScreenStore.getAllScreens()) {
+        for (LocalScreenStore.LocalScreenData screen : LocalScreenStore.getAllScreens()) { if(screen.inputType()==LocalScreenStore.ScreenInputType.CAMERA&&!TeamVisibilitySettings.inArea())continue;
             BlockPos first = screen.pos1();
             BlockPos second = screen.pos2();
 
-            if (first.getSquaredDistance(camera.x, camera.y, camera.z)
-                    > RENDER_RANGE * RENDER_RANGE) {
+            if (first.distToLowCornerSqr(camera.x, camera.y, camera.z)
+                    > MpsqRenderRange.squared()) {
                 continue;
             }
 
-            double x1 = Math.min(first.getX(), second.getX());
-            double y1 = Math.min(first.getY(), second.getY());
-            double z1 = Math.min(first.getZ(), second.getZ());
+            double x1 = Math.min(first.getX(), second.getX()) - camera.x;
+            double y1 = Math.min(first.getY(), second.getY()) - camera.y;
+            double z1 = Math.min(first.getZ(), second.getZ()) - camera.z;
 
-            double x2 = Math.max(first.getX(), second.getX()) + 1.0;
-            double y2 = Math.max(first.getY(), second.getY()) + 1.0;
-            double z2 = Math.max(first.getZ(), second.getZ()) + 1.0;
+            double x2 = Math.max(first.getX(), second.getX()) + 1.0 - camera.x;
+            double y2 = Math.max(first.getY(), second.getY()) + 1.0 - camera.y;
+            double z2 = Math.max(first.getZ(), second.getZ()) + 1.0 - camera.z;
 
             boolean cameraScreen = screen.inputType() == LocalScreenStore.ScreenInputType.CAMERA;
             boolean mayViewCamera = TeamStateStore.self().map(TeamProfile::canViewCameras).orElse(false);
@@ -74,21 +128,28 @@ public final class ScreenRenderer {
                 activeCamera = screen.cameraId();
             }
             boolean blockedCamera = cameraScreen && LocalCameraStore.find(activeCamera)
-                    .map(cameraData -> CameraSafety.isStaticCameraBlocked(MinecraftClient.getInstance(), cameraData))
+                    .map(cameraData -> CameraSafety.isStaticCameraBlocked(Minecraft.getInstance(), cameraData))
                     .orElse(false);
             Identifier texture = cameraScreen && (!mayViewCamera || blockedCamera)
                     ? null
                     : (cameraScreen ? RemoteCameraFrameManager.texture(activeCamera) : CinemaBrowserManager.texture(screen.id()));
             CinemaBrowserManager.ScreenStatus screenStatus = cameraScreen
-                    ? (!mayViewCamera ? CinemaBrowserManager.ScreenStatus.OFFLINE
+                    ? (activeCamera == null ? CinemaBrowserManager.ScreenStatus.OFFLINE
+                    : !mayViewCamera ? CinemaBrowserManager.ScreenStatus.INACTIVE
                     : (blockedCamera ? CinemaBrowserManager.ScreenStatus.BLOCKED
-                    : (texture == null ? CinemaBrowserManager.ScreenStatus.OFFLINE : CinemaBrowserManager.ScreenStatus.NONE)))
+                    : (texture == null ? CinemaBrowserManager.ScreenStatus.INACTIVE : CinemaBrowserManager.ScreenStatus.NONE)))
                     : CinemaBrowserManager.status(screen);
 
+            var tv=MpsqTvFurniture.placement(screen.id());
+            if(tv!=null){
+                Vec3 a=MpsqTvFurniture.worldPoint(tv,23,1,7.97).subtract(camera),b=MpsqTvFurniture.worldPoint(tv,-7,1,7.97).subtract(camera),
+                     d=MpsqTvFurniture.worldPoint(tv,23,19,7.97).subtract(camera),e=MpsqTvFurniture.worldPoint(tv,-7,19,7.97).subtract(camera);
+                drawPlane(matrices,consumers,texture,screenStatus,a.x,a.y,a.z,b.x,b.y,b.z,e.x,e.y,e.z,d.x,d.y,d.z,false);
+                continue;
+            }
             drawScreenFace(
                     matrices,
                     consumers,
-                    vertices,
                     ScreenAccessStore.front(screen.id()),
                     texture,
                     screenStatus,
@@ -97,13 +158,13 @@ public final class ScreenRenderer {
             );
         }
 
-        matrices.pop();
+        consumers.endBatch();
+        matrices.popPose();
     }
 
     private static void drawScreenFace(
-            MatrixStack matrices,
-            VertexConsumerProvider consumers,
-            VertexConsumer vertices,
+            PoseStack matrices,
+            MultiBufferSource consumers,
             String front,
             Identifier browserTexture,
             CinemaBrowserManager.ScreenStatus status,
@@ -111,7 +172,7 @@ public final class ScreenRenderer {
             double x2, double y2, double z2
     ) {
         if ("SOUTH".equals(front)) {
-            drawPlane(matrices, consumers, vertices, browserTexture, status,
+            drawPlane(matrices, consumers, browserTexture, status,
                     x1, y1, z2 + SURFACE_OFFSET,
                     x2, y1, z2 + SURFACE_OFFSET,
                     x2, y2, z2 + SURFACE_OFFSET,
@@ -120,7 +181,7 @@ public final class ScreenRenderer {
         }
 
         if ("WEST".equals(front)) {
-            drawPlane(matrices, consumers, vertices, browserTexture, status,
+            drawPlane(matrices, consumers, browserTexture, status,
                     x1 - SURFACE_OFFSET, y1, z1,
                     x1 - SURFACE_OFFSET, y1, z2,
                     x1 - SURFACE_OFFSET, y2, z2,
@@ -129,7 +190,7 @@ public final class ScreenRenderer {
         }
 
         if ("EAST".equals(front)) {
-            drawPlane(matrices, consumers, vertices, browserTexture, status,
+            drawPlane(matrices, consumers, browserTexture, status,
                     x2 + SURFACE_OFFSET, y1, z2,
                     x2 + SURFACE_OFFSET, y1, z1,
                     x2 + SURFACE_OFFSET, y2, z1,
@@ -138,7 +199,7 @@ public final class ScreenRenderer {
         }
 
         if ("UP".equals(front)) {
-            drawPlane(matrices, consumers, vertices, browserTexture, status,
+            drawPlane(matrices, consumers, browserTexture, status,
                     x1, y2 + SURFACE_OFFSET, z1,
                     x1, y2 + SURFACE_OFFSET, z2,
                     x2, y2 + SURFACE_OFFSET, z2,
@@ -147,7 +208,7 @@ public final class ScreenRenderer {
         }
 
         if ("DOWN".equals(front)) {
-            drawPlane(matrices, consumers, vertices, browserTexture, status,
+            drawPlane(matrices, consumers, browserTexture, status,
                     x2, y1 - SURFACE_OFFSET, z1,
                     x2, y1 - SURFACE_OFFSET, z2,
                     x1, y1 - SURFACE_OFFSET, z2,
@@ -156,7 +217,7 @@ public final class ScreenRenderer {
         }
 
         // NORTH ist der Standard für ältere Bildschirme.
-        drawPlane(matrices, consumers, vertices, browserTexture, status,
+        drawPlane(matrices, consumers, browserTexture, status,
                 x2, y1, z1 - SURFACE_OFFSET,
                 x1, y1, z1 - SURFACE_OFFSET,
                 x1, y2, z1 - SURFACE_OFFSET,
@@ -164,9 +225,8 @@ public final class ScreenRenderer {
     }
 
     private static void drawPlane(
-            MatrixStack matrices,
-            VertexConsumerProvider consumers,
-            VertexConsumer vertices,
+            PoseStack matrices,
+            MultiBufferSource consumers,
             Identifier browserTexture,
             CinemaBrowserManager.ScreenStatus status,
             double ax, double ay, double az,
@@ -174,19 +234,38 @@ public final class ScreenRenderer {
             double cx, double cy, double cz,
             double dx, double dy, double dz
     ) {
+        drawPlane(matrices,consumers,browserTexture,status,ax,ay,az,bx,by,bz,cx,cy,cz,dx,dy,dz,true);
+    }
+    private static void drawPlane(PoseStack matrices,MultiBufferSource consumers,Identifier browserTexture,CinemaBrowserManager.ScreenStatus status,
+            double ax,double ay,double az,double bx,double by,double bz,double cx,double cy,double cz,double dx,double dy,double dz,boolean frame){
+        // A layer switch flushes the shared buffer; reacquire it for each screen.
+        VertexConsumer vertices = consumers.getBuffer(net.minecraft.client.renderer.rendertype.RenderTypes.debugQuads());
         // Schwarze Bildschirmfläche.
         if (browserTexture == null) {
-            quad(matrices, vertices, ax, ay, az, bx, by, bz, cx, cy, cz, dx, dy, dz, 0, 0, 0, 235);
+            offlineBacking(matrices, vertices, ax, ay, az, bx, by, bz, cx, cy, cz, dx, dy, dz, frame);
+            // Submit the backing before the non-depth-writing title decal.
+            if (consumers instanceof MultiBufferSource.BufferSource immediate) {
+                immediate.endBatch(net.minecraft.client.renderer.rendertype.RenderTypes.debugQuads());
+            }
+            vertices = consumers.getBuffer(net.minecraft.client.renderer.rendertype.RenderTypes.debugQuads());
             Identifier statusOverlay = statusOverlay(status);
             if (statusOverlay != null) {
-                Vec3d normal = new Vec3d(bx - ax, by - ay, bz - az).crossProduct(new Vec3d(dx - ax, dy - ay, dz - az)).normalize();
-                double offset = 0.002;
-                VertexConsumer overlayVertices = consumers.getBuffer(RenderLayer.getEntityTranslucent(statusOverlay));
+                Vec3 h = new Vec3(bx - ax, by - ay, bz - az).normalize();
+                Vec3 v = new Vec3(dx - ax, dy - ay, dz - az).normalize();
+                Vec3 offset = h.cross(v).scale(DECORATION_OFFSET);
+                h = h.scale(FRAME_THICKNESS);
+                v = v.scale(FRAME_THICKNESS);
+                Vec3 a = new Vec3(ax, ay, az).add(offset).add(h).add(v);
+                Vec3 b = new Vec3(bx, by, bz).add(offset).subtract(h).add(v);
+                Vec3 c = new Vec3(cx, cy, cz).add(offset).subtract(h).subtract(v);
+                Vec3 d = new Vec3(dx, dy, dz).add(offset).add(h).subtract(v);
+                // The title is an unlit decal, not depth-writing geometry. Its
+                // transparent pixels must not occlude the screen or its frame.
+                VertexConsumer overlayVertices = consumers.getBuffer(
+                        net.minecraft.client.renderer.rendertype.RenderTypes.breezeEyes(ScreenStatusTextures.resolve(statusOverlay)));
                 texturedQuad(matrices, overlayVertices,
-                        ax + normal.x * offset, ay + normal.y * offset, az + normal.z * offset,
-                        bx + normal.x * offset, by + normal.y * offset, bz + normal.z * offset,
-                        cx + normal.x * offset, cy + normal.y * offset, cz + normal.z * offset,
-                        dx + normal.x * offset, dy + normal.y * offset, dz + normal.z * offset,
+                        a.x, a.y, a.z, b.x, b.y, b.z,
+                        c.x, c.y, c.z, d.x, d.y, d.z,
                         STATUS_OVERLAY_ALPHA);
             } else {
                 drawStatusText(matrices, vertices, status, ax, ay, az, bx, by, bz, cx, cy, cz, dx, dy, dz);
@@ -194,7 +273,8 @@ public final class ScreenRenderer {
         } else {
             VertexConsumer textureVertices = MinecraftRenderCompat.textureVertices(consumers, browserTexture);
             if (textureVertices == null) {
-                quad(matrices, vertices, ax, ay, az, bx, by, bz, cx, cy, cz, dx, dy, dz, 0, 0, 0, 235);
+                vertices = consumers.getBuffer(net.minecraft.client.renderer.rendertype.RenderTypes.debugQuads());
+                offlineBacking(matrices, vertices, ax, ay, az, bx, by, bz, cx, cy, cz, dx, dy, dz, frame);
                 drawStatusText(matrices, vertices, CinemaBrowserManager.ScreenStatus.ERROR,
                         ax, ay, az, bx, by, bz, cx, cy, cz, dx, dy, dz);
             } else {
@@ -202,23 +282,24 @@ public final class ScreenRenderer {
             }
         }
 
-        Vec3d bottomLeft = new Vec3d(ax, ay, az);
-        Vec3d bottomRight = new Vec3d(bx, by, bz);
-        Vec3d topRight = new Vec3d(cx, cy, cz);
-        Vec3d topLeft = new Vec3d(dx, dy, dz);
+        if(!frame)return;
+        Vec3 bottomLeft = new Vec3(ax, ay, az);
+        Vec3 bottomRight = new Vec3(bx, by, bz);
+        Vec3 topRight = new Vec3(cx, cy, cz);
+        Vec3 topLeft = new Vec3(dx, dy, dz);
 
-        Vec3d horizontal = bottomRight.subtract(bottomLeft);
-        Vec3d vertical = topLeft.subtract(bottomLeft);
+        Vec3 horizontal = bottomRight.subtract(bottomLeft);
+        Vec3 vertical = topLeft.subtract(bottomLeft);
 
-        if (horizontal.lengthSquared() == 0.0 || vertical.lengthSquared() == 0.0) {
+        if (horizontal.lengthSqr() == 0.0 || vertical.lengthSqr() == 0.0) {
             return;
         }
 
-        Vec3d horizontalBorder = horizontal.normalize().multiply(FRAME_THICKNESS);
-        Vec3d verticalBorder = vertical.normalize().multiply(FRAME_THICKNESS);
+        Vec3 horizontalBorder = horizontal.normalize().scale(FRAME_THICKNESS);
+        Vec3 verticalBorder = vertical.normalize().scale(FRAME_THICKNESS);
         // Keep the frame in front of the black surface. Otherwise the depth buffer
         // alternates between both coplanar quads while the camera is moving.
-        Vec3d frameOffset = horizontal.crossProduct(vertical).normalize().multiply(0.0015);
+        Vec3 frameOffset = horizontal.cross(vertical).normalize().scale(DECORATION_OFFSET);
         bottomLeft = bottomLeft.add(frameOffset);
         bottomRight = bottomRight.add(frameOffset);
         topRight = topRight.add(frameOffset);
@@ -228,7 +309,7 @@ public final class ScreenRenderer {
         // obtained debug-quad buffer.  Never reuse that stale consumer for
         // the frame, otherwise a second client can hit "Not building!" while
         // joining a world with an already visible screen.
-        VertexConsumer frameVertices = consumers.getBuffer(RenderLayer.getDebugQuads());
+        VertexConsumer frameVertices = consumers.getBuffer(net.minecraft.client.renderer.rendertype.RenderTypes.debugQuads());
 
         coloredQuad(matrices, frameVertices,
                 bottomLeft,
@@ -259,17 +340,26 @@ public final class ScreenRenderer {
                 FRAME_RED, FRAME_GREEN, FRAME_BLUE);
     }
 
+    private static void offlineBacking(PoseStack matrices, VertexConsumer out,
+            double ax,double ay,double az,double bx,double by,double bz,double cx,double cy,double cz,double dx,double dy,double dz,boolean frame) {
+        Vec3 a=new Vec3(ax,ay,az),b=new Vec3(bx,by,bz),c=new Vec3(cx,cy,cz),d=new Vec3(dx,dy,dz);
+        if(frame){
+            Vec3 horizontal=b.subtract(a),vertical=d.subtract(a);
+            Vec3 h=horizontal.normalize().scale(Math.min(FRAME_THICKNESS,horizontal.length()/2));
+            Vec3 v=vertical.normalize().scale(Math.min(FRAME_THICKNESS,vertical.length()/2));
+            a=a.add(h).add(v);b=b.subtract(h).add(v);c=c.subtract(h).subtract(v);d=d.add(h).subtract(v);
+        }
+        // The opaque backing occupies only the display opening. It never covers
+        // frame geometry, regardless of translucent-pass sorting while offline.
+        quad(matrices,out,a.x,a.y,a.z,b.x,b.y,b.z,c.x,c.y,c.z,d.x,d.y,d.z,0,0,0,255);
+    }
+
     private static Identifier statusOverlay(CinemaBrowserManager.ScreenStatus status) {
-        return switch (status) {
-            case NO_LINK -> OFFLINE_OVERLAY;
-            case REDSTONE_OFFLINE -> REDSTONE_BUTTON_OVERLAY;
-            case OFFLINE -> INACTIVE_OVERLAY;
-            default -> null;
-        };
+        return status.overlayTexture();
     }
 
     private static void drawStatusText(
-            MatrixStack matrices,
+            PoseStack matrices,
             VertexConsumer vertices,
             CinemaBrowserManager.ScreenStatus status,
             double ax, double ay, double az,
@@ -281,9 +371,9 @@ public final class ScreenRenderer {
             return;
         }
 
-        Vec3d baseOrigin = new Vec3d(ax, ay, az);
-        Vec3d horizontal = new Vec3d(bx, by, bz).subtract(baseOrigin);
-        Vec3d vertical = new Vec3d(dx, dy, dz).subtract(baseOrigin);
+        Vec3 baseOrigin = new Vec3(ax, ay, az);
+        Vec3 horizontal = new Vec3(bx, by, bz).subtract(baseOrigin);
+        Vec3 vertical = new Vec3(dx, dy, dz).subtract(baseOrigin);
 
         double width = horizontal.length();
         double height = vertical.length();
@@ -295,7 +385,7 @@ public final class ScreenRenderer {
         horizontal = horizontal.normalize();
         vertical = vertical.normalize();
         // Keep status pixels slightly in front of the black plane to prevent z-fighting while moving.
-        Vec3d origin = baseOrigin.add(horizontal.crossProduct(vertical).multiply(0.001));
+        Vec3 origin = baseOrigin.add(horizontal.cross(vertical).scale(DECORATION_OFFSET));
 
         String text = status.label();
         double cellSize = Math.min(width / (text.length() * 4.0 + 1.0), height / 7.0);
@@ -321,10 +411,10 @@ public final class ScreenRenderer {
                     double u = left + (character * 4.0 + column) * cellSize + inset;
                     double v = bottom + (4 - row) * cellSize + inset;
 
-                    Vec3d a = origin.add(horizontal.multiply(u)).add(vertical.multiply(v));
-                    Vec3d b = a.add(horizontal.multiply(cellSize - 2 * inset));
-                    Vec3d d = a.add(vertical.multiply(cellSize - 2 * inset));
-                    Vec3d c = b.add(vertical.multiply(cellSize - 2 * inset));
+                    Vec3 a = origin.add(horizontal.scale(u)).add(vertical.scale(v));
+                    Vec3 b = a.add(horizontal.scale(cellSize - 2 * inset));
+                    Vec3 d = a.add(vertical.scale(cellSize - 2 * inset));
+                    Vec3 c = b.add(vertical.scale(cellSize - 2 * inset));
 
                     coloredQuad(
                             matrices,
@@ -358,9 +448,9 @@ public final class ScreenRenderer {
     }
 
     private static void coloredQuad(
-            MatrixStack matrices,
+            PoseStack matrices,
             VertexConsumer vertices,
-            Vec3d a, Vec3d b, Vec3d c, Vec3d d,
+            Vec3 a, Vec3 b, Vec3 c, Vec3 d,
             int red, int green, int blue
     ) {
         quad(matrices, vertices,
@@ -372,7 +462,7 @@ public final class ScreenRenderer {
     }
 
     private static void quad(
-            MatrixStack matrices,
+            PoseStack matrices,
             VertexConsumer vertices,
             double ax, double ay, double az,
             double bx, double by, double bz,
@@ -387,17 +477,17 @@ public final class ScreenRenderer {
     }
 
     private static void vertex(
-            MatrixStack matrices,
+            PoseStack matrices,
             VertexConsumer vertices,
             double x, double y, double z,
             int red, int green, int blue, int alpha
     ) {
-        vertices.vertex(matrices.peek(), (float) x, (float) y, (float) z)
-                .color(red, green, blue, alpha);
+        vertices.addVertex(matrices.last(), (float) x, (float) y, (float) z)
+                .setColor(red, green, blue, alpha);
     }
 
     private static void texturedQuad(
-            MatrixStack matrices,
+            PoseStack matrices,
             VertexConsumer vertices,
             double ax, double ay, double az,
             double bx, double by, double bz,
@@ -412,19 +502,19 @@ public final class ScreenRenderer {
     }
 
     private static void texturedVertex(
-            MatrixStack matrices,
+            PoseStack matrices,
             VertexConsumer vertices,
             double x, double y, double z,
             float u, float v, int alpha
     ) {
-        vertices.vertex(matrices.peek(), (float) x, (float) y, (float) z)
-                .color(230, 230, 230, alpha)
-                .texture(u, v)
+        vertices.addVertex(matrices.last(), (float) x, (float) y, (float) z)
+                .setColor(255, 255, 255, alpha)
+                .setUv(u, v)
                 // A value of 0 selects Minecraft's red damage-overlay pixel.
                 // Browser textures must use the neutral overlay instead.
-                .overlay(OverlayTexture.DEFAULT_UV)
-                .light(0xF000F0)
-                .normal(0.0f, 0.0f, 1.0f);
+                .setOverlay(OverlayTexture.NO_OVERLAY)
+                .setLight(0xF000F0)
+                .setNormal(0.0f, 0.0f, 1.0f);
     }
 
     /** Obtains a texture render layer across the small 1.21.x mapping differences. */
@@ -434,9 +524,9 @@ public final class ScreenRenderer {
         private MinecraftRenderCompat() {
         }
 
-        private static VertexConsumer textureVertices(VertexConsumerProvider consumers, Identifier texture) {
+        private static VertexConsumer textureVertices(MultiBufferSource consumers, Identifier texture) {
             try {
-                return consumers.getBuffer(RenderLayer.getEntityCutoutNoCull(texture));
+                return consumers.getBuffer(net.minecraft.client.renderer.rendertype.RenderTypes.entityCutout(texture));
             } catch (RuntimeException exception) {
                 if (!warningLogged) {
                     warningLogged = true;

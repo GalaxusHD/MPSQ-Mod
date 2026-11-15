@@ -11,7 +11,7 @@ public final class MpsqTemplateAudio {
     private static boolean pending;
     public static void initialize(){
         ClientTickEvents.END_CLIENT_TICK.register(client->{
-            if(client.world==null){templates=List.of();next=0;return;}
+            if(client.level==null){templates=List.of();next=0;return;}
             if(pending||System.currentTimeMillis()<next||!MpsqApiClient.isReady())return;
             if(!TeamStateStore.self().map(p->p.baseRank().level()>=TeamRank.OFFICER.level()).orElse(false))return;
             next=System.currentTimeMillis()+30000;pending=true;

@@ -1,12 +1,11 @@
 package de.galaxushd.mpsqcamera;
 
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.text.Text;
-
 import java.util.Comparator;
 import java.util.List;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.network.chat.Component;
 
 /**
  * The role page deliberately has four views.  The server remains the authority
@@ -32,22 +31,22 @@ public final class TeamMembersScreen extends Screen {
     private String messageKey = "gui.mpsqcamera.team.members.loading";
 
     public TeamMembersScreen(Screen parent) {
-        super(Text.translatable("gui.mpsqcamera.team.members"));
+        super(Component.translatable("gui.mpsqcamera.team.members"));
         this.parent = parent;
     }
 
     @Override
     protected void init() {
-        addDrawableChild(ButtonWidget.builder(Text.translatable("gui.mpsqcamera.back"), b -> client.setScreen(parent))
-                .dimensions(width / 2 - 75, height - 36, 150, 20).build());
-        addDrawableChild(ButtonWidget.builder(Text.literal("Ranginformationen"), b -> client.setScreen(new TeamRankPreviewScreen(this)))
-                .dimensions(width - 132, height - 36, 120, 20).build());
+        addRenderableWidget(Button.builder(Component.translatable("gui.mpsqcamera.back"), b -> minecraft.gui.setScreen(parent))
+                .bounds(width / 2 - 75, height - 36, 150, 20).build());
+        addRenderableWidget(Button.builder(Component.literal("Ranginformationen"), b -> minecraft.gui.setScreen(new TeamRankPreviewScreen(this)))
+                .bounds(width - 132, height - 36, 120, 20).build());
         reload();
     }
 
     private void reload() {
         MpsqApiClient.refreshTeamProfile().thenCompose(profile -> MpsqApiClient.refreshTeamMembers())
-                .whenComplete((members, error) -> client.execute(() -> {
+                .whenComplete((members, error) -> minecraft.execute(() -> {
                     messageKey = error == null ? "gui.mpsqcamera.team.members.help" : "gui.mpsqcamera.team.unavailable";
                     TeamProfile self = TeamStateStore.self().orElse(null);
                     if (selfView() && self != null) {
@@ -61,22 +60,22 @@ public final class TeamMembersScreen extends Screen {
     }
 
     @Override
-    public void renderBackground(DrawContext context, int mouseX, int mouseY, float delta) {
-        super.renderBackground(context, mouseX, mouseY, delta);
+    public void extractBackground(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
+        super.extractBackground(context, mouseX, mouseY, delta);
         MpsqTheme.drawBackground(context, width, height);
     }
 
     @Override
-    public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        super.render(context, mouseX, mouseY, delta);
+    public void extractRenderState(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
+        super.extractRenderState(context, mouseX, mouseY, delta);
         int left = contentLeft();
         int listWidth = memberListWidth();
         int right = left + listWidth + RANK_X_GAP;
-        context.drawCenteredTextWithShadow(textRenderer, title, width / 2, 24, MpsqTheme.TEXT_TITEL);
+        context.centeredText(font, title, width / 2, 24, MpsqTheme.TEXT_TITEL);
         context.fill(left, 45, left + contentWidth(), 47, MpsqTheme.TEXT_GEDAEMPT);
 
         if (showsSelectionHelp()) {
-            context.drawTextWithShadow(textRenderer, Text.translatable(messageKey), left, 54, MpsqTheme.TEXT_GEDAEMPT);
+            context.text(font, Component.translatable(messageKey), left, 54, MpsqTheme.TEXT_GEDAEMPT);
         }
 
         int y = LIST_TOP;
@@ -86,16 +85,16 @@ public final class TeamMembersScreen extends Screen {
                     isSelected ? 0x88557A9B : 0x66000000);
             member.displayedRank().draw(context, left + 4, y + 8, 8);
             int nameX = left + 10 + member.displayedRank().widthForHeight(8);
-            context.drawTextWithShadow(textRenderer, member.displayName(), nameX, y + 8, MpsqTheme.TEXT_NORMAL);
+            context.text(font, member.displayName(), nameX, y + 8, MpsqTheme.TEXT_NORMAL);
             y += ROW_HEIGHT;
         }
 
         renderRightColumn(context, right, RIGHT_COLUMN_TOP);
     }
 
-    private void renderRightColumn(DrawContext context, int x, int y) {
+    private void renderRightColumn(GuiGraphicsExtractor context, int x, int y) {
         if (publicView()) {
-            context.drawTextWithShadow(textRenderer, Text.translatable("gui.mpsqcamera.team.members.overview"), x, y - 18, MpsqTheme.TEXT_NORMAL);
+            context.text(font, Component.translatable("gui.mpsqcamera.team.members.overview"), x, y - 18, MpsqTheme.TEXT_NORMAL);
             drawRanks(context, x, y, publicRanks());
             return;
         }
@@ -103,7 +102,7 @@ public final class TeamMembersScreen extends Screen {
         if (selected == null) return;
         List<TeamRank> temporary = temporaryRanks();
         if (!temporary.isEmpty()) {
-            context.drawTextWithShadow(textRenderer, Text.translatable("gui.mpsqcamera.team.members.temporary"), x, y - 18, MpsqTheme.TEXT_NORMAL);
+            context.text(font, Component.translatable("gui.mpsqcamera.team.members.temporary"), x, y - 18, MpsqTheme.TEXT_NORMAL);
             drawRanks(context, x, y, temporary);
             // Leave enough room for the next heading.  The old short gap put
             // "Rang für ..." directly over the 001 rank image.
@@ -112,14 +111,14 @@ public final class TeamMembersScreen extends Screen {
 
         List<TeamRank> permanent = permanentRanks();
         if (!permanent.isEmpty()) {
-            context.drawTextWithShadow(textRenderer,
-                    Text.translatable("gui.mpsqcamera.team.members.choose", selected.displayName()),
+            context.text(font,
+                    Component.translatable("gui.mpsqcamera.team.members.choose", selected.displayName()),
                     x, y - 18, MpsqTheme.TEXT_NORMAL);
             drawRanks(context, x, y, permanent);
         }
     }
 
-    private void drawRanks(DrawContext context, int x, int y, List<TeamRank> ranks) {
+    private void drawRanks(GuiGraphicsExtractor context, int x, int y, List<TeamRank> ranks) {
         for (TeamRank rank : ranks) {
             rank.draw(context, x, y, TAG_HEIGHT);
             y += TAG_HEIGHT + TAG_SPACING;
@@ -129,12 +128,12 @@ public final class TeamMembersScreen extends Screen {
     private boolean publicView() {
         TeamProfile self = TeamStateStore.self().orElse(null);
         return self == null || self.baseRank() == TeamRank.PLAYER || self.baseRank() == TeamRank.VIP
-                || self.baseRank() == TeamRank.STREAMER || self.baseRank() == TeamRank.UNDERCOVER_001;
+                || self.baseRank() == TeamRank.UNDERCOVER_001;
     }
 
     private boolean selfView() {
         TeamProfile self = TeamStateStore.self().orElse(null);
-        return self != null && (self.baseRank() == TeamRank.SOLDIER || self.baseRank() == TeamRank.WORKER);
+        return self != null && (self.baseRank() == TeamRank.SOLDIER || self.baseRank() == TeamRank.WORKER || self.baseRank()==TeamRank.STREAMER);
     }
 
     private boolean showsSelectionHelp() {
@@ -143,7 +142,7 @@ public final class TeamMembersScreen extends Screen {
 
     private boolean usesTemporary001() {
         TeamProfile self = TeamStateStore.self().orElse(null);
-        return self != null && self.baseRank().level() >= TeamRank.SOLDIER.level();
+        return self != null && (self.baseRank().level() >= TeamRank.SOLDIER.level() || self.baseRank()==TeamRank.STREAMER);
     }
 
     private boolean seniorSelfSelected() {
@@ -161,6 +160,7 @@ public final class TeamMembersScreen extends Screen {
             return List.of(TeamRank.FRONTMAN, TeamRank.OFFICER, TeamRank.SOLDIER,
                     TeamRank.WORKER, TeamRank.UNDERCOVER_001, TeamRank.STREAMER, TeamRank.PLAYER, TeamRank.VIP);
         }
+        if(selected!=null&&selected.baseRank()==TeamRank.STREAMER)return List.of(TeamRank.PLAYER);
         return List.of(TeamRank.UNDERCOVER_001);
     }
 
@@ -168,6 +168,7 @@ public final class TeamMembersScreen extends Screen {
         TeamProfile self = TeamStateStore.self().orElse(null);
         if (self == null || selected == null) return false;
         if (seniorSelfSelected()) return rank != TeamRank.SENIOR_OFFICER;
+        if(selected.baseRank()==TeamRank.STREAMER)return rank==TeamRank.PLAYER&&(selected.id().equals(self.id())||self.baseRank().level()>=TeamRank.OFFICER.level());
         if (self.baseRank() == TeamRank.SENIOR_OFFICER) {
             return rank == TeamRank.UNDERCOVER_001 && selected.baseRank() != TeamRank.SENIOR_OFFICER;
         }
@@ -191,7 +192,10 @@ public final class TeamMembersScreen extends Screen {
     }
 
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+    public boolean mouseClicked(net.minecraft.client.input.MouseButtonEvent event, boolean doubled) {
+        double mouseX = event.x(), mouseY = event.y();
+        int button = event.button();
+
         int left = contentLeft();
         int listWidth = memberListWidth();
         if (!publicView() && !selfView()) {
@@ -221,13 +225,13 @@ public final class TeamMembersScreen extends Screen {
             }
             for (TeamRank rank : permanentRanks()) {
                 if (withinRank(mouseX, mouseY, x, y, rank)) {
-                    MpsqApiClient.changeTeamRank(selected.id(), rank).whenComplete((ignored, error) -> client.execute(this::reload));
+                    MpsqApiClient.changeTeamRank(selected.id(), rank).whenComplete((ignored, error) -> minecraft.execute(this::reload));
                     return true;
                 }
                 y += TAG_HEIGHT + TAG_SPACING;
             }
         }
-        return super.mouseClicked(mouseX, mouseY, button);
+        return super.mouseClicked(event, doubled);
     }
 
     private boolean withinRank(double mouseX, double mouseY, int x, int y, TeamRank rank) {
@@ -237,14 +241,14 @@ public final class TeamMembersScreen extends Screen {
 
     private void toggleTemporaryRank(TeamRank rank) {
         if (selected.activeRank() == rank) {
-            MpsqApiClient.clearUndercoverRank(selected.id()).whenComplete((ignored, error) -> client.execute(this::reload));
+            MpsqApiClient.clearUndercoverRank(selected.id()).whenComplete((ignored, error) -> minecraft.execute(this::reload));
         } else {
             MpsqApiClient.setTemporaryTeamRank(selected.id(), rank)
-                    .whenComplete((ignored, error) -> client.execute(this::reload));
+                    .whenComplete((ignored, error) -> minecraft.execute(this::reload));
         }
     }
 
-    @Override public boolean shouldPause() { return false; }
+    @Override public boolean isPauseScreen() { return false; }
 
     private int contentWidth() {
         return Math.min(MAX_CONTENT_WIDTH, Math.max(1, width - PAGE_MARGIN * 2));
