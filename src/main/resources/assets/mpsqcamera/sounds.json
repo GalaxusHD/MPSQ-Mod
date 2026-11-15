@@ -1,0 +1,61 @@
+{
+  "music.fly_me_to_the_moon": {
+    "sounds": [
+      {
+        "name": "mpsqcamera:music/fly_me_to_the_moon",
+        "stream": true
+      }
+    ]
+  },
+  "music.squidgamebereit": {
+    "sounds": [
+      {
+        "name": "mpsqcamera:music/squidgamebereit",
+        "stream": true
+      }
+    ]
+  },
+  "music.squidgameessen": {
+    "sounds": [
+      {
+        "name": "mpsqcamera:music/squidgameessen",
+        "stream": true
+      }
+    ]
+  },
+  "music.squidgamelobbystart": {
+    "sounds": [
+      {
+        "name": "mpsqcamera:music/squidgamelobbystart",
+        "stream": true
+      }
+    ]
+  },
+  "kick.shot": {
+    "sounds": [
+      {
+        "name": "mpsqcamera:kick_shot",
+        "stream": false,
+        "preload": true
+      }
+    ]
+  },
+  "kick.impact": {
+    "sounds": [
+      {
+        "name": "mpsqcamera:kick_impact",
+        "stream": false,
+        "preload": true
+      }
+    ]
+  },
+  "kick.continuous": {
+    "sounds": [
+      {
+        "name": "mpsqcamera:kick_continuous",
+        "stream": false,
+        "preload": true
+      }
+    ]
+  }
+}
