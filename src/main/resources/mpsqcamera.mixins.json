@@ -1,9 +1,10 @@
 {
   "required": true,
   "package": "de.galaxushd.mpsqcamera.mixin.client",
-  "refmap": "mpsqcamera.refmap.json",
-  "compatibilityLevel": "JAVA_21",
+  "compatibilityLevel": "JAVA_25",
   "client": [
+    "ReplayEntityTickMixin",
+    "SkyButtonUpdateMixin",
     "MouseMixin",
     "GameRendererMixin",
     "KeyboardMixin",
@@ -18,7 +19,19 @@
     "PlayerEntityModelMixin",
     "MpsqNpcGlowPostprocessorMixin",
     "SoundSystemMixin",
-    "MpsqMovementSensorGlowMixin"
+    "MpsqMovementSensorGlowMixin",
+    "MpsqMovementSensorColorMixin",
+    "LocalPlayerSkinMixin",
+    "CinematicSpellAccessor",
+    "MpsqNpcCullingMixin",
+    "MpsqNpcColorMixin",
+    "CameraCavityBlockMixin",
+    "QuestStatsMixin",
+    "VirtualObjectClickMixin",
+    "CameraCavitySkullMixin",
+    "MotionUseAccessor",
+    "CameraNearPlaneMixin",
+    "ScriptedWalkAnimationMixin"
   ],
   "injectors": {
     "defaultRequire": 1
