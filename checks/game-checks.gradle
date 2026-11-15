@@ -1,0 +1,16 @@
+allprojects {
+    afterEvaluate {
+        tasks.register('compileGameChecks', JavaCompile) {
+            dependsOn tasks.named('clientClasses')
+            source project.file('checks/GameSystemsCheck.java')
+            classpath = sourceSets.client.runtimeClasspath
+            destinationDirectory = layout.buildDirectory.dir('game-checks')
+            options.release = 21
+        }
+        tasks.register('gameChecks', JavaExec) {
+            dependsOn tasks.named('compileGameChecks')
+            classpath = files(layout.buildDirectory.dir('game-checks')) + sourceSets.client.runtimeClasspath
+            mainClass = 'GameSystemsCheck'
+        }
+    }
+}

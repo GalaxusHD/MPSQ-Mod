@@ -1,0 +1,16 @@
+allprojects {
+    afterEvaluate {
+        tasks.register('compileLocalChecks', JavaCompile) {
+            dependsOn tasks.named('clientClasses')
+            source project.file('checks/LocalBackendCheck.java')
+            classpath = sourceSets.client.runtimeClasspath
+            destinationDirectory = layout.buildDirectory.dir('local-checks')
+            options.release = 21
+        }
+        tasks.register('localChecks', JavaExec) {
+            dependsOn tasks.named('compileLocalChecks')
+            classpath = files(layout.buildDirectory.dir('local-checks')) + sourceSets.client.runtimeClasspath
+            mainClass = 'LocalBackendCheck'
+        }
+    }
+}

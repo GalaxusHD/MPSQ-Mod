@@ -1,0 +1,21 @@
+allprojects {
+    afterEvaluate {
+        ['NpcIdentity', 'Chess', 'Followup', 'MotionCapture', 'SharedPaths', 'EditorInteraction', 'CrateScenes', 'ModularTimer', 'CustomPetModel', 'Cinematic', 'CinematicZones', 'ReturnPool', 'TvModel', 'IsolatedSkin', 'LocalBackend', 'GameSystems', 'ReplayData', 'PetMovement', 'PetMotion', 'HatModel', 'FigureModel', 'SkinStatue', 'PetNavigation', 'MiniPetModel', 'KickAnimation'].each { checkName ->
+            tasks.register("compile${checkName}Check", JavaCompile) {
+                dependsOn tasks.named('clientClasses')
+                source project.file("checks/${checkName}Check.java")
+                classpath = sourceSets.client.runtimeClasspath
+                destinationDirectory = layout.buildDirectory.dir("port-checks/${checkName}")
+                options.release = 25
+            }
+            tasks.register("check${checkName}", JavaExec) {
+                dependsOn tasks.named("compile${checkName}Check")
+                classpath = files(layout.buildDirectory.dir("port-checks/${checkName}")) + sourceSets.client.runtimeClasspath
+                mainClass = "${checkName}Check"
+            }
+        }
+        tasks.register('portChecks') { dependsOn 'checkTvModel', 'checkIsolatedSkin', 'checkLocalBackend', 'checkGameSystems', 'checkReplayData', 'checkPetMovement', 'checkPetMotion', 'checkHatModel', 'checkFigureModel', 'checkSkinStatue', 'checkPetNavigation', 'checkMiniPetModel', 'checkKickAnimation' }
+    }
+}
+
+

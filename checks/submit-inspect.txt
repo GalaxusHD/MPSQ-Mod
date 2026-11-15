@@ -1,0 +1,372 @@
+Compiled from "SubmitNodeStorage.java"
+public class net.minecraft.client.renderer.SubmitNodeStorage implements net.minecraft.client.renderer.SubmitNodeCollector {
+  private final it.unimi.dsi.fastutil.ints.Int2ObjectAVLTreeMap<net.minecraft.client.renderer.SubmitNodeCollection> submitsPerOrder;
+
+  private final net.minecraft.client.renderer.feature.phase.TranslucentFeatureRenderPhase seeThrough;
+
+  private boolean useImprovedTransparency;
+
+  public net.minecraft.client.renderer.SubmitNodeStorage();
+    Code:
+         0: aload_0
+         1: invokespecial #1                  // Method java/lang/Object."<init>":()V
+         4: aload_0
+         5: new           #7                  // class it/unimi/dsi/fastutil/ints/Int2ObjectAVLTreeMap
+         8: dup
+         9: invokespecial #9                  // Method it/unimi/dsi/fastutil/ints/Int2ObjectAVLTreeMap."<init>":()V
+        12: putfield      #10                 // Field submitsPerOrder:Lit/unimi/dsi/fastutil/ints/Int2ObjectAVLTreeMap;
+        15: aload_0
+        16: new           #16                 // class net/minecraft/client/renderer/feature/phase/TranslucentFeatureRenderPhase
+        19: dup
+        20: invokespecial #18                 // Method net/minecraft/client/renderer/feature/phase/TranslucentFeatureRenderPhase."<init>":()V
+        23: putfield      #19                 // Field seeThrough:Lnet/minecraft/client/renderer/feature/phase/TranslucentFeatureRenderPhase;
+        26: return
+
+  public void setUseImprovedTransparency(boolean);
+    Code:
+         0: aload_0
+         1: getfield      #23                 // Field useImprovedTransparency:Z
+         4: iload_1
+         5: if_icmpeq     111
+         8: aload_0
+         9: getfield      #10                 // Field submitsPerOrder:Lit/unimi/dsi/fastutil/ints/Int2ObjectAVLTreeMap;
+        12: invokevirtual #27                 // Method it/unimi/dsi/fastutil/ints/Int2ObjectAVLTreeMap.values:()Lit/unimi/dsi/fastutil/objects/ObjectCollection;
+        15: invokeinterface #31,  1           // InterfaceMethod it/unimi/dsi/fastutil/objects/ObjectCollection.iterator:()Lit/unimi/dsi/fastutil/objects/ObjectIterator;
+        20: astore_2
+        21: aload_2
+        22: invokeinterface #37,  1           // InterfaceMethod java/util/Iterator.hasNext:()Z
+        27: ifeq          99
+        30: aload_2
+        31: invokeinterface #43,  1           // InterfaceMethod java/util/Iterator.next:()Ljava/lang/Object;
+        36: checkcast     #47                 // class net/minecraft/client/renderer/SubmitNodeCollection
+        39: astore_3
+        40: aload_3
+        41: invokevirtual #49                 // Method net/minecraft/client/renderer/SubmitNodeCollection.allPhases:()Ljava/util/List;
+        44: invokeinterface #53,  1           // InterfaceMethod java/util/List.iterator:()Ljava/util/Iterator;
+        49: astore        4
+        51: aload         4
+        53: invokeinterface #37,  1           // InterfaceMethod java/util/Iterator.hasNext:()Z
+        58: ifeq          96
+        61: aload         4
+        63: invokeinterface #43,  1           // InterfaceMethod java/util/Iterator.next:()Ljava/lang/Object;
+        68: checkcast     #58                 // class net/minecraft/client/renderer/feature/phase/FeatureRenderPhase
+        71: astore        5
+        73: aload         5
+        75: invokeinterface #60,  1           // InterfaceMethod net/minecraft/client/renderer/feature/phase/FeatureRenderPhase.isEmpty:()Z
+        80: ifne          93
+        83: new           #63                 // class java/lang/IllegalStateException
+        86: dup
+        87: ldc           #65                 // String Storage is not empty. Improved transparency is likely toggled in a wrong place.
+        89: invokespecial #67                 // Method java/lang/IllegalStateException."<init>":(Ljava/lang/String;)V
+        92: athrow
+        93: goto          51
+        96: goto          21
+        99: aload_0
+       100: getfield      #10                 // Field submitsPerOrder:Lit/unimi/dsi/fastutil/ints/Int2ObjectAVLTreeMap;
+       103: invokevirtual #70                 // Method it/unimi/dsi/fastutil/ints/Int2ObjectAVLTreeMap.clear:()V
+       106: aload_0
+       107: iload_1
+       108: putfield      #23                 // Field useImprovedTransparency:Z
+       111: return
+
+  public net.minecraft.client.renderer.SubmitNodeCollection order(int);
+    Code:
+         0: aload_0
+         1: getfield      #10                 // Field submitsPerOrder:Lit/unimi/dsi/fastutil/ints/Int2ObjectAVLTreeMap;
+         4: iload_1
+         5: aload_0
+         6: invokedynamic #73,  0             // InvokeDynamic #0:get:(Lnet/minecraft/client/renderer/SubmitNodeStorage;)Lit/unimi/dsi/fastutil/ints/Int2ObjectFunction;
+        11: invokevirtual #77                 // Method it/unimi/dsi/fastutil/ints/Int2ObjectAVLTreeMap.computeIfAbsent:(ILit/unimi/dsi/fastutil/ints/Int2ObjectFunction;)Ljava/lang/Object;
+        14: checkcast     #47                 // class net/minecraft/client/renderer/SubmitNodeCollection
+        17: areturn
+
+  public net.minecraft.client.renderer.feature.phase.TranslucentFeatureRenderPhase seeThrough();
+    Code:
+         0: aload_0
+         1: getfield      #19                 // Field seeThrough:Lnet/minecraft/client/renderer/feature/phase/TranslucentFeatureRenderPhase;
+         4: areturn
+
+  public void submitShadow(com.mojang.blaze3d.vertex.PoseStack, float, java.util.List<net.minecraft.client.renderer.entity.state.EntityRenderState$ShadowPiece>);
+    Code:
+         0: aload_0
+         1: iconst_0
+         2: invokevirtual #81                 // Method order:(I)Lnet/minecraft/client/renderer/SubmitNodeCollection;
+         5: aload_1
+         6: fload_2
+         7: aload_3
+         8: invokevirtual #85                 // Method net/minecraft/client/renderer/SubmitNodeCollection.submitShadow:(Lcom/mojang/blaze3d/vertex/PoseStack;FLjava/util/List;)V
+        11: return
+
+  public void submitNameTag(com.mojang.blaze3d.vertex.PoseStack, net.minecraft.world.phys.Vec3, int, net.minecraft.network.chat.Component, boolean, int, net.minecraft.client.renderer.state.level.CameraRenderState);
+    Code:
+         0: aload_0
+         1: iconst_0
+         2: invokevirtual #81                 // Method order:(I)Lnet/minecraft/client/renderer/SubmitNodeCollection;
+         5: aload_1
+         6: aload_2
+         7: iload_3
+         8: aload         4
+        10: iload         5
+        12: iload         6
+        14: aload         7
+        16: invokevirtual #89                 // Method net/minecraft/client/renderer/SubmitNodeCollection.submitNameTag:(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/world/phys/Vec3;ILnet/minecraft/network/chat/Component;ZILnet/minecraft/client/renderer/state/level/CameraRenderState;)V
+        19: return
+
+  public void submitText(com.mojang.blaze3d.vertex.PoseStack, float, float, net.minecraft.util.FormattedCharSequence, boolean, net.minecraft.client.gui.Font$DisplayMode, int, int, int, int);
+    Code:
+         0: aload_0
+         1: iconst_0
+         2: invokevirtual #81                 // Method order:(I)Lnet/minecraft/client/renderer/SubmitNodeCollection;
+         5: aload_1
+         6: fload_2
+         7: fload_3
+         8: aload         4
+        10: iload         5
+        12: aload         6
+        14: iload         7
+        16: iload         8
+        18: iload         9
+        20: iload         10
+        22: invokevirtual #93                 // Method net/minecraft/client/renderer/SubmitNodeCollection.submitText:(Lcom/mojang/blaze3d/vertex/PoseStack;FFLnet/minecraft/util/FormattedCharSequence;ZLnet/minecraft/client/gui/Font$DisplayMode;IIII)V
+        25: return
+
+  public void submitTextBackground(com.mojang.blaze3d.vertex.PoseStack, float, float, float, float, int, net.minecraft.client.gui.Font$DisplayMode, int);
+    Code:
+         0: aload_0
+         1: iconst_0
+         2: invokevirtual #81                 // Method order:(I)Lnet/minecraft/client/renderer/SubmitNodeCollection;
+         5: aload_1
+         6: fload_2
+         7: fload_3
+         8: fload         4
+        10: fload         5
+        12: iload         6
+        14: aload         7
+        16: iload         8
+        18: invokevirtual #97                 // Method net/minecraft/client/renderer/SubmitNodeCollection.submitTextBackground:(Lcom/mojang/blaze3d/vertex/PoseStack;FFFFILnet/minecraft/client/gui/Font$DisplayMode;I)V
+        21: return
+
+  public void submitFlame(com.mojang.blaze3d.vertex.PoseStack, net.minecraft.client.renderer.entity.state.EntityRenderState, org.joml.Quaternionf);
+    Code:
+         0: aload_0
+         1: iconst_0
+         2: invokevirtual #81                 // Method order:(I)Lnet/minecraft/client/renderer/SubmitNodeCollection;
+         5: aload_1
+         6: aload_2
+         7: aload_3
+         8: invokevirtual #101                // Method net/minecraft/client/renderer/SubmitNodeCollection.submitFlame:(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/entity/state/EntityRenderState;Lorg/joml/Quaternionf;)V
+        11: return
+
+  public void submitLeash(com.mojang.blaze3d.vertex.PoseStack, net.minecraft.client.renderer.entity.state.EntityRenderState$LeashState);
+    Code:
+         0: aload_0
+         1: iconst_0
+         2: invokevirtual #81                 // Method order:(I)Lnet/minecraft/client/renderer/SubmitNodeCollection;
+         5: aload_1
+         6: aload_2
+         7: invokevirtual #105                // Method net/minecraft/client/renderer/SubmitNodeCollection.submitLeash:(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/entity/state/EntityRenderState$LeashState;)V
+        10: return
+
+  public <S> void submitModel(net.minecraft.client.model.Model<? super S>, S, com.mojang.blaze3d.vertex.PoseStack, net.minecraft.client.renderer.rendertype.RenderType, int, int, int, net.minecraft.client.renderer.texture.UvMapping, int);
+    Code:
+         0: aload_0
+         1: iconst_0
+         2: invokevirtual #81                 // Method order:(I)Lnet/minecraft/client/renderer/SubmitNodeCollection;
+         5: aload_1
+         6: aload_2
+         7: aload_3
+         8: aload         4
+        10: iload         5
+        12: iload         6
+        14: iload         7
+        16: aload         8
+        18: iload         9
+        20: invokevirtual #109                // Method net/minecraft/client/renderer/SubmitNodeCollection.submitModel:(Lnet/minecraft/client/model/Model;Ljava/lang/Object;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/rendertype/RenderType;IIILnet/minecraft/client/renderer/texture/UvMapping;I)V
+        23: return
+
+  public <S> void submitCrumblingOverlay(net.minecraft.client.model.Model<? super S>, S, com.mojang.blaze3d.vertex.PoseStack, net.minecraft.client.renderer.rendertype.RenderType, int, int, int, net.minecraft.client.renderer.feature.ModelFeatureRenderer$CrumblingOverlay);
+    Code:
+         0: aload_0
+         1: iconst_0
+         2: invokevirtual #81                 // Method order:(I)Lnet/minecraft/client/renderer/SubmitNodeCollection;
+         5: aload_1
+         6: aload_2
+         7: aload_3
+         8: aload         4
+        10: iload         5
+        12: iload         6
+        14: iload         7
+        16: aload         8
+        18: invokevirtual #113                // Method net/minecraft/client/renderer/SubmitNodeCollection.submitCrumblingOverlay:(Lnet/minecraft/client/model/Model;Ljava/lang/Object;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/rendertype/RenderType;IIILnet/minecraft/client/renderer/feature/ModelFeatureRenderer$CrumblingOverlay;)V
+        21: return
+
+  public void submitMovingBlock(com.mojang.blaze3d.vertex.PoseStack, net.minecraft.client.renderer.block.MovingBlockRenderState, int);
+    Code:
+         0: aload_0
+         1: iconst_0
+         2: invokevirtual #81                 // Method order:(I)Lnet/minecraft/client/renderer/SubmitNodeCollection;
+         5: aload_1
+         6: aload_2
+         7: iload_3
+         8: invokevirtual #117                // Method net/minecraft/client/renderer/SubmitNodeCollection.submitMovingBlock:(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/block/MovingBlockRenderState;I)V
+        11: return
+
+  public void submitBlockModel(com.mojang.blaze3d.vertex.PoseStack, net.minecraft.client.renderer.rendertype.RenderType, java.util.List<net.minecraft.client.renderer.block.dispatch.BlockStateModelPart>, int[], int, int, int);
+    Code:
+         0: aload_0
+         1: iconst_0
+         2: invokevirtual #81                 // Method order:(I)Lnet/minecraft/client/renderer/SubmitNodeCollection;
+         5: aload_1
+         6: aload_2
+         7: aload_3
+         8: aload         4
+        10: iload         5
+        12: iload         6
+        14: iload         7
+        16: invokevirtual #121                // Method net/minecraft/client/renderer/SubmitNodeCollection.submitBlockModel:(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/rendertype/RenderType;Ljava/util/List;[IIII)V
+        19: return
+
+  public void submitBreakingBlockModel(com.mojang.blaze3d.vertex.PoseStack, java.util.List<net.minecraft.client.renderer.block.dispatch.BlockStateModelPart>, int, boolean);
+    Code:
+         0: aload_0
+         1: iconst_0
+         2: invokevirtual #81                 // Method order:(I)Lnet/minecraft/client/renderer/SubmitNodeCollection;
+         5: aload_1
+         6: aload_2
+         7: iload_3
+         8: iload         4
+        10: invokevirtual #125                // Method net/minecraft/client/renderer/SubmitNodeCollection.submitBreakingBlockModel:(Lcom/mojang/blaze3d/vertex/PoseStack;Ljava/util/List;IZ)V
+        13: return
+
+  public void submitShapeOutline(com.mojang.blaze3d.vertex.PoseStack, net.minecraft.world.phys.shapes.VoxelShape, net.minecraft.client.renderer.rendertype.RenderType, int, float, boolean);
+    Code:
+         0: aload_0
+         1: iconst_0
+         2: invokevirtual #81                 // Method order:(I)Lnet/minecraft/client/renderer/SubmitNodeCollection;
+         5: aload_1
+         6: aload_2
+         7: aload_3
+         8: iload         4
+        10: fload         5
+        12: iload         6
+        14: invokevirtual #129                // Method net/minecraft/client/renderer/SubmitNodeCollection.submitShapeOutline:(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/world/phys/shapes/VoxelShape;Lnet/minecraft/client/renderer/rendertype/RenderType;IFZ)V
+        17: return
+
+  public void submitItem(com.mojang.blaze3d.vertex.PoseStack, net.minecraft.world.item.ItemDisplayContext, int, int, int, int[], net.minecraft.client.resources.model.geometry.ItemQuads, net.minecraft.client.renderer.item.ItemStackRenderState$FoilType);
+    Code:
+         0: aload_0
+         1: iconst_0
+         2: invokevirtual #81                 // Method order:(I)Lnet/minecraft/client/renderer/SubmitNodeCollection;
+         5: aload_1
+         6: aload_2
+         7: iload_3
+         8: iload         4
+        10: iload         5
+        12: aload         6
+        14: aload         7
+        16: aload         8
+        18: invokevirtual #133                // Method net/minecraft/client/renderer/SubmitNodeCollection.submitItem:(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/world/item/ItemDisplayContext;III[ILnet/minecraft/client/resources/model/geometry/ItemQuads;Lnet/minecraft/client/renderer/item/ItemStackRenderState$FoilType;)V
+        21: return
+
+  public void submitCustomGeometry(com.mojang.blaze3d.vertex.PoseStack, net.minecraft.client.renderer.rendertype.RenderType, net.minecraft.client.renderer.SubmitNodeCollector$CustomGeometryRenderer);
+    Code:
+         0: aload_0
+         1: iconst_0
+         2: invokevirtual #81                 // Method order:(I)Lnet/minecraft/client/renderer/SubmitNodeCollection;
+         5: aload_1
+         6: aload_2
+         7: aload_3
+         8: invokevirtual #137                // Method net/minecraft/client/renderer/SubmitNodeCollection.submitCustomGeometry:(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/rendertype/RenderType;Lnet/minecraft/client/renderer/SubmitNodeCollector$CustomGeometryRenderer;)V
+        11: return
+
+  public void submitQuadParticleGroup(net.minecraft.client.renderer.state.level.QuadParticleRenderState);
+    Code:
+         0: aload_0
+         1: iconst_0
+         2: invokevirtual #81                 // Method order:(I)Lnet/minecraft/client/renderer/SubmitNodeCollection;
+         5: aload_1
+         6: invokevirtual #141                // Method net/minecraft/client/renderer/SubmitNodeCollection.submitQuadParticleGroup:(Lnet/minecraft/client/renderer/state/level/QuadParticleRenderState;)V
+         9: return
+
+  public void submitGizmoPrimitives(net.minecraft.client.renderer.gizmos.DrawableGizmoPrimitives$Group, net.minecraft.client.renderer.state.level.CameraRenderState, boolean);
+    Code:
+         0: aload_0
+         1: iconst_0
+         2: invokevirtual #81                 // Method order:(I)Lnet/minecraft/client/renderer/SubmitNodeCollection;
+         5: aload_1
+         6: aload_2
+         7: iload_3
+         8: invokevirtual #145                // Method net/minecraft/client/renderer/SubmitNodeCollection.submitGizmoPrimitives:(Lnet/minecraft/client/renderer/gizmos/DrawableGizmoPrimitives$Group;Lnet/minecraft/client/renderer/state/level/CameraRenderState;Z)V
+        11: return
+
+  public it.unimi.dsi.fastutil.ints.Int2ObjectAVLTreeMap<net.minecraft.client.renderer.SubmitNodeCollection> getSubmitsPerOrder();
+    Code:
+         0: aload_0
+         1: getfield      #10                 // Field submitsPerOrder:Lit/unimi/dsi/fastutil/ints/Int2ObjectAVLTreeMap;
+         4: areturn
+
+  public void drainPhases(java.util.function.Consumer<net.minecraft.client.renderer.feature.phase.FeatureRenderPhase<?>>);
+    Code:
+         0: aload_0
+         1: getfield      #10                 // Field submitsPerOrder:Lit/unimi/dsi/fastutil/ints/Int2ObjectAVLTreeMap;
+         4: invokevirtual #27                 // Method it/unimi/dsi/fastutil/ints/Int2ObjectAVLTreeMap.values:()Lit/unimi/dsi/fastutil/objects/ObjectCollection;
+         7: aload_1
+         8: invokedynamic #149,  0            // InvokeDynamic #1:test:(Ljava/util/function/Consumer;)Ljava/util/function/Predicate;
+        13: invokeinterface #153,  2          // InterfaceMethod it/unimi/dsi/fastutil/objects/ObjectCollection.removeIf:(Ljava/util/function/Predicate;)Z
+        18: pop
+        19: aload_0
+        20: getfield      #19                 // Field seeThrough:Lnet/minecraft/client/renderer/feature/phase/TranslucentFeatureRenderPhase;
+        23: invokevirtual #157                // Method net/minecraft/client/renderer/feature/phase/TranslucentFeatureRenderPhase.isEmpty:()Z
+        26: ifne          39
+        29: aload_1
+        30: aload_0
+        31: getfield      #19                 // Field seeThrough:Lnet/minecraft/client/renderer/feature/phase/TranslucentFeatureRenderPhase;
+        34: invokeinterface #158,  2          // InterfaceMethod java/util/function/Consumer.accept:(Ljava/lang/Object;)V
+        39: return
+
+  public net.minecraft.client.renderer.OrderedSubmitNodeCollector order(int);
+    Code:
+         0: aload_0
+         1: iload_1
+         2: invokevirtual #81                 // Method order:(I)Lnet/minecraft/client/renderer/SubmitNodeCollection;
+         5: areturn
+
+  private static boolean lambda$drainPhases$0(java.util.function.Consumer, net.minecraft.client.renderer.SubmitNodeCollection);
+    Code:
+         0: iconst_1
+         1: istore_2
+         2: aload_1
+         3: invokevirtual #49                 // Method net/minecraft/client/renderer/SubmitNodeCollection.allPhases:()Ljava/util/List;
+         6: invokeinterface #53,  1           // InterfaceMethod java/util/List.iterator:()Ljava/util/Iterator;
+        11: astore_3
+        12: aload_3
+        13: invokeinterface #37,  1           // InterfaceMethod java/util/Iterator.hasNext:()Z
+        18: ifeq          58
+        21: aload_3
+        22: invokeinterface #43,  1           // InterfaceMethod java/util/Iterator.next:()Ljava/lang/Object;
+        27: checkcast     #58                 // class net/minecraft/client/renderer/feature/phase/FeatureRenderPhase
+        30: astore        4
+        32: aload         4
+        34: invokeinterface #60,  1           // InterfaceMethod net/minecraft/client/renderer/feature/phase/FeatureRenderPhase.isEmpty:()Z
+        39: ifeq          45
+        42: goto          12
+        45: aload_0
+        46: aload         4
+        48: invokeinterface #158,  2          // InterfaceMethod java/util/function/Consumer.accept:(Ljava/lang/Object;)V
+        53: iconst_0
+        54: istore_2
+        55: goto          12
+        58: iload_2
+        59: ireturn
+
+  private net.minecraft.client.renderer.SubmitNodeCollection lambda$order$0(int);
+    Code:
+         0: new           #47                 // class net/minecraft/client/renderer/SubmitNodeCollection
+         3: dup
+         4: aload_0
+         5: getfield      #23                 // Field useImprovedTransparency:Z
+         8: aload_0
+         9: getfield      #19                 // Field seeThrough:Lnet/minecraft/client/renderer/feature/phase/TranslucentFeatureRenderPhase;
+        12: invokespecial #164                // Method net/minecraft/client/renderer/SubmitNodeCollection."<init>":(ZLnet/minecraft/client/renderer/feature/phase/TranslucentFeatureRenderPhase;)V
+        15: areturn
+}

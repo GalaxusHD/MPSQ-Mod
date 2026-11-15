@@ -1,0 +1,993 @@
+Compiled from "LivingEntityRenderer.java"
+public abstract class net.minecraft.client.renderer.entity.LivingEntityRenderer<T extends net.minecraft.world.entity.LivingEntity, S extends net.minecraft.client.renderer.entity.state.LivingEntityRenderState, M extends net.minecraft.client.model.EntityModel<? super S>> extends net.minecraft.client.renderer.entity.EntityRenderer<T, S> implements net.minecraft.client.renderer.entity.RenderLayerParent<S, M> {
+  private static final float EYE_BED_OFFSET;
+
+  protected M model;
+
+  protected final net.minecraft.client.renderer.item.ItemModelResolver itemModelResolver;
+
+  protected final java.util.List<net.minecraft.client.renderer.entity.layers.RenderLayer<S, M>> layers;
+
+  public net.minecraft.client.renderer.entity.LivingEntityRenderer(net.minecraft.client.renderer.entity.EntityRendererProvider$Context, M, float);
+    Code:
+         0: aload_0
+         1: aload_1
+         2: invokespecial #1                  // Method net/minecraft/client/renderer/entity/EntityRenderer."<init>":(Lnet/minecraft/client/renderer/entity/EntityRendererProvider$Context;)V
+         5: aload_0
+         6: invokestatic  #7                  // Method com/google/common/collect/Lists.newArrayList:()Ljava/util/ArrayList;
+         9: putfield      #13                 // Field layers:Ljava/util/List;
+        12: aload_0
+        13: aload_1
+        14: invokevirtual #19                 // Method net/minecraft/client/renderer/entity/EntityRendererProvider$Context.getItemModelResolver:()Lnet/minecraft/client/renderer/item/ItemModelResolver;
+        17: putfield      #25                 // Field itemModelResolver:Lnet/minecraft/client/renderer/item/ItemModelResolver;
+        20: aload_0
+        21: aload_2
+        22: putfield      #29                 // Field model:Lnet/minecraft/client/model/EntityModel;
+        25: aload_0
+        26: fload_3
+        27: putfield      #33                 // Field shadowRadius:F
+        30: return
+
+  protected final boolean addLayer(net.minecraft.client.renderer.entity.layers.RenderLayer<S, M>);
+    Code:
+         0: aload_0
+         1: getfield      #13                 // Field layers:Ljava/util/List;
+         4: aload_1
+         5: invokeinterface #37,  2           // InterfaceMethod java/util/List.add:(Ljava/lang/Object;)Z
+        10: ireturn
+
+  public M getModel();
+    Code:
+         0: aload_0
+         1: getfield      #29                 // Field model:Lnet/minecraft/client/model/EntityModel;
+         4: areturn
+
+  protected net.minecraft.world.phys.AABB getBoundingBoxForCulling(T, float);
+    Code:
+         0: aload_0
+         1: aload_1
+         2: fload_2
+         3: invokespecial #43                 // Method net/minecraft/client/renderer/entity/EntityRenderer.getBoundingBoxForCulling:(Lnet/minecraft/world/entity/Entity;F)Lnet/minecraft/world/phys/AABB;
+         6: astore_3
+         7: aload_1
+         8: getstatic     #47                 // Field net/minecraft/world/entity/EquipmentSlot.HEAD:Lnet/minecraft/world/entity/EquipmentSlot;
+        11: invokevirtual #53                 // Method net/minecraft/world/entity/LivingEntity.getItemBySlot:(Lnet/minecraft/world/entity/EquipmentSlot;)Lnet/minecraft/world/item/ItemStack;
+        14: getstatic     #59                 // Field net/minecraft/world/item/Items.DRAGON_HEAD:Lnet/minecraft/world/item/Item;
+        17: invokevirtual #65                 // Method net/minecraft/world/item/ItemStack.is:(Ljava/lang/Object;)Z
+        20: ifeq          41
+        23: ldc           #70                 // float 0.5f
+        25: fstore        4
+        27: aload_3
+        28: ldc2_w        #71                 // double 0.5d
+        31: ldc2_w        #71                 // double 0.5d
+        34: ldc2_w        #71                 // double 0.5d
+        37: invokevirtual #73                 // Method net/minecraft/world/phys/AABB.inflate:(DDD)Lnet/minecraft/world/phys/AABB;
+        40: areturn
+        41: aload_3
+        42: areturn
+
+  public void submit(S, com.mojang.blaze3d.vertex.PoseStack, net.minecraft.client.renderer.SubmitNodeCollector, net.minecraft.client.renderer.state.level.CameraRenderState);
+    Code:
+         0: aload_2
+         1: invokevirtual #79                 // Method com/mojang/blaze3d/vertex/PoseStack.pushPose:()V
+         4: aload_1
+         5: getstatic     #85                 // Field net/minecraft/world/entity/Pose.SLEEPING:Lnet/minecraft/world/entity/Pose;
+         8: invokevirtual #91                 // Method net/minecraft/client/renderer/entity/state/LivingEntityRenderState.hasPose:(Lnet/minecraft/world/entity/Pose;)Z
+        11: ifeq          59
+        14: aload_1
+        15: getfield      #97                 // Field net/minecraft/client/renderer/entity/state/LivingEntityRenderState.bedOrientation:Lnet/minecraft/core/Direction;
+        18: astore        5
+        20: aload         5
+        22: ifnull        59
+        25: aload_1
+        26: getfield      #101                // Field net/minecraft/client/renderer/entity/state/LivingEntityRenderState.eyeHeight:F
+        29: ldc           #104                // float 0.1f
+        31: fsub
+        32: fstore        6
+        34: aload_2
+        35: aload         5
+        37: invokevirtual #105                // Method net/minecraft/core/Direction.getStepX:()I
+        40: ineg
+        41: i2f
+        42: fload         6
+        44: fmul
+        45: fconst_0
+        46: aload         5
+        48: invokevirtual #111                // Method net/minecraft/core/Direction.getStepZ:()I
+        51: ineg
+        52: i2f
+        53: fload         6
+        55: fmul
+        56: invokevirtual #114                // Method com/mojang/blaze3d/vertex/PoseStack.translate:(FFF)V
+        59: aload_1
+        60: getfield      #118                // Field net/minecraft/client/renderer/entity/state/LivingEntityRenderState.scale:F
+        63: fstore        5
+        65: aload_2
+        66: fload         5
+        68: fload         5
+        70: fload         5
+        72: invokevirtual #121                // Method com/mojang/blaze3d/vertex/PoseStack.scale:(FFF)V
+        75: aload_0
+        76: aload_1
+        77: aload_2
+        78: aload_1
+        79: getfield      #123                // Field net/minecraft/client/renderer/entity/state/LivingEntityRenderState.bodyRot:F
+        82: fload         5
+        84: invokevirtual #126                // Method setupRotations:(Lnet/minecraft/client/renderer/entity/state/LivingEntityRenderState;Lcom/mojang/blaze3d/vertex/PoseStack;FF)V
+        87: aload_2
+        88: ldc           #130                // float -1.0f
+        90: ldc           #130                // float -1.0f
+        92: fconst_1
+        93: invokevirtual #121                // Method com/mojang/blaze3d/vertex/PoseStack.scale:(FFF)V
+        96: aload_0
+        97: aload_1
+        98: aload_2
+        99: invokevirtual #131                // Method scale:(Lnet/minecraft/client/renderer/entity/state/LivingEntityRenderState;Lcom/mojang/blaze3d/vertex/PoseStack;)V
+       102: aload_2
+       103: fconst_0
+       104: ldc           #136                // float -1.501f
+       106: fconst_0
+       107: invokevirtual #114                // Method com/mojang/blaze3d/vertex/PoseStack.translate:(FFF)V
+       110: aload_0
+       111: aload_1
+       112: invokevirtual #137                // Method isBodyVisible:(Lnet/minecraft/client/renderer/entity/state/LivingEntityRenderState;)Z
+       115: istore        6
+       117: iload         6
+       119: ifne          133
+       122: aload_1
+       123: getfield      #141                // Field net/minecraft/client/renderer/entity/state/LivingEntityRenderState.isInvisibleToPlayer:Z
+       126: ifne          133
+       129: iconst_1
+       130: goto          134
+       133: iconst_0
+       134: istore        7
+       136: aload_0
+       137: aload_1
+       138: iload         6
+       140: iload         7
+       142: aload_1
+       143: invokevirtual #145                // Method net/minecraft/client/renderer/entity/state/LivingEntityRenderState.appearsGlowing:()Z
+       146: invokevirtual #149                // Method getRenderType:(Lnet/minecraft/client/renderer/entity/state/LivingEntityRenderState;ZZZ)Lnet/minecraft/client/renderer/rendertype/RenderType;
+       149: astore        8
+       151: aload         8
+       153: ifnull        219
+       156: aload_1
+       157: aload_0
+       158: aload_1
+       159: invokevirtual #153                // Method getWhiteOverlayProgress:(Lnet/minecraft/client/renderer/entity/state/LivingEntityRenderState;)F
+       162: invokestatic  #157                // Method getOverlayCoords:(Lnet/minecraft/client/renderer/entity/state/LivingEntityRenderState;F)I
+       165: istore        9
+       167: iload         7
+       169: ifeq          177
+       172: ldc           #161                // int 654311423
+       174: goto          178
+       177: iconst_m1
+       178: istore        10
+       180: iload         10
+       182: aload_0
+       183: aload_1
+       184: invokevirtual #164                // Method getModelTint:(Lnet/minecraft/client/renderer/entity/state/LivingEntityRenderState;)I
+       187: invokestatic  #168                // Method net/minecraft/util/ARGB.multiply:(II)I
+       190: istore        11
+       192: aload_3
+       193: aload_0
+       194: getfield      #29                 // Field model:Lnet/minecraft/client/model/EntityModel;
+       197: aload_1
+       198: aload_2
+       199: aload         8
+       201: aload_1
+       202: getfield      #174                // Field net/minecraft/client/renderer/entity/state/LivingEntityRenderState.lightCoords:I
+       205: iload         9
+       207: iload         11
+       209: aconst_null
+       210: aload_1
+       211: getfield      #178                // Field net/minecraft/client/renderer/entity/state/LivingEntityRenderState.outlineColor:I
+       214: invokeinterface #181,  10         // InterfaceMethod net/minecraft/client/renderer/SubmitNodeCollector.submitModel:(Lnet/minecraft/client/model/Model;Ljava/lang/Object;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/rendertype/RenderType;IIILnet/minecraft/client/renderer/texture/UvMapping;I)V
+       219: aload_0
+       220: aload_1
+       221: invokevirtual #187                // Method shouldRenderLayers:(Lnet/minecraft/client/renderer/entity/state/LivingEntityRenderState;)Z
+       224: ifeq          303
+       227: aload_0
+       228: getfield      #13                 // Field layers:Ljava/util/List;
+       231: invokeinterface #190,  1          // InterfaceMethod java/util/List.isEmpty:()Z
+       236: ifne          303
+       239: aload_0
+       240: getfield      #29                 // Field model:Lnet/minecraft/client/model/EntityModel;
+       243: aload_1
+       244: invokevirtual #193                // Method net/minecraft/client/model/EntityModel.setupAnim:(Ljava/lang/Object;)V
+       247: aload_0
+       248: getfield      #13                 // Field layers:Ljava/util/List;
+       251: invokeinterface #197,  1          // InterfaceMethod java/util/List.iterator:()Ljava/util/Iterator;
+       256: astore        9
+       258: aload         9
+       260: invokeinterface #201,  1          // InterfaceMethod java/util/Iterator.hasNext:()Z
+       265: ifeq          303
+       268: aload         9
+       270: invokeinterface #206,  1          // InterfaceMethod java/util/Iterator.next:()Ljava/lang/Object;
+       275: checkcast     #210                // class net/minecraft/client/renderer/entity/layers/RenderLayer
+       278: astore        10
+       280: aload         10
+       282: aload_2
+       283: aload_3
+       284: aload_1
+       285: getfield      #174                // Field net/minecraft/client/renderer/entity/state/LivingEntityRenderState.lightCoords:I
+       288: aload_1
+       289: aload_1
+       290: getfield      #212                // Field net/minecraft/client/renderer/entity/state/LivingEntityRenderState.yRot:F
+       293: aload_1
+       294: getfield      #215                // Field net/minecraft/client/renderer/entity/state/LivingEntityRenderState.xRot:F
+       297: invokevirtual #218                // Method net/minecraft/client/renderer/entity/layers/RenderLayer.submit:(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;ILnet/minecraft/client/renderer/entity/state/EntityRenderState;FF)V
+       300: goto          258
+       303: aload_2
+       304: invokevirtual #222                // Method com/mojang/blaze3d/vertex/PoseStack.popPose:()V
+       307: aload_0
+       308: aload_1
+       309: aload_2
+       310: aload_3
+       311: aload         4
+       313: invokespecial #225                // Method net/minecraft/client/renderer/entity/EntityRenderer.submit:(Lnet/minecraft/client/renderer/entity/state/EntityRenderState;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;Lnet/minecraft/client/renderer/state/level/CameraRenderState;)V
+       316: return
+
+  protected boolean shouldRenderLayers(S);
+    Code:
+         0: iconst_1
+         1: ireturn
+
+  protected int getModelTint(S);
+    Code:
+         0: iconst_m1
+         1: ireturn
+
+  public abstract net.minecraft.resources.Identifier getTextureLocation(S);
+
+  protected net.minecraft.client.renderer.rendertype.RenderType getRenderType(S, boolean, boolean, boolean);
+    Code:
+         0: aload_0
+         1: aload_1
+         2: invokevirtual #228                // Method getTextureLocation:(Lnet/minecraft/client/renderer/entity/state/LivingEntityRenderState;)Lnet/minecraft/resources/Identifier;
+         5: astore        5
+         7: iload_3
+         8: ifeq          17
+        11: aload         5
+        13: invokestatic  #232                // Method net/minecraft/client/renderer/rendertype/RenderTypes.entityTranslucentCull:(Lnet/minecraft/resources/Identifier;)Lnet/minecraft/client/renderer/rendertype/RenderType;
+        16: areturn
+        17: iload_2
+        18: ifeq          31
+        21: aload_0
+        22: getfield      #29                 // Field model:Lnet/minecraft/client/model/EntityModel;
+        25: aload         5
+        27: invokevirtual #238                // Method net/minecraft/client/model/EntityModel.renderType:(Lnet/minecraft/resources/Identifier;)Lnet/minecraft/client/renderer/rendertype/RenderType;
+        30: areturn
+        31: iload         4
+        33: ifeq          42
+        36: aload         5
+        38: invokestatic  #241                // Method net/minecraft/client/renderer/rendertype/RenderTypes.outline:(Lnet/minecraft/resources/Identifier;)Lnet/minecraft/client/renderer/rendertype/RenderType;
+        41: areturn
+        42: aconst_null
+        43: areturn
+
+  public static int getOverlayCoords(net.minecraft.client.renderer.entity.state.LivingEntityRenderState, float);
+    Code:
+         0: fload_1
+         1: invokestatic  #244                // Method net/minecraft/client/renderer/texture/OverlayTexture.u:(F)I
+         4: aload_0
+         5: getfield      #250                // Field net/minecraft/client/renderer/entity/state/LivingEntityRenderState.hasRedOverlay:Z
+         8: invokestatic  #253                // Method net/minecraft/client/renderer/texture/OverlayTexture.v:(Z)I
+        11: invokestatic  #257                // Method net/minecraft/client/renderer/texture/OverlayTexture.pack:(II)I
+        14: ireturn
+
+  protected boolean isBodyVisible(S);
+    Code:
+         0: aload_1
+         1: getfield      #260                // Field net/minecraft/client/renderer/entity/state/LivingEntityRenderState.isInvisible:Z
+         4: ifne          11
+         7: iconst_1
+         8: goto          12
+        11: iconst_0
+        12: ireturn
+
+  private static float sleepDirectionToRotation(net.minecraft.core.Direction);
+    Code:
+         0: getstatic     #263                // Field net/minecraft/client/renderer/entity/LivingEntityRenderer$1.$SwitchMap$net$minecraft$core$Direction:[I
+         3: aload_0
+         4: invokevirtual #269                // Method net/minecraft/core/Direction.ordinal:()I
+         7: iaload
+         8: tableswitch   { // 1 to 4
+
+                       1: 40
+
+                       2: 46
+
+                       3: 50
+
+                       4: 56
+                 default: 62
+            }
+        40: ldc_w         #272                // float 90.0f
+        43: goto          63
+        46: fconst_0
+        47: goto          63
+        50: ldc_w         #273                // float 270.0f
+        53: goto          63
+        56: ldc_w         #274                // float 180.0f
+        59: goto          63
+        62: fconst_0
+        63: freturn
+
+  protected boolean isShaking(S);
+    Code:
+         0: aload_1
+         1: getfield      #275                // Field net/minecraft/client/renderer/entity/state/LivingEntityRenderState.isFullyFrozen:Z
+         4: ireturn
+
+  protected void setupRotations(S, com.mojang.blaze3d.vertex.PoseStack, float, float);
+    Code:
+         0: aload_0
+         1: aload_1
+         2: invokevirtual #278                // Method isShaking:(Lnet/minecraft/client/renderer/entity/state/LivingEntityRenderState;)Z
+         5: ifeq          36
+         8: fload_3
+         9: aload_1
+        10: getfield      #281                // Field net/minecraft/client/renderer/entity/state/LivingEntityRenderState.ageInTicks:F
+        13: invokestatic  #284                // Method net/minecraft/util/Mth.floor:(F)I
+        16: i2f
+        17: ldc_w         #289                // float 3.25f
+        20: fmul
+        21: f2d
+        22: invokestatic  #290                // Method java/lang/Math.cos:(D)D
+        25: ldc2_w        #296                // double 3.141592653589793d
+        28: dmul
+        29: ldc2_w        #298                // double 0.4000000059604645d
+        32: dmul
+        33: d2f
+        34: fadd
+        35: fstore_3
+        36: aload_1
+        37: getstatic     #85                 // Field net/minecraft/world/entity/Pose.SLEEPING:Lnet/minecraft/world/entity/Pose;
+        40: invokevirtual #91                 // Method net/minecraft/client/renderer/entity/state/LivingEntityRenderState.hasPose:(Lnet/minecraft/world/entity/Pose;)Z
+        43: ifne          58
+        46: aload_2
+        47: getstatic     #300                // Field com/mojang/math/Axis.YP:Lcom/mojang/math/Axis;
+        50: ldc_w         #274                // float 180.0f
+        53: fload_3
+        54: fsub
+        55: invokevirtual #306                // Method com/mojang/blaze3d/vertex/PoseStack.rotateDegrees:(Lcom/mojang/math/Axis;F)V
+        58: aload_1
+        59: getfield      #310                // Field net/minecraft/client/renderer/entity/state/LivingEntityRenderState.deathTime:F
+        62: fconst_0
+        63: fcmpl
+        64: ifle          117
+        67: aload_1
+        68: getfield      #310                // Field net/minecraft/client/renderer/entity/state/LivingEntityRenderState.deathTime:F
+        71: fconst_1
+        72: fsub
+        73: ldc_w         #313                // float 20.0f
+        76: fdiv
+        77: ldc_w         #314                // float 1.6f
+        80: fmul
+        81: fstore        5
+        83: fload         5
+        85: invokestatic  #315                // Method net/minecraft/util/Mth.sqrt:(F)F
+        88: fstore        5
+        90: fload         5
+        92: fconst_1
+        93: fcmpl
+        94: ifle          100
+        97: fconst_1
+        98: fstore        5
+       100: aload_2
+       101: getstatic     #319                // Field com/mojang/math/Axis.ZP:Lcom/mojang/math/Axis;
+       104: fload         5
+       106: aload_0
+       107: invokevirtual #322                // Method getFlipDegrees:()F
+       110: fmul
+       111: invokevirtual #306                // Method com/mojang/blaze3d/vertex/PoseStack.rotateDegrees:(Lcom/mojang/math/Axis;F)V
+       114: goto          255
+       117: aload_1
+       118: getfield      #326                // Field net/minecraft/client/renderer/entity/state/LivingEntityRenderState.isAutoSpinAttack:Z
+       121: ifeq          157
+       124: aload_2
+       125: getstatic     #329                // Field com/mojang/math/Axis.XP:Lcom/mojang/math/Axis;
+       128: ldc_w         #332                // float -90.0f
+       131: aload_1
+       132: getfield      #215                // Field net/minecraft/client/renderer/entity/state/LivingEntityRenderState.xRot:F
+       135: fsub
+       136: invokevirtual #306                // Method com/mojang/blaze3d/vertex/PoseStack.rotateDegrees:(Lcom/mojang/math/Axis;F)V
+       139: aload_2
+       140: getstatic     #300                // Field com/mojang/math/Axis.YP:Lcom/mojang/math/Axis;
+       143: aload_1
+       144: getfield      #281                // Field net/minecraft/client/renderer/entity/state/LivingEntityRenderState.ageInTicks:F
+       147: ldc_w         #333                // float -75.0f
+       150: fmul
+       151: invokevirtual #306                // Method com/mojang/blaze3d/vertex/PoseStack.rotateDegrees:(Lcom/mojang/math/Axis;F)V
+       154: goto          255
+       157: aload_1
+       158: getstatic     #85                 // Field net/minecraft/world/entity/Pose.SLEEPING:Lnet/minecraft/world/entity/Pose;
+       161: invokevirtual #91                 // Method net/minecraft/client/renderer/entity/state/LivingEntityRenderState.hasPose:(Lnet/minecraft/world/entity/Pose;)Z
+       164: ifeq          222
+       167: aload_1
+       168: getfield      #97                 // Field net/minecraft/client/renderer/entity/state/LivingEntityRenderState.bedOrientation:Lnet/minecraft/core/Direction;
+       171: astore        5
+       173: aload         5
+       175: ifnull        186
+       178: aload         5
+       180: invokestatic  #334                // Method sleepDirectionToRotation:(Lnet/minecraft/core/Direction;)F
+       183: goto          187
+       186: fload_3
+       187: fstore        6
+       189: aload_2
+       190: getstatic     #300                // Field com/mojang/math/Axis.YP:Lcom/mojang/math/Axis;
+       193: fload         6
+       195: invokevirtual #306                // Method com/mojang/blaze3d/vertex/PoseStack.rotateDegrees:(Lcom/mojang/math/Axis;F)V
+       198: aload_2
+       199: getstatic     #319                // Field com/mojang/math/Axis.ZP:Lcom/mojang/math/Axis;
+       202: aload_0
+       203: invokevirtual #322                // Method getFlipDegrees:()F
+       206: invokevirtual #306                // Method com/mojang/blaze3d/vertex/PoseStack.rotateDegrees:(Lcom/mojang/math/Axis;F)V
+       209: aload_2
+       210: getstatic     #300                // Field com/mojang/math/Axis.YP:Lcom/mojang/math/Axis;
+       213: ldc_w         #273                // float 270.0f
+       216: invokevirtual #306                // Method com/mojang/blaze3d/vertex/PoseStack.rotateDegrees:(Lcom/mojang/math/Axis;F)V
+       219: goto          255
+       222: aload_1
+       223: getfield      #338                // Field net/minecraft/client/renderer/entity/state/LivingEntityRenderState.isUpsideDown:Z
+       226: ifeq          255
+       229: aload_2
+       230: fconst_0
+       231: aload_1
+       232: getfield      #341                // Field net/minecraft/client/renderer/entity/state/LivingEntityRenderState.boundingBoxHeight:F
+       235: ldc           #104                // float 0.1f
+       237: fadd
+       238: fload         4
+       240: fdiv
+       241: fconst_0
+       242: invokevirtual #114                // Method com/mojang/blaze3d/vertex/PoseStack.translate:(FFF)V
+       245: aload_2
+       246: getstatic     #319                // Field com/mojang/math/Axis.ZP:Lcom/mojang/math/Axis;
+       249: ldc_w         #274                // float 180.0f
+       252: invokevirtual #306                // Method com/mojang/blaze3d/vertex/PoseStack.rotateDegrees:(Lcom/mojang/math/Axis;F)V
+       255: return
+
+  protected float getFlipDegrees();
+    Code:
+         0: ldc_w         #272                // float 90.0f
+         3: freturn
+
+  protected float getWhiteOverlayProgress(S);
+    Code:
+         0: fconst_0
+         1: freturn
+
+  protected void scale(S, com.mojang.blaze3d.vertex.PoseStack);
+    Code:
+         0: return
+
+  protected boolean shouldShowName(T, double);
+    Code:
+         0: aload_1
+         1: invokevirtual #344                // Method net/minecraft/world/entity/LivingEntity.isDiscrete:()Z
+         4: ifeq          22
+         7: ldc_w         #347                // float 32.0f
+        10: fstore        4
+        12: dload_2
+        13: ldc2_w        #348                // double 1024.0d
+        16: dcmpl
+        17: iflt          22
+        20: iconst_0
+        21: ireturn
+        22: invokestatic  #350                // Method net/minecraft/client/Minecraft.getInstance:()Lnet/minecraft/client/Minecraft;
+        25: astore        4
+        27: aload         4
+        29: getfield      #356                // Field net/minecraft/client/Minecraft.player:Lnet/minecraft/client/player/LocalPlayer;
+        32: astore        5
+        34: aload_1
+        35: aload         5
+        37: invokevirtual #360                // Method net/minecraft/world/entity/LivingEntity.isInvisibleTo:(Lnet/minecraft/world/entity/player/Player;)Z
+        40: ifne          47
+        43: iconst_1
+        44: goto          48
+        47: iconst_0
+        48: istore        6
+        50: aload_1
+        51: aload         5
+        53: if_acmpeq     211
+        56: aload_1
+        57: invokevirtual #364                // Method net/minecraft/world/entity/LivingEntity.getTeam:()Lnet/minecraft/world/scores/PlayerTeam;
+        60: astore        7
+        62: aload         5
+        64: invokevirtual #368                // Method net/minecraft/client/player/LocalPlayer.getTeam:()Lnet/minecraft/world/scores/PlayerTeam;
+        67: astore        8
+        69: aload         7
+        71: ifnull        211
+        74: aload         7
+        76: invokevirtual #371                // Method net/minecraft/world/scores/Team.getNameTagVisibility:()Lnet/minecraft/world/scores/Team$Visibility;
+        79: astore        9
+        81: getstatic     #377                // Field net/minecraft/client/renderer/entity/LivingEntityRenderer$1.$SwitchMap$net$minecraft$world$scores$Team$Visibility:[I
+        84: aload         9
+        86: invokevirtual #380                // Method net/minecraft/world/scores/Team$Visibility.ordinal:()I
+        89: iaload
+        90: tableswitch   { // 1 to 4
+
+                       1: 130
+
+                       2: 135
+
+                       3: 139
+
+                       4: 180
+                 default: 120
+            }
+       120: new           #383                // class java/lang/MatchException
+       123: dup
+       124: aconst_null
+       125: aconst_null
+       126: invokespecial #385                // Method java/lang/MatchException."<init>":(Ljava/lang/String;Ljava/lang/Throwable;)V
+       129: athrow
+       130: iload         6
+       132: goto          210
+       135: iconst_0
+       136: goto          210
+       139: aload         8
+       141: ifnonnull     149
+       144: iload         6
+       146: goto          210
+       149: aload         7
+       151: aload         8
+       153: invokevirtual #388                // Method net/minecraft/world/scores/Team.isAlliedTo:(Lnet/minecraft/world/scores/Team;)Z
+       156: ifeq          176
+       159: aload         7
+       161: invokevirtual #392                // Method net/minecraft/world/scores/Team.canSeeFriendlyInvisibles:()Z
+       164: ifne          172
+       167: iload         6
+       169: ifeq          176
+       172: iconst_1
+       173: goto          210
+       176: iconst_0
+       177: goto          210
+       180: aload         8
+       182: ifnonnull     190
+       185: iload         6
+       187: goto          210
+       190: aload         7
+       192: aload         8
+       194: invokevirtual #388                // Method net/minecraft/world/scores/Team.isAlliedTo:(Lnet/minecraft/world/scores/Team;)Z
+       197: ifne          209
+       200: iload         6
+       202: ifeq          209
+       205: iconst_1
+       206: goto          210
+       209: iconst_0
+       210: ireturn
+       211: invokestatic  #350                // Method net/minecraft/client/Minecraft.getInstance:()Lnet/minecraft/client/Minecraft;
+       214: getfield      #395                // Field net/minecraft/client/Minecraft.gui:Lnet/minecraft/client/gui/Gui;
+       217: getfield      #399                // Field net/minecraft/client/gui/Gui.hud:Lnet/minecraft/client/gui/Hud;
+       220: invokevirtual #405                // Method net/minecraft/client/gui/Hud.isHidden:()Z
+       223: ifne          251
+       226: aload_1
+       227: aload         4
+       229: invokevirtual #410                // Method net/minecraft/client/Minecraft.getCameraEntity:()Lnet/minecraft/world/entity/Entity;
+       232: if_acmpeq     251
+       235: iload         6
+       237: ifeq          251
+       240: aload_1
+       241: invokevirtual #414                // Method net/minecraft/world/entity/LivingEntity.isVehicle:()Z
+       244: ifne          251
+       247: iconst_1
+       248: goto          252
+       251: iconst_0
+       252: ireturn
+
+  public boolean isEntityUpsideDown(T);
+    Code:
+         0: aload_1
+         1: invokevirtual #417                // Method net/minecraft/world/entity/LivingEntity.getCustomName:()Lnet/minecraft/network/chat/Component;
+         4: astore_2
+         5: aload_2
+         6: ifnull        25
+         9: aload_2
+        10: invokeinterface #421,  1          // InterfaceMethod net/minecraft/network/chat/Component.getString:()Ljava/lang/String;
+        15: invokestatic  #427                // Method isUpsideDownName:(Ljava/lang/String;)Z
+        18: ifeq          25
+        21: iconst_1
+        22: goto          26
+        25: iconst_0
+        26: ireturn
+
+  protected static boolean isUpsideDownName(java.lang.String);
+    Code:
+         0: ldc_w         #431                // String Dinnerbone
+         3: aload_0
+         4: invokevirtual #433                // Method java/lang/String.equals:(Ljava/lang/Object;)Z
+         7: ifne          20
+        10: ldc_w         #438                // String Grumm
+        13: aload_0
+        14: invokevirtual #433                // Method java/lang/String.equals:(Ljava/lang/Object;)Z
+        17: ifeq          24
+        20: iconst_1
+        21: goto          25
+        24: iconst_0
+        25: ireturn
+
+  protected float getShadowRadius(S);
+    Code:
+         0: aload_0
+         1: aload_1
+         2: invokespecial #440                // Method net/minecraft/client/renderer/entity/EntityRenderer.getShadowRadius:(Lnet/minecraft/client/renderer/entity/state/EntityRenderState;)F
+         5: aload_1
+         6: getfield      #118                // Field net/minecraft/client/renderer/entity/state/LivingEntityRenderState.scale:F
+         9: fmul
+        10: freturn
+
+  public void extractRenderState(T, S, float);
+    Code:
+         0: aload_0
+         1: aload_1
+         2: aload_2
+         3: fload_3
+         4: invokespecial #444                // Method net/minecraft/client/renderer/entity/EntityRenderer.extractRenderState:(Lnet/minecraft/world/entity/Entity;Lnet/minecraft/client/renderer/entity/state/EntityRenderState;F)V
+         7: fload_3
+         8: aload_1
+         9: getfield      #448                // Field net/minecraft/world/entity/LivingEntity.yHeadRotO:F
+        12: aload_1
+        13: getfield      #451                // Field net/minecraft/world/entity/LivingEntity.yHeadRot:F
+        16: invokestatic  #454                // Method net/minecraft/util/Mth.rotLerp:(FFF)F
+        19: fstore        4
+        21: aload_2
+        22: aload_1
+        23: fload         4
+        25: fload_3
+        26: invokestatic  #458                // Method solveBodyRot:(Lnet/minecraft/world/entity/LivingEntity;FF)F
+        29: putfield      #123                // Field net/minecraft/client/renderer/entity/state/LivingEntityRenderState.bodyRot:F
+        32: aload_2
+        33: fload         4
+        35: aload_2
+        36: getfield      #123                // Field net/minecraft/client/renderer/entity/state/LivingEntityRenderState.bodyRot:F
+        39: fsub
+        40: invokestatic  #462                // Method net/minecraft/util/Mth.wrapDegrees:(F)F
+        43: putfield      #212                // Field net/minecraft/client/renderer/entity/state/LivingEntityRenderState.yRot:F
+        46: aload_2
+        47: aload_1
+        48: fload_3
+        49: invokevirtual #465                // Method net/minecraft/world/entity/LivingEntity.getXRot:(F)F
+        52: putfield      #215                // Field net/minecraft/client/renderer/entity/state/LivingEntityRenderState.xRot:F
+        55: aload_2
+        56: aload_0
+        57: aload_1
+        58: invokevirtual #468                // Method isEntityUpsideDown:(Lnet/minecraft/world/entity/LivingEntity;)Z
+        61: putfield      #338                // Field net/minecraft/client/renderer/entity/state/LivingEntityRenderState.isUpsideDown:Z
+        64: aload_2
+        65: getfield      #338                // Field net/minecraft/client/renderer/entity/state/LivingEntityRenderState.isUpsideDown:Z
+        68: ifeq          93
+        71: aload_2
+        72: dup
+        73: getfield      #215                // Field net/minecraft/client/renderer/entity/state/LivingEntityRenderState.xRot:F
+        76: ldc           #130                // float -1.0f
+        78: fmul
+        79: putfield      #215                // Field net/minecraft/client/renderer/entity/state/LivingEntityRenderState.xRot:F
+        82: aload_2
+        83: dup
+        84: getfield      #212                // Field net/minecraft/client/renderer/entity/state/LivingEntityRenderState.yRot:F
+        87: ldc           #130                // float -1.0f
+        89: fmul
+        90: putfield      #212                // Field net/minecraft/client/renderer/entity/state/LivingEntityRenderState.yRot:F
+        93: aload_1
+        94: invokevirtual #472                // Method net/minecraft/world/entity/LivingEntity.isPassenger:()Z
+        97: ifne          134
+       100: aload_1
+       101: invokevirtual #475                // Method net/minecraft/world/entity/LivingEntity.isAlive:()Z
+       104: ifeq          134
+       107: aload_2
+       108: aload_1
+       109: getfield      #478                // Field net/minecraft/world/entity/LivingEntity.walkAnimation:Lnet/minecraft/world/entity/WalkAnimationState;
+       112: fload_3
+       113: invokevirtual #482                // Method net/minecraft/world/entity/WalkAnimationState.position:(F)F
+       116: putfield      #487                // Field net/minecraft/client/renderer/entity/state/LivingEntityRenderState.walkAnimationPos:F
+       119: aload_2
+       120: aload_1
+       121: getfield      #478                // Field net/minecraft/world/entity/LivingEntity.walkAnimation:Lnet/minecraft/world/entity/WalkAnimationState;
+       124: fload_3
+       125: invokevirtual #490                // Method net/minecraft/world/entity/WalkAnimationState.speed:(F)F
+       128: putfield      #493                // Field net/minecraft/client/renderer/entity/state/LivingEntityRenderState.walkAnimationSpeed:F
+       131: goto          144
+       134: aload_2
+       135: fconst_0
+       136: putfield      #487                // Field net/minecraft/client/renderer/entity/state/LivingEntityRenderState.walkAnimationPos:F
+       139: aload_2
+       140: fconst_0
+       141: putfield      #493                // Field net/minecraft/client/renderer/entity/state/LivingEntityRenderState.walkAnimationSpeed:F
+       144: aload_1
+       145: invokevirtual #496                // Method net/minecraft/world/entity/LivingEntity.getVehicle:()Lnet/minecraft/world/entity/Entity;
+       148: astore        6
+       150: aload         6
+       152: instanceof    #54                 // class net/minecraft/world/entity/LivingEntity
+       155: ifeq          181
+       158: aload         6
+       160: checkcast     #54                 // class net/minecraft/world/entity/LivingEntity
+       163: astore        5
+       165: aload_2
+       166: aload         5
+       168: getfield      #478                // Field net/minecraft/world/entity/LivingEntity.walkAnimation:Lnet/minecraft/world/entity/WalkAnimationState;
+       171: fload_3
+       172: invokevirtual #482                // Method net/minecraft/world/entity/WalkAnimationState.position:(F)F
+       175: putfield      #499                // Field net/minecraft/client/renderer/entity/state/LivingEntityRenderState.wornHeadAnimationPos:F
+       178: goto          189
+       181: aload_2
+       182: aload_2
+       183: getfield      #487                // Field net/minecraft/client/renderer/entity/state/LivingEntityRenderState.walkAnimationPos:F
+       186: putfield      #499                // Field net/minecraft/client/renderer/entity/state/LivingEntityRenderState.wornHeadAnimationPos:F
+       189: aload_2
+       190: aload_1
+       191: invokevirtual #502                // Method net/minecraft/world/entity/LivingEntity.getScale:()F
+       194: putfield      #118                // Field net/minecraft/client/renderer/entity/state/LivingEntityRenderState.scale:F
+       197: aload_2
+       198: aload_1
+       199: invokevirtual #505                // Method net/minecraft/world/entity/LivingEntity.getAgeScale:()F
+       202: putfield      #508                // Field net/minecraft/client/renderer/entity/state/LivingEntityRenderState.ageScale:F
+       205: aload_2
+       206: aload_1
+       207: invokevirtual #511                // Method net/minecraft/world/entity/LivingEntity.getPose:()Lnet/minecraft/world/entity/Pose;
+       210: putfield      #515                // Field net/minecraft/client/renderer/entity/state/LivingEntityRenderState.pose:Lnet/minecraft/world/entity/Pose;
+       213: aload_2
+       214: aload_1
+       215: invokevirtual #518                // Method net/minecraft/world/entity/LivingEntity.getBedOrientation:()Lnet/minecraft/core/Direction;
+       218: putfield      #97                 // Field net/minecraft/client/renderer/entity/state/LivingEntityRenderState.bedOrientation:Lnet/minecraft/core/Direction;
+       221: aload_2
+       222: getfield      #97                 // Field net/minecraft/client/renderer/entity/state/LivingEntityRenderState.bedOrientation:Lnet/minecraft/core/Direction;
+       225: ifnull        239
+       228: aload_2
+       229: aload_1
+       230: getstatic     #522                // Field net/minecraft/world/entity/Pose.STANDING:Lnet/minecraft/world/entity/Pose;
+       233: invokevirtual #525                // Method net/minecraft/world/entity/LivingEntity.getEyeHeight:(Lnet/minecraft/world/entity/Pose;)F
+       236: putfield      #101                // Field net/minecraft/client/renderer/entity/state/LivingEntityRenderState.eyeHeight:F
+       239: aload_2
+       240: aload_1
+       241: invokevirtual #529                // Method net/minecraft/world/entity/LivingEntity.isFullyFrozen:()Z
+       244: putfield      #275                // Field net/minecraft/client/renderer/entity/state/LivingEntityRenderState.isFullyFrozen:Z
+       247: aload_2
+       248: aload_1
+       249: invokevirtual #531                // Method net/minecraft/world/entity/LivingEntity.isBaby:()Z
+       252: putfield      #534                // Field net/minecraft/client/renderer/entity/state/LivingEntityRenderState.isBaby:Z
+       255: aload_2
+       256: aload_1
+       257: invokevirtual #536                // Method net/minecraft/world/entity/LivingEntity.isInWater:()Z
+       260: putfield      #539                // Field net/minecraft/client/renderer/entity/state/LivingEntityRenderState.isInWater:Z
+       263: aload_2
+       264: aload_1
+       265: invokevirtual #541                // Method net/minecraft/world/entity/LivingEntity.isAutoSpinAttack:()Z
+       268: putfield      #326                // Field net/minecraft/client/renderer/entity/state/LivingEntityRenderState.isAutoSpinAttack:Z
+       271: aload_2
+       272: aload_1
+       273: fload_3
+       274: invokevirtual #543                // Method net/minecraft/world/entity/LivingEntity.getTicksSinceLastKineticHitFeedback:(F)F
+       277: putfield      #546                // Field net/minecraft/client/renderer/entity/state/LivingEntityRenderState.ticksSinceKineticHitFeedback:F
+       280: aload_2
+       281: aload_1
+       282: getfield      #549                // Field net/minecraft/world/entity/LivingEntity.hurtTime:I
+       285: ifgt          295
+       288: aload_1
+       289: getfield      #552                // Field net/minecraft/world/entity/LivingEntity.deathTime:I
+       292: ifle          299
+       295: iconst_1
+       296: goto          300
+       299: iconst_0
+       300: putfield      #250                // Field net/minecraft/client/renderer/entity/state/LivingEntityRenderState.hasRedOverlay:Z
+       303: aload_1
+       304: getstatic     #47                 // Field net/minecraft/world/entity/EquipmentSlot.HEAD:Lnet/minecraft/world/entity/EquipmentSlot;
+       307: invokevirtual #53                 // Method net/minecraft/world/entity/LivingEntity.getItemBySlot:(Lnet/minecraft/world/entity/EquipmentSlot;)Lnet/minecraft/world/item/ItemStack;
+       310: astore        5
+       312: aload         5
+       314: invokevirtual #554                // Method net/minecraft/world/item/ItemStack.getItem:()Lnet/minecraft/world/item/Item;
+       317: astore        8
+       319: aload         8
+       321: instanceof    #558                // class net/minecraft/world/item/BlockItem
+       324: ifeq          390
+       327: aload         8
+       329: checkcast     #558                // class net/minecraft/world/item/BlockItem
+       332: astore        6
+       334: aload         6
+       336: invokevirtual #560                // Method net/minecraft/world/item/BlockItem.getBlock:()Lnet/minecraft/world/level/block/Block;
+       339: astore        8
+       341: aload         8
+       343: instanceof    #564                // class net/minecraft/world/level/block/AbstractSkullBlock
+       346: ifeq          390
+       349: aload         8
+       351: checkcast     #564                // class net/minecraft/world/level/block/AbstractSkullBlock
+       354: astore        7
+       356: aload_2
+       357: aload         7
+       359: invokevirtual #566                // Method net/minecraft/world/level/block/AbstractSkullBlock.getType:()Lnet/minecraft/world/level/block/SkullBlock$Type;
+       362: putfield      #570                // Field net/minecraft/client/renderer/entity/state/LivingEntityRenderState.wornHeadType:Lnet/minecraft/world/level/block/SkullBlock$Type;
+       365: aload_2
+       366: aload         5
+       368: getstatic     #574                // Field net/minecraft/core/component/DataComponents.PROFILE:Lnet/minecraft/core/component/DataComponentType;
+       371: invokevirtual #580                // Method net/minecraft/world/item/ItemStack.get:(Lnet/minecraft/core/component/DataComponentType;)Ljava/lang/Object;
+       374: checkcast     #584                // class net/minecraft/world/item/component/ResolvableProfile
+       377: putfield      #586                // Field net/minecraft/client/renderer/entity/state/LivingEntityRenderState.wornHeadProfile:Lnet/minecraft/world/item/component/ResolvableProfile;
+       380: aload_2
+       381: getfield      #590                // Field net/minecraft/client/renderer/entity/state/LivingEntityRenderState.headItem:Lnet/minecraft/client/renderer/item/ItemStackRenderState;
+       384: invokevirtual #594                // Method net/minecraft/client/renderer/item/ItemStackRenderState.clear:()V
+       387: goto          438
+       390: aload_2
+       391: aconst_null
+       392: putfield      #570                // Field net/minecraft/client/renderer/entity/state/LivingEntityRenderState.wornHeadType:Lnet/minecraft/world/level/block/SkullBlock$Type;
+       395: aload_2
+       396: aconst_null
+       397: putfield      #586                // Field net/minecraft/client/renderer/entity/state/LivingEntityRenderState.wornHeadProfile:Lnet/minecraft/world/item/component/ResolvableProfile;
+       400: aload         5
+       402: getstatic     #47                 // Field net/minecraft/world/entity/EquipmentSlot.HEAD:Lnet/minecraft/world/entity/EquipmentSlot;
+       405: invokestatic  #599                // Method net/minecraft/client/renderer/entity/layers/HumanoidArmorLayer.shouldRender:(Lnet/minecraft/world/item/ItemStack;Lnet/minecraft/world/entity/EquipmentSlot;)Z
+       408: ifne          431
+       411: aload_0
+       412: getfield      #25                 // Field itemModelResolver:Lnet/minecraft/client/renderer/item/ItemModelResolver;
+       415: aload_2
+       416: getfield      #590                // Field net/minecraft/client/renderer/entity/state/LivingEntityRenderState.headItem:Lnet/minecraft/client/renderer/item/ItemStackRenderState;
+       419: aload         5
+       421: getstatic     #605                // Field net/minecraft/world/item/ItemDisplayContext.HEAD:Lnet/minecraft/world/item/ItemDisplayContext;
+       424: aload_1
+       425: invokevirtual #610                // Method net/minecraft/client/renderer/item/ItemModelResolver.updateForLiving:(Lnet/minecraft/client/renderer/item/ItemStackRenderState;Lnet/minecraft/world/item/ItemStack;Lnet/minecraft/world/item/ItemDisplayContext;Lnet/minecraft/world/entity/LivingEntity;)V
+       428: goto          438
+       431: aload_2
+       432: getfield      #590                // Field net/minecraft/client/renderer/entity/state/LivingEntityRenderState.headItem:Lnet/minecraft/client/renderer/item/ItemStackRenderState;
+       435: invokevirtual #594                // Method net/minecraft/client/renderer/item/ItemStackRenderState.clear:()V
+       438: aload_2
+       439: aload_1
+       440: getfield      #552                // Field net/minecraft/world/entity/LivingEntity.deathTime:I
+       443: ifle          456
+       446: aload_1
+       447: getfield      #552                // Field net/minecraft/world/entity/LivingEntity.deathTime:I
+       450: i2f
+       451: fload_3
+       452: fadd
+       453: goto          457
+       456: fconst_0
+       457: putfield      #310                // Field net/minecraft/client/renderer/entity/state/LivingEntityRenderState.deathTime:F
+       460: invokestatic  #350                // Method net/minecraft/client/Minecraft.getInstance:()Lnet/minecraft/client/Minecraft;
+       463: astore        6
+       465: aload_2
+       466: aload_2
+       467: getfield      #260                // Field net/minecraft/client/renderer/entity/state/LivingEntityRenderState.isInvisible:Z
+       470: ifeq          489
+       473: aload_1
+       474: aload         6
+       476: getfield      #356                // Field net/minecraft/client/Minecraft.player:Lnet/minecraft/client/player/LocalPlayer;
+       479: invokevirtual #360                // Method net/minecraft/world/entity/LivingEntity.isInvisibleTo:(Lnet/minecraft/world/entity/player/Player;)Z
+       482: ifeq          489
+       485: iconst_1
+       486: goto          490
+       489: iconst_0
+       490: putfield      #141                // Field net/minecraft/client/renderer/entity/state/LivingEntityRenderState.isInvisibleToPlayer:Z
+       493: return
+
+  protected void extractNameTags(T, S, float);
+    Code:
+         0: aload_1
+         1: getstatic     #616                // Field net/minecraft/world/entity/ai/attributes/Attributes.NAME_TAG_DISTANCE:Lnet/minecraft/core/Holder;
+         4: invokevirtual #622                // Method net/minecraft/world/entity/LivingEntity.getAttribute:(Lnet/minecraft/core/Holder;)Lnet/minecraft/world/entity/ai/attributes/AttributeInstance;
+         7: invokevirtual #626                // Method net/minecraft/world/entity/ai/attributes/AttributeInstance.getValue:()D
+        10: dstore        4
+        12: aload_1
+        13: getstatic     #632                // Field net/minecraft/world/entity/ai/attributes/Attributes.BELOW_NAME_DISTANCE:Lnet/minecraft/core/Holder;
+        16: invokevirtual #622                // Method net/minecraft/world/entity/LivingEntity.getAttribute:(Lnet/minecraft/core/Holder;)Lnet/minecraft/world/entity/ai/attributes/AttributeInstance;
+        19: invokevirtual #626                // Method net/minecraft/world/entity/ai/attributes/AttributeInstance.getValue:()D
+        22: dstore        6
+        24: aload_0
+        25: aload_1
+        26: aload_2
+        27: fload_3
+        28: dload         4
+        30: dload         6
+        32: invokespecial #635                // Method net/minecraft/client/renderer/entity/EntityRenderer.extractNameTags:(Lnet/minecraft/world/entity/Entity;Lnet/minecraft/client/renderer/entity/state/EntityRenderState;FDD)V
+        35: return
+
+  private static float solveBodyRot(net.minecraft.world.entity.LivingEntity, float, float);
+    Code:
+         0: aload_0
+         1: invokevirtual #496                // Method net/minecraft/world/entity/LivingEntity.getVehicle:()Lnet/minecraft/world/entity/Entity;
+         4: astore        4
+         6: aload         4
+         8: instanceof    #54                 // class net/minecraft/world/entity/LivingEntity
+        11: ifeq          89
+        14: aload         4
+        16: checkcast     #54                 // class net/minecraft/world/entity/LivingEntity
+        19: astore_3
+        20: fload_2
+        21: aload_3
+        22: getfield      #639                // Field net/minecraft/world/entity/LivingEntity.yBodyRotO:F
+        25: aload_3
+        26: getfield      #642                // Field net/minecraft/world/entity/LivingEntity.yBodyRot:F
+        29: invokestatic  #454                // Method net/minecraft/util/Mth.rotLerp:(FFF)F
+        32: fstore        4
+        34: ldc_w         #645                // float 85.0f
+        37: fstore        5
+        39: fload_1
+        40: fload         4
+        42: fsub
+        43: invokestatic  #462                // Method net/minecraft/util/Mth.wrapDegrees:(F)F
+        46: ldc_w         #646                // float -85.0f
+        49: ldc_w         #645                // float 85.0f
+        52: invokestatic  #647                // Method net/minecraft/util/Mth.clamp:(FFF)F
+        55: fstore        6
+        57: fload_1
+        58: fload         6
+        60: fsub
+        61: fstore        4
+        63: fload         6
+        65: invokestatic  #650                // Method java/lang/Math.abs:(F)F
+        68: ldc_w         #653                // float 50.0f
+        71: fcmpl
+        72: ifle          86
+        75: fload         4
+        77: fload         6
+        79: ldc_w         #654                // float 0.2f
+        82: fmul
+        83: fadd
+        84: fstore        4
+        86: fload         4
+        88: freturn
+        89: fload_2
+        90: aload_0
+        91: getfield      #639                // Field net/minecraft/world/entity/LivingEntity.yBodyRotO:F
+        94: aload_0
+        95: getfield      #642                // Field net/minecraft/world/entity/LivingEntity.yBodyRot:F
+        98: invokestatic  #454                // Method net/minecraft/util/Mth.rotLerp:(FFF)F
+       101: freturn
+
+  protected void extractNameTags(net.minecraft.world.entity.Entity, net.minecraft.client.renderer.entity.state.EntityRenderState, float);
+    Code:
+         0: aload_0
+         1: aload_1
+         2: checkcast     #54                 // class net/minecraft/world/entity/LivingEntity
+         5: aload_2
+         6: checkcast     #92                 // class net/minecraft/client/renderer/entity/state/LivingEntityRenderState
+         9: fload_3
+        10: invokevirtual #655                // Method extractNameTags:(Lnet/minecraft/world/entity/LivingEntity;Lnet/minecraft/client/renderer/entity/state/LivingEntityRenderState;F)V
+        13: return
+
+  public void extractRenderState(net.minecraft.world.entity.Entity, net.minecraft.client.renderer.entity.state.EntityRenderState, float);
+    Code:
+         0: aload_0
+         1: aload_1
+         2: checkcast     #54                 // class net/minecraft/world/entity/LivingEntity
+         5: aload_2
+         6: checkcast     #92                 // class net/minecraft/client/renderer/entity/state/LivingEntityRenderState
+         9: fload_3
+        10: invokevirtual #658                // Method extractRenderState:(Lnet/minecraft/world/entity/LivingEntity;Lnet/minecraft/client/renderer/entity/state/LivingEntityRenderState;F)V
+        13: return
+
+  protected float getShadowRadius(net.minecraft.client.renderer.entity.state.EntityRenderState);
+    Code:
+         0: aload_0
+         1: aload_1
+         2: checkcast     #92                 // class net/minecraft/client/renderer/entity/state/LivingEntityRenderState
+         5: invokevirtual #660                // Method getShadowRadius:(Lnet/minecraft/client/renderer/entity/state/LivingEntityRenderState;)F
+         8: freturn
+
+  protected boolean shouldShowName(net.minecraft.world.entity.Entity, double);
+    Code:
+         0: aload_0
+         1: aload_1
+         2: checkcast     #54                 // class net/minecraft/world/entity/LivingEntity
+         5: dload_2
+         6: invokevirtual #662                // Method shouldShowName:(Lnet/minecraft/world/entity/LivingEntity;D)Z
+         9: ireturn
+
+  public void submit(net.minecraft.client.renderer.entity.state.EntityRenderState, com.mojang.blaze3d.vertex.PoseStack, net.minecraft.client.renderer.SubmitNodeCollector, net.minecraft.client.renderer.state.level.CameraRenderState);
+    Code:
+         0: aload_0
+         1: aload_1
+         2: checkcast     #92                 // class net/minecraft/client/renderer/entity/state/LivingEntityRenderState
+         5: aload_2
+         6: aload_3
+         7: aload         4
+         9: invokevirtual #666                // Method submit:(Lnet/minecraft/client/renderer/entity/state/LivingEntityRenderState;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;Lnet/minecraft/client/renderer/state/level/CameraRenderState;)V
+        12: return
+
+  protected net.minecraft.world.phys.AABB getBoundingBoxForCulling(net.minecraft.world.entity.Entity, float);
+    Code:
+         0: aload_0
+         1: aload_1
+         2: checkcast     #54                 // class net/minecraft/world/entity/LivingEntity
+         5: fload_2
+         6: invokevirtual #669                // Method getBoundingBoxForCulling:(Lnet/minecraft/world/entity/LivingEntity;F)Lnet/minecraft/world/phys/AABB;
+         9: areturn
+}

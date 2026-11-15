@@ -1,0 +1,1037 @@
+Compiled from "SubmitNodeCollection.java"
+public class net.minecraft.client.renderer.SubmitNodeCollection implements net.minecraft.client.renderer.OrderedSubmitNodeCollector {
+  public final net.minecraft.client.renderer.feature.phase.SimpleFeatureRenderPhase solid;
+
+  public final net.minecraft.client.renderer.feature.phase.SimpleFeatureRenderPhase waterMask;
+
+  public final net.minecraft.client.renderer.feature.phase.SimpleFeatureRenderPhase outline;
+
+  public final net.minecraft.client.renderer.feature.phase.SimpleFeatureRenderPhase alwaysOnTopGizmos;
+
+  public final net.minecraft.client.renderer.feature.phase.TranslucentFeatureRenderPhase seeThrough;
+
+  public final net.minecraft.client.renderer.feature.phase.SimpleFeatureRenderPhase oitTranslucent;
+
+  public final net.minecraft.client.renderer.feature.phase.SimpleFeatureRenderPhase shadows;
+
+  public final net.minecraft.client.renderer.feature.phase.SimpleFeatureRenderPhase nameTags;
+
+  public final net.minecraft.client.renderer.feature.phase.SimpleFeatureRenderPhase texts;
+
+  public final net.minecraft.client.renderer.feature.phase.SimpleFeatureRenderPhase shapeOutlines;
+
+  public final net.minecraft.client.renderer.feature.phase.FeatureRenderPhase<? super net.minecraft.client.renderer.feature.submit.TranslucentSubmit> translucentBlocksAndItems;
+
+  public final net.minecraft.client.renderer.feature.phase.FeatureRenderPhase<? super net.minecraft.client.renderer.feature.submit.TranslucentSubmit> translucentModels;
+
+  public final net.minecraft.client.renderer.feature.phase.SimpleFeatureRenderPhase translucentCustomGeometry;
+
+  public final net.minecraft.client.renderer.feature.phase.SimpleFeatureRenderPhase breakingOverlay;
+
+  public final net.minecraft.client.renderer.feature.phase.SimpleFeatureRenderPhase afterTerrain;
+
+  public final net.minecraft.client.renderer.feature.phase.SimpleFeatureRenderPhase translucentGizmos;
+
+  private final java.util.List<net.minecraft.client.renderer.feature.phase.FeatureRenderPhase<?>> allPhases;
+
+  public net.minecraft.client.renderer.SubmitNodeCollection(boolean, net.minecraft.client.renderer.feature.phase.TranslucentFeatureRenderPhase);
+    Code:
+         0: aload_0
+         1: invokespecial #1                  // Method java/lang/Object."<init>":()V
+         4: aload_0
+         5: new           #7                  // class net/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase
+         8: dup
+         9: invokespecial #9                  // Method net/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase."<init>":()V
+        12: putfield      #10                 // Field solid:Lnet/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase;
+        15: aload_0
+        16: new           #7                  // class net/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase
+        19: dup
+        20: invokespecial #9                  // Method net/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase."<init>":()V
+        23: putfield      #16                 // Field waterMask:Lnet/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase;
+        26: aload_0
+        27: new           #7                  // class net/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase
+        30: dup
+        31: invokespecial #9                  // Method net/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase."<init>":()V
+        34: putfield      #19                 // Field outline:Lnet/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase;
+        37: aload_0
+        38: new           #7                  // class net/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase
+        41: dup
+        42: invokespecial #9                  // Method net/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase."<init>":()V
+        45: putfield      #22                 // Field alwaysOnTopGizmos:Lnet/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase;
+        48: aload_0
+        49: new           #7                  // class net/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase
+        52: dup
+        53: invokespecial #9                  // Method net/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase."<init>":()V
+        56: putfield      #25                 // Field oitTranslucent:Lnet/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase;
+        59: aload_0
+        60: aload_2
+        61: putfield      #28                 // Field seeThrough:Lnet/minecraft/client/renderer/feature/phase/TranslucentFeatureRenderPhase;
+        64: iload_1
+        65: ifeq          178
+        68: aload_0
+        69: aload_0
+        70: getfield      #25                 // Field oitTranslucent:Lnet/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase;
+        73: putfield      #32                 // Field shadows:Lnet/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase;
+        76: aload_0
+        77: aload_0
+        78: getfield      #25                 // Field oitTranslucent:Lnet/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase;
+        81: putfield      #35                 // Field nameTags:Lnet/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase;
+        84: aload_0
+        85: aload_0
+        86: getfield      #25                 // Field oitTranslucent:Lnet/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase;
+        89: putfield      #38                 // Field texts:Lnet/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase;
+        92: aload_0
+        93: aload_0
+        94: getfield      #25                 // Field oitTranslucent:Lnet/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase;
+        97: putfield      #41                 // Field shapeOutlines:Lnet/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase;
+       100: aload_0
+       101: aload_0
+       102: getfield      #25                 // Field oitTranslucent:Lnet/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase;
+       105: putfield      #44                 // Field translucentBlocksAndItems:Lnet/minecraft/client/renderer/feature/phase/FeatureRenderPhase;
+       108: aload_0
+       109: aload_0
+       110: getfield      #25                 // Field oitTranslucent:Lnet/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase;
+       113: putfield      #48                 // Field translucentModels:Lnet/minecraft/client/renderer/feature/phase/FeatureRenderPhase;
+       116: aload_0
+       117: aload_0
+       118: getfield      #25                 // Field oitTranslucent:Lnet/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase;
+       121: putfield      #51                 // Field translucentCustomGeometry:Lnet/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase;
+       124: aload_0
+       125: aload_0
+       126: getfield      #25                 // Field oitTranslucent:Lnet/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase;
+       129: putfield      #54                 // Field breakingOverlay:Lnet/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase;
+       132: aload_0
+       133: aload_0
+       134: getfield      #25                 // Field oitTranslucent:Lnet/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase;
+       137: putfield      #57                 // Field afterTerrain:Lnet/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase;
+       140: aload_0
+       141: aload_0
+       142: getfield      #25                 // Field oitTranslucent:Lnet/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase;
+       145: putfield      #60                 // Field translucentGizmos:Lnet/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase;
+       148: aload_0
+       149: aload_0
+       150: getfield      #10                 // Field solid:Lnet/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase;
+       153: aload_0
+       154: getfield      #16                 // Field waterMask:Lnet/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase;
+       157: aload_0
+       158: getfield      #19                 // Field outline:Lnet/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase;
+       161: aload_0
+       162: getfield      #22                 // Field alwaysOnTopGizmos:Lnet/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase;
+       165: aload_0
+       166: getfield      #25                 // Field oitTranslucent:Lnet/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase;
+       169: invokestatic  #63                 // InterfaceMethod java/util/List.of:(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/util/List;
+       172: putfield      #69                 // Field allPhases:Ljava/util/List;
+       175: goto          406
+       178: aload_0
+       179: new           #7                  // class net/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase
+       182: dup
+       183: invokespecial #9                  // Method net/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase."<init>":()V
+       186: putfield      #32                 // Field shadows:Lnet/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase;
+       189: aload_0
+       190: new           #7                  // class net/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase
+       193: dup
+       194: invokespecial #9                  // Method net/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase."<init>":()V
+       197: putfield      #35                 // Field nameTags:Lnet/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase;
+       200: aload_0
+       201: new           #7                  // class net/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase
+       204: dup
+       205: invokespecial #9                  // Method net/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase."<init>":()V
+       208: putfield      #38                 // Field texts:Lnet/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase;
+       211: aload_0
+       212: new           #7                  // class net/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase
+       215: dup
+       216: invokespecial #9                  // Method net/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase."<init>":()V
+       219: putfield      #41                 // Field shapeOutlines:Lnet/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase;
+       222: aload_0
+       223: new           #73                 // class net/minecraft/client/renderer/feature/phase/TranslucentFeatureRenderPhase
+       226: dup
+       227: invokespecial #75                 // Method net/minecraft/client/renderer/feature/phase/TranslucentFeatureRenderPhase."<init>":()V
+       230: putfield      #44                 // Field translucentBlocksAndItems:Lnet/minecraft/client/renderer/feature/phase/FeatureRenderPhase;
+       233: aload_0
+       234: new           #73                 // class net/minecraft/client/renderer/feature/phase/TranslucentFeatureRenderPhase
+       237: dup
+       238: invokespecial #75                 // Method net/minecraft/client/renderer/feature/phase/TranslucentFeatureRenderPhase."<init>":()V
+       241: putfield      #48                 // Field translucentModels:Lnet/minecraft/client/renderer/feature/phase/FeatureRenderPhase;
+       244: aload_0
+       245: new           #7                  // class net/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase
+       248: dup
+       249: invokespecial #9                  // Method net/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase."<init>":()V
+       252: putfield      #51                 // Field translucentCustomGeometry:Lnet/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase;
+       255: aload_0
+       256: new           #7                  // class net/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase
+       259: dup
+       260: invokespecial #9                  // Method net/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase."<init>":()V
+       263: putfield      #54                 // Field breakingOverlay:Lnet/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase;
+       266: aload_0
+       267: new           #7                  // class net/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase
+       270: dup
+       271: invokespecial #9                  // Method net/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase."<init>":()V
+       274: putfield      #57                 // Field afterTerrain:Lnet/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase;
+       277: aload_0
+       278: new           #7                  // class net/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase
+       281: dup
+       282: invokespecial #9                  // Method net/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase."<init>":()V
+       285: putfield      #60                 // Field translucentGizmos:Lnet/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase;
+       288: aload_0
+       289: bipush        14
+       291: anewarray     #76                 // class net/minecraft/client/renderer/feature/phase/FeatureRenderPhase
+       294: dup
+       295: iconst_0
+       296: aload_0
+       297: getfield      #10                 // Field solid:Lnet/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase;
+       300: aastore
+       301: dup
+       302: iconst_1
+       303: aload_0
+       304: getfield      #32                 // Field shadows:Lnet/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase;
+       307: aastore
+       308: dup
+       309: iconst_2
+       310: aload_0
+       311: getfield      #35                 // Field nameTags:Lnet/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase;
+       314: aastore
+       315: dup
+       316: iconst_3
+       317: aload_0
+       318: getfield      #38                 // Field texts:Lnet/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase;
+       321: aastore
+       322: dup
+       323: iconst_4
+       324: aload_0
+       325: getfield      #41                 // Field shapeOutlines:Lnet/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase;
+       328: aastore
+       329: dup
+       330: iconst_5
+       331: aload_0
+       332: getfield      #44                 // Field translucentBlocksAndItems:Lnet/minecraft/client/renderer/feature/phase/FeatureRenderPhase;
+       335: aastore
+       336: dup
+       337: bipush        6
+       339: aload_0
+       340: getfield      #48                 // Field translucentModels:Lnet/minecraft/client/renderer/feature/phase/FeatureRenderPhase;
+       343: aastore
+       344: dup
+       345: bipush        7
+       347: aload_0
+       348: getfield      #51                 // Field translucentCustomGeometry:Lnet/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase;
+       351: aastore
+       352: dup
+       353: bipush        8
+       355: aload_0
+       356: getfield      #60                 // Field translucentGizmos:Lnet/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase;
+       359: aastore
+       360: dup
+       361: bipush        9
+       363: aload_0
+       364: getfield      #54                 // Field breakingOverlay:Lnet/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase;
+       367: aastore
+       368: dup
+       369: bipush        10
+       371: aload_0
+       372: getfield      #16                 // Field waterMask:Lnet/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase;
+       375: aastore
+       376: dup
+       377: bipush        11
+       379: aload_0
+       380: getfield      #57                 // Field afterTerrain:Lnet/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase;
+       383: aastore
+       384: dup
+       385: bipush        12
+       387: aload_0
+       388: getfield      #22                 // Field alwaysOnTopGizmos:Lnet/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase;
+       391: aastore
+       392: dup
+       393: bipush        13
+       395: aload_0
+       396: getfield      #19                 // Field outline:Lnet/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase;
+       399: aastore
+       400: invokestatic  #78                 // InterfaceMethod java/util/List.of:([Ljava/lang/Object;)Ljava/util/List;
+       403: putfield      #69                 // Field allPhases:Ljava/util/List;
+       406: return
+
+  public void submitShadow(com.mojang.blaze3d.vertex.PoseStack, float, java.util.List<net.minecraft.client.renderer.entity.state.EntityRenderState$ShadowPiece>);
+    Code:
+         0: aload_1
+         1: invokevirtual #81                 // Method com/mojang/blaze3d/vertex/PoseStack.last:()Lcom/mojang/blaze3d/vertex/PoseStack$Pose;
+         4: astore        4
+         6: aload_0
+         7: getfield      #32                 // Field shadows:Lnet/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase;
+        10: new           #87                 // class net/minecraft/client/renderer/feature/ShadowFeatureRenderer$Submit
+        13: dup
+        14: new           #89                 // class org/joml/Matrix4f
+        17: dup
+        18: aload         4
+        20: invokevirtual #91                 // Method com/mojang/blaze3d/vertex/PoseStack$Pose.pose:()Lorg/joml/Matrix4f;
+        23: invokespecial #97                 // Method org/joml/Matrix4f."<init>":(Lorg/joml/Matrix4fc;)V
+        26: fload_2
+        27: aload_3
+        28: invokespecial #100                // Method net/minecraft/client/renderer/feature/ShadowFeatureRenderer$Submit."<init>":(Lorg/joml/Matrix4fc;FLjava/util/List;)V
+        31: invokevirtual #103                // Method net/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase.submit:(Lnet/minecraft/client/renderer/feature/submit/SubmitNode;)V
+        34: return
+
+  public void submitNameTag(com.mojang.blaze3d.vertex.PoseStack, net.minecraft.world.phys.Vec3, int, net.minecraft.network.chat.Component, boolean, int, net.minecraft.client.renderer.state.level.CameraRenderState);
+    Code:
+         0: aload_2
+         1: ifnonnull     5
+         4: return
+         5: invokestatic  #107                // Method net/minecraft/client/Minecraft.getInstance:()Lnet/minecraft/client/Minecraft;
+         8: astore        8
+        10: aload_1
+        11: invokevirtual #113                // Method com/mojang/blaze3d/vertex/PoseStack.pushPose:()V
+        14: aload_1
+        15: aload_2
+        16: getfield      #116                // Field net/minecraft/world/phys/Vec3.x:D
+        19: aload_2
+        20: getfield      #122                // Field net/minecraft/world/phys/Vec3.y:D
+        23: ldc2_w        #125                // double 0.5d
+        26: dadd
+        27: aload_2
+        28: getfield      #127                // Field net/minecraft/world/phys/Vec3.z:D
+        31: invokevirtual #130                // Method com/mojang/blaze3d/vertex/PoseStack.translate:(DDD)V
+        34: aload_1
+        35: aload         7
+        37: getfield      #134                // Field net/minecraft/client/renderer/state/level/CameraRenderState.orientation:Lorg/joml/Quaternionf;
+        40: invokevirtual #140                // Method com/mojang/blaze3d/vertex/PoseStack.rotate:(Lorg/joml/Quaternionfc;)V
+        43: aload_1
+        44: ldc           #146                // float 0.025f
+        46: ldc           #147                // float -0.025f
+        48: ldc           #146                // float 0.025f
+        50: invokevirtual #148                // Method com/mojang/blaze3d/vertex/PoseStack.scale:(FFF)V
+        53: new           #89                 // class org/joml/Matrix4f
+        56: dup
+        57: aload_1
+        58: invokevirtual #81                 // Method com/mojang/blaze3d/vertex/PoseStack.last:()Lcom/mojang/blaze3d/vertex/PoseStack$Pose;
+        61: invokevirtual #91                 // Method com/mojang/blaze3d/vertex/PoseStack$Pose.pose:()Lorg/joml/Matrix4f;
+        64: invokespecial #97                 // Method org/joml/Matrix4f."<init>":(Lorg/joml/Matrix4fc;)V
+        67: astore        9
+        69: aload         8
+        71: getfield      #152                // Field net/minecraft/client/Minecraft.font:Lnet/minecraft/client/gui/Font;
+        74: aload         4
+        76: invokevirtual #156                // Method net/minecraft/client/gui/Font.width:(Lnet/minecraft/network/chat/FormattedText;)I
+        79: ineg
+        80: i2f
+        81: fconst_2
+        82: fdiv
+        83: fstore        10
+        85: aload         8
+        87: getfield      #162                // Field net/minecraft/client/Minecraft.gameRenderer:Lnet/minecraft/client/renderer/GameRenderer;
+        90: invokevirtual #166                // Method net/minecraft/client/renderer/GameRenderer.gameRenderState:()Lnet/minecraft/client/renderer/state/GameRenderState;
+        93: getfield      #172                // Field net/minecraft/client/renderer/state/GameRenderState.optionsRenderState:Lnet/minecraft/client/renderer/state/OptionsRenderState;
+        96: ldc           #178                // float 0.25f
+        98: invokevirtual #179                // Method net/minecraft/client/renderer/state/OptionsRenderState.getBackgroundOpacity:(F)F
+       101: fstore        11
+       103: fload         11
+       105: ldc           #187                // int -16777216
+       107: invokestatic  #188                // Method net/minecraft/util/ARGB.color:(FI)I
+       110: istore        12
+       112: fload         11
+       114: ldc           #194                // float 0.75f
+       116: fadd
+       117: ldc           #195                // float 0.5f
+       119: fmul
+       120: ldc           #195                // float 0.5f
+       122: invokestatic  #196                // Method java/lang/Math.max:(FF)F
+       125: fstore        13
+       127: fload         13
+       129: iconst_m1
+       130: invokestatic  #188                // Method net/minecraft/util/ARGB.color:(FI)I
+       133: istore        14
+       135: aload         4
+       137: invokeinterface #202,  1          // InterfaceMethod net/minecraft/network/chat/Component.getVisualOrderText:()Lnet/minecraft/util/FormattedCharSequence;
+       142: astore        15
+       144: iload         5
+       146: ifeq          205
+       149: aload_0
+       150: aload         9
+       152: fload         10
+       154: iload_3
+       155: i2f
+       156: aload         15
+       158: iload         6
+       160: iconst_2
+       161: invokestatic  #208                // Method net/minecraft/util/LightCoordsUtil.lightCoordsWithEmission:(II)I
+       164: iconst_m1
+       165: iconst_0
+       166: getstatic     #214                // Field net/minecraft/client/gui/Font$DisplayMode.NORMAL:Lnet/minecraft/client/gui/Font$DisplayMode;
+       169: invokestatic  #220                // Method nameTag:(Lorg/joml/Matrix4f;FFLnet/minecraft/util/FormattedCharSequence;IIILnet/minecraft/client/gui/Font$DisplayMode;)Lnet/minecraft/client/renderer/feature/TextFeatureRenderer$Submit;
+       172: invokevirtual #224                // Method submitNameTagPart:(Lnet/minecraft/client/renderer/feature/TextFeatureRenderer$Submit;)V
+       175: aload_0
+       176: getfield      #28                 // Field seeThrough:Lnet/minecraft/client/renderer/feature/phase/TranslucentFeatureRenderPhase;
+       179: aload         9
+       181: fload         10
+       183: iload_3
+       184: i2f
+       185: aload         15
+       187: iload         6
+       189: iload         14
+       191: iload         12
+       193: getstatic     #228                // Field net/minecraft/client/gui/Font$DisplayMode.SEE_THROUGH:Lnet/minecraft/client/gui/Font$DisplayMode;
+       196: invokestatic  #220                // Method nameTag:(Lorg/joml/Matrix4f;FFLnet/minecraft/util/FormattedCharSequence;IIILnet/minecraft/client/gui/Font$DisplayMode;)Lnet/minecraft/client/renderer/feature/TextFeatureRenderer$Submit;
+       199: invokevirtual #231                // Method net/minecraft/client/renderer/feature/phase/TranslucentFeatureRenderPhase.submit:(Lnet/minecraft/client/renderer/feature/submit/TranslucentSubmit;)V
+       202: goto          229
+       205: aload_0
+       206: aload         9
+       208: fload         10
+       210: iload_3
+       211: i2f
+       212: aload         15
+       214: iload         6
+       216: iload         14
+       218: iload         12
+       220: getstatic     #214                // Field net/minecraft/client/gui/Font$DisplayMode.NORMAL:Lnet/minecraft/client/gui/Font$DisplayMode;
+       223: invokestatic  #220                // Method nameTag:(Lorg/joml/Matrix4f;FFLnet/minecraft/util/FormattedCharSequence;IIILnet/minecraft/client/gui/Font$DisplayMode;)Lnet/minecraft/client/renderer/feature/TextFeatureRenderer$Submit;
+       226: invokevirtual #224                // Method submitNameTagPart:(Lnet/minecraft/client/renderer/feature/TextFeatureRenderer$Submit;)V
+       229: aload_1
+       230: invokevirtual #234                // Method com/mojang/blaze3d/vertex/PoseStack.popPose:()V
+       233: return
+
+  private static net.minecraft.client.renderer.feature.TextFeatureRenderer$Submit nameTag(org.joml.Matrix4f, float, float, net.minecraft.util.FormattedCharSequence, int, int, int, net.minecraft.client.gui.Font$DisplayMode);
+    Code:
+         0: new           #237                // class net/minecraft/client/renderer/feature/TextFeatureRenderer$Content$Text
+         3: dup
+         4: fload_1
+         5: fload_2
+         6: aload_3
+         7: iconst_0
+         8: iload         5
+        10: iload         6
+        12: iconst_0
+        13: invokespecial #239                // Method net/minecraft/client/renderer/feature/TextFeatureRenderer$Content$Text."<init>":(FFLnet/minecraft/util/FormattedCharSequence;ZIII)V
+        16: astore        8
+        18: new           #242                // class net/minecraft/client/renderer/feature/TextFeatureRenderer$Submit
+        21: dup
+        22: aload_0
+        23: aload         7
+        25: iload         4
+        27: aload         8
+        29: invokespecial #244                // Method net/minecraft/client/renderer/feature/TextFeatureRenderer$Submit."<init>":(Lorg/joml/Matrix4fc;Lnet/minecraft/client/gui/Font$DisplayMode;ILnet/minecraft/client/renderer/feature/TextFeatureRenderer$Content;)V
+        32: areturn
+
+  private void submitNameTagPart(net.minecraft.client.renderer.feature.TextFeatureRenderer$Submit);
+    Code:
+         0: aload_1
+         1: invokevirtual #247                // Method net/minecraft/client/renderer/feature/TextFeatureRenderer$Submit.content:()Lnet/minecraft/client/renderer/feature/TextFeatureRenderer$Content;
+         4: invokestatic  #251                // Method canRenderAsSolid:(Lnet/minecraft/client/renderer/feature/TextFeatureRenderer$Content;)Z
+         7: ifeq          21
+        10: aload_0
+        11: getfield      #10                 // Field solid:Lnet/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase;
+        14: aload_1
+        15: invokevirtual #103                // Method net/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase.submit:(Lnet/minecraft/client/renderer/feature/submit/SubmitNode;)V
+        18: goto          29
+        21: aload_0
+        22: getfield      #35                 // Field nameTags:Lnet/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase;
+        25: aload_1
+        26: invokevirtual #103                // Method net/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase.submit:(Lnet/minecraft/client/renderer/feature/submit/SubmitNode;)V
+        29: return
+
+  private static boolean canRenderAsSolid(net.minecraft.client.renderer.feature.TextFeatureRenderer$Content);
+    Code:
+         0: aload_0
+         1: instanceof    #237                // class net/minecraft/client/renderer/feature/TextFeatureRenderer$Content$Text
+         4: ifeq          45
+         7: aload_0
+         8: checkcast     #237                // class net/minecraft/client/renderer/feature/TextFeatureRenderer$Content$Text
+        11: astore_1
+        12: aload_1
+        13: invokevirtual #255                // Method net/minecraft/client/renderer/feature/TextFeatureRenderer$Content$Text.color:()I
+        16: invokestatic  #258                // Method net/minecraft/util/ARGB.alpha:(I)I
+        19: sipush        255
+        22: if_icmpne     45
+        25: aload_1
+        26: invokevirtual #262                // Method net/minecraft/client/renderer/feature/TextFeatureRenderer$Content$Text.backgroundColor:()I
+        29: invokestatic  #258                // Method net/minecraft/util/ARGB.alpha:(I)I
+        32: ifne          45
+        35: getstatic     #265                // Field com/mojang/blaze3d/systems/RenderSystem.isRenderingLevel:Z
+        38: ifeq          45
+        41: iconst_1
+        42: goto          46
+        45: iconst_0
+        46: ireturn
+
+  public void submitText(com.mojang.blaze3d.vertex.PoseStack, float, float, net.minecraft.util.FormattedCharSequence, boolean, net.minecraft.client.gui.Font$DisplayMode, int, int, int, int);
+    Code:
+         0: aload_0
+         1: aload_1
+         2: aload         6
+         4: iload         7
+         6: new           #237                // class net/minecraft/client/renderer/feature/TextFeatureRenderer$Content$Text
+         9: dup
+        10: fload_2
+        11: fload_3
+        12: aload         4
+        14: iload         5
+        16: iload         8
+        18: iload         9
+        20: iload         10
+        22: invokespecial #239                // Method net/minecraft/client/renderer/feature/TextFeatureRenderer$Content$Text."<init>":(FFLnet/minecraft/util/FormattedCharSequence;ZIII)V
+        25: invokevirtual #271                // Method submitTextPart:(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/gui/Font$DisplayMode;ILnet/minecraft/client/renderer/feature/TextFeatureRenderer$Content;)V
+        28: return
+
+  public void submitTextBackground(com.mojang.blaze3d.vertex.PoseStack, float, float, float, float, int, net.minecraft.client.gui.Font$DisplayMode, int);
+    Code:
+         0: aload_0
+         1: aload_1
+         2: aload         7
+         4: iload         8
+         6: new           #275                // class net/minecraft/client/renderer/feature/TextFeatureRenderer$Content$StandaloneBackground
+         9: dup
+        10: fload_2
+        11: fload_3
+        12: fload         4
+        14: fload         5
+        16: iload         6
+        18: invokespecial #277                // Method net/minecraft/client/renderer/feature/TextFeatureRenderer$Content$StandaloneBackground."<init>":(FFFFI)V
+        21: invokevirtual #271                // Method submitTextPart:(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/gui/Font$DisplayMode;ILnet/minecraft/client/renderer/feature/TextFeatureRenderer$Content;)V
+        24: return
+
+  private void submitTextPart(com.mojang.blaze3d.vertex.PoseStack, net.minecraft.client.gui.Font$DisplayMode, int, net.minecraft.client.renderer.feature.TextFeatureRenderer$Content);
+    Code:
+         0: new           #242                // class net/minecraft/client/renderer/feature/TextFeatureRenderer$Submit
+         3: dup
+         4: new           #89                 // class org/joml/Matrix4f
+         7: dup
+         8: aload_1
+         9: invokevirtual #81                 // Method com/mojang/blaze3d/vertex/PoseStack.last:()Lcom/mojang/blaze3d/vertex/PoseStack$Pose;
+        12: invokevirtual #91                 // Method com/mojang/blaze3d/vertex/PoseStack$Pose.pose:()Lorg/joml/Matrix4f;
+        15: invokespecial #97                 // Method org/joml/Matrix4f."<init>":(Lorg/joml/Matrix4fc;)V
+        18: aload_2
+        19: iload_3
+        20: aload         4
+        22: invokespecial #244                // Method net/minecraft/client/renderer/feature/TextFeatureRenderer$Submit."<init>":(Lorg/joml/Matrix4fc;Lnet/minecraft/client/gui/Font$DisplayMode;ILnet/minecraft/client/renderer/feature/TextFeatureRenderer$Content;)V
+        25: astore        5
+        27: aload_2
+        28: getstatic     #228                // Field net/minecraft/client/gui/Font$DisplayMode.SEE_THROUGH:Lnet/minecraft/client/gui/Font$DisplayMode;
+        31: if_acmpne     46
+        34: aload_0
+        35: getfield      #28                 // Field seeThrough:Lnet/minecraft/client/renderer/feature/phase/TranslucentFeatureRenderPhase;
+        38: aload         5
+        40: invokevirtual #231                // Method net/minecraft/client/renderer/feature/phase/TranslucentFeatureRenderPhase.submit:(Lnet/minecraft/client/renderer/feature/submit/TranslucentSubmit;)V
+        43: goto          75
+        46: aload         4
+        48: invokestatic  #251                // Method canRenderAsSolid:(Lnet/minecraft/client/renderer/feature/TextFeatureRenderer$Content;)Z
+        51: ifeq          66
+        54: aload_0
+        55: getfield      #10                 // Field solid:Lnet/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase;
+        58: aload         5
+        60: invokevirtual #103                // Method net/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase.submit:(Lnet/minecraft/client/renderer/feature/submit/SubmitNode;)V
+        63: goto          75
+        66: aload_0
+        67: getfield      #38                 // Field texts:Lnet/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase;
+        70: aload         5
+        72: invokevirtual #103                // Method net/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase.submit:(Lnet/minecraft/client/renderer/feature/submit/SubmitNode;)V
+        75: return
+
+  public void submitFlame(com.mojang.blaze3d.vertex.PoseStack, net.minecraft.client.renderer.entity.state.EntityRenderState, org.joml.Quaternionf);
+    Code:
+         0: aload_0
+         1: getfield      #10                 // Field solid:Lnet/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase;
+         4: new           #280                // class net/minecraft/client/renderer/feature/FlameFeatureRenderer$Submit
+         7: dup
+         8: aload_1
+         9: invokevirtual #81                 // Method com/mojang/blaze3d/vertex/PoseStack.last:()Lcom/mojang/blaze3d/vertex/PoseStack$Pose;
+        12: invokevirtual #282                // Method com/mojang/blaze3d/vertex/PoseStack$Pose.copy:()Lcom/mojang/blaze3d/vertex/PoseStack$Pose;
+        15: aload_2
+        16: aload_3
+        17: invokespecial #285                // Method net/minecraft/client/renderer/feature/FlameFeatureRenderer$Submit."<init>":(Lcom/mojang/blaze3d/vertex/PoseStack$Pose;Lnet/minecraft/client/renderer/entity/state/EntityRenderState;Lorg/joml/Quaternionf;)V
+        20: invokevirtual #103                // Method net/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase.submit:(Lnet/minecraft/client/renderer/feature/submit/SubmitNode;)V
+        23: return
+
+  public void submitLeash(com.mojang.blaze3d.vertex.PoseStack, net.minecraft.client.renderer.entity.state.EntityRenderState$LeashState);
+    Code:
+         0: aload_0
+         1: getfield      #10                 // Field solid:Lnet/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase;
+         4: new           #288                // class net/minecraft/client/renderer/feature/LeashFeatureRenderer$Submit
+         7: dup
+         8: new           #89                 // class org/joml/Matrix4f
+        11: dup
+        12: aload_1
+        13: invokevirtual #81                 // Method com/mojang/blaze3d/vertex/PoseStack.last:()Lcom/mojang/blaze3d/vertex/PoseStack$Pose;
+        16: invokevirtual #91                 // Method com/mojang/blaze3d/vertex/PoseStack$Pose.pose:()Lorg/joml/Matrix4f;
+        19: invokespecial #97                 // Method org/joml/Matrix4f."<init>":(Lorg/joml/Matrix4fc;)V
+        22: aload_2
+        23: invokespecial #290                // Method net/minecraft/client/renderer/feature/LeashFeatureRenderer$Submit."<init>":(Lorg/joml/Matrix4f;Lnet/minecraft/client/renderer/entity/state/EntityRenderState$LeashState;)V
+        26: invokevirtual #103                // Method net/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase.submit:(Lnet/minecraft/client/renderer/feature/submit/SubmitNode;)V
+        29: return
+
+  public <S> void submitModel(net.minecraft.client.model.Model<? super S>, S, com.mojang.blaze3d.vertex.PoseStack, net.minecraft.client.renderer.rendertype.RenderType, int, int, int, net.minecraft.client.renderer.texture.UvMapping, int);
+    Code:
+         0: aload_3
+         1: invokevirtual #81                 // Method com/mojang/blaze3d/vertex/PoseStack.last:()Lcom/mojang/blaze3d/vertex/PoseStack$Pose;
+         4: invokevirtual #282                // Method com/mojang/blaze3d/vertex/PoseStack$Pose.copy:()Lcom/mojang/blaze3d/vertex/PoseStack$Pose;
+         7: astore        10
+         9: aload         4
+        11: invokevirtual #293                // Method net/minecraft/client/renderer/rendertype/RenderType.isOutline:()Z
+        14: ifne          100
+        17: new           #299                // class net/minecraft/client/renderer/feature/ModelFeatureRenderer$Submit
+        20: dup
+        21: aload         4
+        23: aload         10
+        25: aload_1
+        26: aload_2
+        27: iload         5
+        29: iload         6
+        31: iload         7
+        33: aload         8
+        35: aconst_null
+        36: invokespecial #301                // Method net/minecraft/client/renderer/feature/ModelFeatureRenderer$Submit."<init>":(Lnet/minecraft/client/renderer/rendertype/RenderType;Lcom/mojang/blaze3d/vertex/PoseStack$Pose;Lnet/minecraft/client/model/Model;Ljava/lang/Object;IIILnet/minecraft/client/renderer/texture/UvMapping;Lcom/mojang/blaze3d/vertex/PoseStack$Pose;)V
+        39: astore        11
+        41: aload         4
+        43: invokestatic  #304                // Method net/minecraft/client/renderer/rendertype/RenderTypes.waterMask:()Lnet/minecraft/client/renderer/rendertype/RenderType;
+        46: if_acmpne     61
+        49: aload_0
+        50: getfield      #16                 // Field waterMask:Lnet/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase;
+        53: aload         11
+        55: invokevirtual #103                // Method net/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase.submit:(Lnet/minecraft/client/renderer/feature/submit/SubmitNode;)V
+        58: goto          100
+        61: aload         4
+        63: invokevirtual #309                // Method net/minecraft/client/renderer/rendertype/RenderType.forceSolidModelPhase:()Z
+        66: ifne          77
+        69: aload         4
+        71: invokevirtual #312                // Method net/minecraft/client/renderer/rendertype/RenderType.hasBlending:()Z
+        74: ifne          89
+        77: aload_0
+        78: getfield      #10                 // Field solid:Lnet/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase;
+        81: aload         11
+        83: invokevirtual #103                // Method net/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase.submit:(Lnet/minecraft/client/renderer/feature/submit/SubmitNode;)V
+        86: goto          100
+        89: aload_0
+        90: getfield      #48                 // Field translucentModels:Lnet/minecraft/client/renderer/feature/phase/FeatureRenderPhase;
+        93: aload         11
+        95: invokeinterface #315,  2          // InterfaceMethod net/minecraft/client/renderer/feature/phase/FeatureRenderPhase.submit:(Lnet/minecraft/client/renderer/feature/submit/SubmitNode;)V
+       100: iload         9
+       102: ifeq          148
+       105: aload         4
+       107: invokestatic  #316                // Method getOutlineRenderType:(Lnet/minecraft/client/renderer/rendertype/RenderType;)Lnet/minecraft/client/renderer/rendertype/RenderType;
+       110: astore        11
+       112: aload         11
+       114: ifnull        148
+       117: aload_0
+       118: getfield      #19                 // Field outline:Lnet/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase;
+       121: new           #299                // class net/minecraft/client/renderer/feature/ModelFeatureRenderer$Submit
+       124: dup
+       125: aload         11
+       127: aload         10
+       129: aload_1
+       130: aload_2
+       131: ldc_w         #320                // int 15728880
+       134: getstatic     #321                // Field net/minecraft/client/renderer/texture/OverlayTexture.NO_OVERLAY:I
+       137: iload         9
+       139: aload         8
+       141: aconst_null
+       142: invokespecial #301                // Method net/minecraft/client/renderer/feature/ModelFeatureRenderer$Submit."<init>":(Lnet/minecraft/client/renderer/rendertype/RenderType;Lcom/mojang/blaze3d/vertex/PoseStack$Pose;Lnet/minecraft/client/model/Model;Ljava/lang/Object;IIILnet/minecraft/client/renderer/texture/UvMapping;Lcom/mojang/blaze3d/vertex/PoseStack$Pose;)V
+       145: invokevirtual #103                // Method net/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase.submit:(Lnet/minecraft/client/renderer/feature/submit/SubmitNode;)V
+       148: return
+
+  public <S> void submitCrumblingOverlay(net.minecraft.client.model.Model<? super S>, S, com.mojang.blaze3d.vertex.PoseStack, net.minecraft.client.renderer.rendertype.RenderType, int, int, int, net.minecraft.client.renderer.feature.ModelFeatureRenderer$CrumblingOverlay);
+    Code:
+         0: aload         4
+         2: invokevirtual #327                // Method net/minecraft/client/renderer/rendertype/RenderType.affectsCrumbling:()Z
+         5: ifne          9
+         8: return
+         9: aload         4
+        11: invokevirtual #312                // Method net/minecraft/client/renderer/rendertype/RenderType.hasBlending:()Z
+        14: istore        9
+        16: invokestatic  #107                // Method net/minecraft/client/Minecraft.getInstance:()Lnet/minecraft/client/Minecraft;
+        19: getfield      #162                // Field net/minecraft/client/Minecraft.gameRenderer:Lnet/minecraft/client/renderer/GameRenderer;
+        22: invokevirtual #330                // Method net/minecraft/client/renderer/GameRenderer.useImprovedTransparency:()Z
+        25: ifeq          41
+        28: iload         9
+        30: ifeq          41
+        33: getstatic     #333                // Field net/minecraft/client/resources/model/ModelBakery.DESTROY_TYPES_OIT:Ljava/util/List;
+        36: astore        10
+        38: goto          46
+        41: getstatic     #338                // Field net/minecraft/client/resources/model/ModelBakery.DESTROY_TYPES:Ljava/util/List;
+        44: astore        10
+        46: aload         10
+        48: aload         8
+        50: invokevirtual #341                // Method net/minecraft/client/renderer/feature/ModelFeatureRenderer$CrumblingOverlay.progress:()I
+        53: invokeinterface #346,  2          // InterfaceMethod java/util/List.get:(I)Ljava/lang/Object;
+        58: checkcast     #294                // class net/minecraft/client/renderer/rendertype/RenderType
+        61: astore        11
+        63: iload         9
+        65: ifeq          75
+        68: aload_0
+        69: getfield      #54                 // Field breakingOverlay:Lnet/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase;
+        72: goto          79
+        75: aload_0
+        76: getfield      #10                 // Field solid:Lnet/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase;
+        79: astore        12
+        81: aload         12
+        83: new           #299                // class net/minecraft/client/renderer/feature/ModelFeatureRenderer$Submit
+        86: dup
+        87: aload         11
+        89: aload_3
+        90: invokevirtual #81                 // Method com/mojang/blaze3d/vertex/PoseStack.last:()Lcom/mojang/blaze3d/vertex/PoseStack$Pose;
+        93: invokevirtual #282                // Method com/mojang/blaze3d/vertex/PoseStack$Pose.copy:()Lcom/mojang/blaze3d/vertex/PoseStack$Pose;
+        96: aload_1
+        97: aload_2
+        98: iload         5
+       100: iload         6
+       102: iload         7
+       104: aconst_null
+       105: aload         8
+       107: invokevirtual #350                // Method net/minecraft/client/renderer/feature/ModelFeatureRenderer$CrumblingOverlay.cameraPose:()Lcom/mojang/blaze3d/vertex/PoseStack$Pose;
+       110: invokespecial #301                // Method net/minecraft/client/renderer/feature/ModelFeatureRenderer$Submit."<init>":(Lnet/minecraft/client/renderer/rendertype/RenderType;Lcom/mojang/blaze3d/vertex/PoseStack$Pose;Lnet/minecraft/client/model/Model;Ljava/lang/Object;IIILnet/minecraft/client/renderer/texture/UvMapping;Lcom/mojang/blaze3d/vertex/PoseStack$Pose;)V
+       113: invokevirtual #103                // Method net/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase.submit:(Lnet/minecraft/client/renderer/feature/submit/SubmitNode;)V
+       116: return
+
+  public void submitMovingBlock(com.mojang.blaze3d.vertex.PoseStack, net.minecraft.client.renderer.block.MovingBlockRenderState, int);
+    Code:
+         0: invokestatic  #107                // Method net/minecraft/client/Minecraft.getInstance:()Lnet/minecraft/client/Minecraft;
+         3: invokevirtual #353                // Method net/minecraft/client/Minecraft.getModelManager:()Lnet/minecraft/client/resources/model/ModelManager;
+         6: invokevirtual #357                // Method net/minecraft/client/resources/model/ModelManager.getBlockStateModelSet:()Lnet/minecraft/client/renderer/block/BlockStateModelSet;
+         9: aload_2
+        10: getfield      #363                // Field net/minecraft/client/renderer/block/MovingBlockRenderState.blockState:Lnet/minecraft/world/level/block/state/BlockState;
+        13: invokevirtual #369                // Method net/minecraft/client/renderer/block/BlockStateModelSet.get:(Lnet/minecraft/world/level/block/state/BlockState;)Lnet/minecraft/client/renderer/block/dispatch/BlockStateModel;
+        16: astore        4
+        18: aload         4
+        20: iconst_1
+        21: invokeinterface #376,  2          // InterfaceMethod net/minecraft/client/renderer/block/dispatch/BlockStateModel.hasMaterialFlag:(I)Z
+        26: istore        5
+        28: new           #382                // class net/minecraft/client/renderer/feature/MovingBlockFeatureRenderer$Submit
+        31: dup
+        32: new           #89                 // class org/joml/Matrix4f
+        35: dup
+        36: aload_1
+        37: invokevirtual #81                 // Method com/mojang/blaze3d/vertex/PoseStack.last:()Lcom/mojang/blaze3d/vertex/PoseStack$Pose;
+        40: invokevirtual #91                 // Method com/mojang/blaze3d/vertex/PoseStack$Pose.pose:()Lorg/joml/Matrix4f;
+        43: invokespecial #97                 // Method org/joml/Matrix4f."<init>":(Lorg/joml/Matrix4fc;)V
+        46: aload_2
+        47: iconst_0
+        48: iload         5
+        50: invokespecial #386                // Method net/minecraft/client/renderer/feature/MovingBlockFeatureRenderer$Submit."<init>":(Lorg/joml/Matrix4fc;Lnet/minecraft/client/renderer/block/MovingBlockRenderState;IZ)V
+        53: astore        6
+        55: iload         5
+        57: ifeq          74
+        60: aload_0
+        61: getfield      #44                 // Field translucentBlocksAndItems:Lnet/minecraft/client/renderer/feature/phase/FeatureRenderPhase;
+        64: aload         6
+        66: invokeinterface #315,  2          // InterfaceMethod net/minecraft/client/renderer/feature/phase/FeatureRenderPhase.submit:(Lnet/minecraft/client/renderer/feature/submit/SubmitNode;)V
+        71: goto          83
+        74: aload_0
+        75: getfield      #10                 // Field solid:Lnet/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase;
+        78: aload         6
+        80: invokevirtual #103                // Method net/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase.submit:(Lnet/minecraft/client/renderer/feature/submit/SubmitNode;)V
+        83: iload_3
+        84: ifeq          118
+        87: aload_0
+        88: getfield      #19                 // Field outline:Lnet/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase;
+        91: new           #382                // class net/minecraft/client/renderer/feature/MovingBlockFeatureRenderer$Submit
+        94: dup
+        95: new           #89                 // class org/joml/Matrix4f
+        98: dup
+        99: aload_1
+       100: invokevirtual #81                 // Method com/mojang/blaze3d/vertex/PoseStack.last:()Lcom/mojang/blaze3d/vertex/PoseStack$Pose;
+       103: invokevirtual #91                 // Method com/mojang/blaze3d/vertex/PoseStack$Pose.pose:()Lorg/joml/Matrix4f;
+       106: invokespecial #97                 // Method org/joml/Matrix4f."<init>":(Lorg/joml/Matrix4fc;)V
+       109: aload_2
+       110: iload_3
+       111: iconst_0
+       112: invokespecial #386                // Method net/minecraft/client/renderer/feature/MovingBlockFeatureRenderer$Submit."<init>":(Lorg/joml/Matrix4fc;Lnet/minecraft/client/renderer/block/MovingBlockRenderState;IZ)V
+       115: invokevirtual #103                // Method net/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase.submit:(Lnet/minecraft/client/renderer/feature/submit/SubmitNode;)V
+       118: return
+
+  public void submitBlockModel(com.mojang.blaze3d.vertex.PoseStack, net.minecraft.client.renderer.rendertype.RenderType, java.util.List<net.minecraft.client.renderer.block.dispatch.BlockStateModelPart>, int[], int, int, int);
+    Code:
+         0: aload_1
+         1: invokevirtual #81                 // Method com/mojang/blaze3d/vertex/PoseStack.last:()Lcom/mojang/blaze3d/vertex/PoseStack$Pose;
+         4: invokevirtual #282                // Method com/mojang/blaze3d/vertex/PoseStack$Pose.copy:()Lcom/mojang/blaze3d/vertex/PoseStack$Pose;
+         7: astore        8
+         9: aload_2
+        10: invokevirtual #293                // Method net/minecraft/client/renderer/rendertype/RenderType.isOutline:()Z
+        13: ifne          67
+        16: new           #389                // class net/minecraft/client/renderer/feature/BlockModelFeatureRenderer$Submit
+        19: dup
+        20: aload         8
+        22: aload_2
+        23: aload_3
+        24: aload         4
+        26: iload         5
+        28: iload         6
+        30: iconst_m1
+        31: aconst_null
+        32: invokespecial #391                // Method net/minecraft/client/renderer/feature/BlockModelFeatureRenderer$Submit."<init>":(Lcom/mojang/blaze3d/vertex/PoseStack$Pose;Lnet/minecraft/client/renderer/rendertype/RenderType;Ljava/util/List;[IIIILcom/mojang/blaze3d/vertex/PoseStack$Pose;)V
+        35: astore        9
+        37: aload_2
+        38: invokevirtual #312                // Method net/minecraft/client/renderer/rendertype/RenderType.hasBlending:()Z
+        41: ifeq          58
+        44: aload_0
+        45: getfield      #44                 // Field translucentBlocksAndItems:Lnet/minecraft/client/renderer/feature/phase/FeatureRenderPhase;
+        48: aload         9
+        50: invokeinterface #315,  2          // InterfaceMethod net/minecraft/client/renderer/feature/phase/FeatureRenderPhase.submit:(Lnet/minecraft/client/renderer/feature/submit/SubmitNode;)V
+        55: goto          67
+        58: aload_0
+        59: getfield      #10                 // Field solid:Lnet/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase;
+        62: aload         9
+        64: invokevirtual #103                // Method net/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase.submit:(Lnet/minecraft/client/renderer/feature/submit/SubmitNode;)V
+        67: iload         7
+        69: ifeq          114
+        72: aload_2
+        73: invokestatic  #316                // Method getOutlineRenderType:(Lnet/minecraft/client/renderer/rendertype/RenderType;)Lnet/minecraft/client/renderer/rendertype/RenderType;
+        76: astore        9
+        78: aload         9
+        80: ifnull        114
+        83: aload_0
+        84: getfield      #19                 // Field outline:Lnet/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase;
+        87: new           #389                // class net/minecraft/client/renderer/feature/BlockModelFeatureRenderer$Submit
+        90: dup
+        91: aload         8
+        93: aload         9
+        95: aload_3
+        96: getstatic     #394                // Field net/minecraft/client/renderer/block/BlockModelRenderState.EMPTY_TINTS:[I
+        99: ldc_w         #320                // int 15728880
+       102: getstatic     #321                // Field net/minecraft/client/renderer/texture/OverlayTexture.NO_OVERLAY:I
+       105: iload         7
+       107: aconst_null
+       108: invokespecial #391                // Method net/minecraft/client/renderer/feature/BlockModelFeatureRenderer$Submit."<init>":(Lcom/mojang/blaze3d/vertex/PoseStack$Pose;Lnet/minecraft/client/renderer/rendertype/RenderType;Ljava/util/List;[IIIILcom/mojang/blaze3d/vertex/PoseStack$Pose;)V
+       111: invokevirtual #103                // Method net/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase.submit:(Lnet/minecraft/client/renderer/feature/submit/SubmitNode;)V
+       114: return
+
+  private static net.minecraft.client.renderer.rendertype.RenderType getOutlineRenderType(net.minecraft.client.renderer.rendertype.RenderType);
+    Code:
+         0: aload_0
+         1: invokevirtual #293                // Method net/minecraft/client/renderer/rendertype/RenderType.isOutline:()Z
+         4: ifeq          9
+         7: aload_0
+         8: areturn
+         9: aload_0
+        10: invokevirtual #400                // Method net/minecraft/client/renderer/rendertype/RenderType.outline:()Ljava/util/Optional;
+        13: invokevirtual #403                // Method java/util/Optional.isPresent:()Z
+        16: ifeq          30
+        19: aload_0
+        20: invokevirtual #400                // Method net/minecraft/client/renderer/rendertype/RenderType.outline:()Ljava/util/Optional;
+        23: invokevirtual #408                // Method java/util/Optional.get:()Ljava/lang/Object;
+        26: checkcast     #294                // class net/minecraft/client/renderer/rendertype/RenderType
+        29: areturn
+        30: aconst_null
+        31: areturn
+
+  public void submitBreakingBlockModel(com.mojang.blaze3d.vertex.PoseStack, java.util.List<net.minecraft.client.renderer.block.dispatch.BlockStateModelPart>, int, boolean);
+    Code:
+         0: aload_1
+         1: invokevirtual #81                 // Method com/mojang/blaze3d/vertex/PoseStack.last:()Lcom/mojang/blaze3d/vertex/PoseStack$Pose;
+         4: invokevirtual #282                // Method com/mojang/blaze3d/vertex/PoseStack$Pose.copy:()Lcom/mojang/blaze3d/vertex/PoseStack$Pose;
+         7: astore        5
+         9: invokestatic  #107                // Method net/minecraft/client/Minecraft.getInstance:()Lnet/minecraft/client/Minecraft;
+        12: getfield      #162                // Field net/minecraft/client/Minecraft.gameRenderer:Lnet/minecraft/client/renderer/GameRenderer;
+        15: invokevirtual #330                // Method net/minecraft/client/renderer/GameRenderer.useImprovedTransparency:()Z
+        18: ifeq          32
+        21: iload         4
+        23: ifeq          32
+        26: getstatic     #333                // Field net/minecraft/client/resources/model/ModelBakery.DESTROY_TYPES_OIT:Ljava/util/List;
+        29: goto          35
+        32: getstatic     #338                // Field net/minecraft/client/resources/model/ModelBakery.DESTROY_TYPES:Ljava/util/List;
+        35: astore        6
+        37: iload         4
+        39: ifeq          49
+        42: aload_0
+        43: getfield      #54                 // Field breakingOverlay:Lnet/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase;
+        46: goto          53
+        49: aload_0
+        50: getfield      #10                 // Field solid:Lnet/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase;
+        53: astore        7
+        55: aload         7
+        57: new           #389                // class net/minecraft/client/renderer/feature/BlockModelFeatureRenderer$Submit
+        60: dup
+        61: aload         5
+        63: aload         6
+        65: iload_3
+        66: invokeinterface #346,  2          // InterfaceMethod java/util/List.get:(I)Ljava/lang/Object;
+        71: checkcast     #294                // class net/minecraft/client/renderer/rendertype/RenderType
+        74: aload_2
+        75: invokestatic  #411                // InterfaceMethod java/util/List.copyOf:(Ljava/util/Collection;)Ljava/util/List;
+        78: getstatic     #394                // Field net/minecraft/client/renderer/block/BlockModelRenderState.EMPTY_TINTS:[I
+        81: ldc_w         #320                // int 15728880
+        84: getstatic     #321                // Field net/minecraft/client/renderer/texture/OverlayTexture.NO_OVERLAY:I
+        87: iconst_0
+        88: aload         5
+        90: invokespecial #391                // Method net/minecraft/client/renderer/feature/BlockModelFeatureRenderer$Submit."<init>":(Lcom/mojang/blaze3d/vertex/PoseStack$Pose;Lnet/minecraft/client/renderer/rendertype/RenderType;Ljava/util/List;[IIIILcom/mojang/blaze3d/vertex/PoseStack$Pose;)V
+        93: invokevirtual #103                // Method net/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase.submit:(Lnet/minecraft/client/renderer/feature/submit/SubmitNode;)V
+        96: return
+
+  public void submitShapeOutline(com.mojang.blaze3d.vertex.PoseStack, net.minecraft.world.phys.shapes.VoxelShape, net.minecraft.client.renderer.rendertype.RenderType, int, float, boolean);
+    Code:
+         0: new           #415                // class net/minecraft/client/renderer/feature/ShapeOutlineFeatureRenderer$Submit
+         3: dup
+         4: aload_1
+         5: invokevirtual #81                 // Method com/mojang/blaze3d/vertex/PoseStack.last:()Lcom/mojang/blaze3d/vertex/PoseStack$Pose;
+         8: invokevirtual #282                // Method com/mojang/blaze3d/vertex/PoseStack$Pose.copy:()Lcom/mojang/blaze3d/vertex/PoseStack$Pose;
+        11: aload_2
+        12: aload_3
+        13: iload         4
+        15: fload         5
+        17: invokespecial #417                // Method net/minecraft/client/renderer/feature/ShapeOutlineFeatureRenderer$Submit."<init>":(Lcom/mojang/blaze3d/vertex/PoseStack$Pose;Lnet/minecraft/world/phys/shapes/VoxelShape;Lnet/minecraft/client/renderer/rendertype/RenderType;IF)V
+        20: astore        7
+        22: iload         4
+        24: invokestatic  #258                // Method net/minecraft/util/ARGB.alpha:(I)I
+        27: sipush        255
+        30: if_icmpne     45
+        33: aload_0
+        34: getfield      #10                 // Field solid:Lnet/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase;
+        37: aload         7
+        39: invokevirtual #103                // Method net/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase.submit:(Lnet/minecraft/client/renderer/feature/submit/SubmitNode;)V
+        42: goto          71
+        45: iload         6
+        47: ifeq          62
+        50: aload_0
+        51: getfield      #57                 // Field afterTerrain:Lnet/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase;
+        54: aload         7
+        56: invokevirtual #103                // Method net/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase.submit:(Lnet/minecraft/client/renderer/feature/submit/SubmitNode;)V
+        59: goto          71
+        62: aload_0
+        63: getfield      #41                 // Field shapeOutlines:Lnet/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase;
+        66: aload         7
+        68: invokevirtual #103                // Method net/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase.submit:(Lnet/minecraft/client/renderer/feature/submit/SubmitNode;)V
+        71: return
+
+  public void submitItem(com.mojang.blaze3d.vertex.PoseStack, net.minecraft.world.item.ItemDisplayContext, int, int, int, int[], net.minecraft.client.resources.model.geometry.ItemQuads, net.minecraft.client.renderer.item.ItemStackRenderState$FoilType);
+    Code:
+         0: aload_1
+         1: invokevirtual #81                 // Method com/mojang/blaze3d/vertex/PoseStack.last:()Lcom/mojang/blaze3d/vertex/PoseStack$Pose;
+         4: invokevirtual #282                // Method com/mojang/blaze3d/vertex/PoseStack$Pose.copy:()Lcom/mojang/blaze3d/vertex/PoseStack$Pose;
+         7: astore        9
+         9: aload         7
+        11: invokevirtual #420                // Method net/minecraft/client/resources/model/geometry/ItemQuads.translucent:()Ljava/util/List;
+        14: invokeinterface #426,  1          // InterfaceMethod java/util/List.isEmpty:()Z
+        19: ifne          54
+        22: aload_0
+        23: getfield      #44                 // Field translucentBlocksAndItems:Lnet/minecraft/client/renderer/feature/phase/FeatureRenderPhase;
+        26: new           #429                // class net/minecraft/client/renderer/feature/ItemFeatureRenderer$Submit
+        29: dup
+        30: aload         9
+        32: aload_2
+        33: iload_3
+        34: iload         4
+        36: iconst_0
+        37: aload         6
+        39: aload         7
+        41: invokevirtual #420                // Method net/minecraft/client/resources/model/geometry/ItemQuads.translucent:()Ljava/util/List;
+        44: aload         8
+        46: invokespecial #431                // Method net/minecraft/client/renderer/feature/ItemFeatureRenderer$Submit."<init>":(Lcom/mojang/blaze3d/vertex/PoseStack$Pose;Lnet/minecraft/world/item/ItemDisplayContext;III[ILjava/util/List;Lnet/minecraft/client/renderer/item/ItemStackRenderState$FoilType;)V
+        49: invokeinterface #315,  2          // InterfaceMethod net/minecraft/client/renderer/feature/phase/FeatureRenderPhase.submit:(Lnet/minecraft/client/renderer/feature/submit/SubmitNode;)V
+        54: aload         7
+        56: invokevirtual #434                // Method net/minecraft/client/resources/model/geometry/ItemQuads.solid:()Ljava/util/List;
+        59: invokeinterface #426,  1          // InterfaceMethod java/util/List.isEmpty:()Z
+        64: ifne          97
+        67: aload_0
+        68: getfield      #10                 // Field solid:Lnet/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase;
+        71: new           #429                // class net/minecraft/client/renderer/feature/ItemFeatureRenderer$Submit
+        74: dup
+        75: aload         9
+        77: aload_2
+        78: iload_3
+        79: iload         4
+        81: iconst_0
+        82: aload         6
+        84: aload         7
+        86: invokevirtual #434                // Method net/minecraft/client/resources/model/geometry/ItemQuads.solid:()Ljava/util/List;
+        89: aload         8
+        91: invokespecial #431                // Method net/minecraft/client/renderer/feature/ItemFeatureRenderer$Submit."<init>":(Lcom/mojang/blaze3d/vertex/PoseStack$Pose;Lnet/minecraft/world/item/ItemDisplayContext;III[ILjava/util/List;Lnet/minecraft/client/renderer/item/ItemStackRenderState$FoilType;)V
+        94: invokevirtual #103                // Method net/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase.submit:(Lnet/minecraft/client/renderer/feature/submit/SubmitNode;)V
+        97: iload         5
+        99: ifeq          138
+       102: aload_0
+       103: getfield      #19                 // Field outline:Lnet/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase;
+       106: new           #429                // class net/minecraft/client/renderer/feature/ItemFeatureRenderer$Submit
+       109: dup
+       110: aload         9
+       112: aload_2
+       113: ldc_w         #320                // int 15728880
+       116: getstatic     #321                // Field net/minecraft/client/renderer/texture/OverlayTexture.NO_OVERLAY:I
+       119: iload         5
+       121: getstatic     #436                // Field net/minecraft/client/renderer/item/ItemStackRenderState$LayerRenderState.EMPTY_TINTS:[I
+       124: aload         7
+       126: invokevirtual #439                // Method net/minecraft/client/resources/model/geometry/ItemQuads.all:()Ljava/util/List;
+       129: getstatic     #442                // Field net/minecraft/client/renderer/item/ItemStackRenderState$FoilType.NONE:Lnet/minecraft/client/renderer/item/ItemStackRenderState$FoilType;
+       132: invokespecial #431                // Method net/minecraft/client/renderer/feature/ItemFeatureRenderer$Submit."<init>":(Lcom/mojang/blaze3d/vertex/PoseStack$Pose;Lnet/minecraft/world/item/ItemDisplayContext;III[ILjava/util/List;Lnet/minecraft/client/renderer/item/ItemStackRenderState$FoilType;)V
+       135: invokevirtual #103                // Method net/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase.submit:(Lnet/minecraft/client/renderer/feature/submit/SubmitNode;)V
+       138: return
+
+  public void submitCustomGeometry(com.mojang.blaze3d.vertex.PoseStack, net.minecraft.client.renderer.rendertype.RenderType, net.minecraft.client.renderer.SubmitNodeCollector$CustomGeometryRenderer);
+    Code:
+         0: new           #448                // class net/minecraft/client/renderer/feature/CustomFeatureRenderer$Submit
+         3: dup
+         4: aload_1
+         5: invokevirtual #81                 // Method com/mojang/blaze3d/vertex/PoseStack.last:()Lcom/mojang/blaze3d/vertex/PoseStack$Pose;
+         8: invokevirtual #282                // Method com/mojang/blaze3d/vertex/PoseStack$Pose.copy:()Lcom/mojang/blaze3d/vertex/PoseStack$Pose;
+        11: aload_2
+        12: aload_3
+        13: invokespecial #450                // Method net/minecraft/client/renderer/feature/CustomFeatureRenderer$Submit."<init>":(Lcom/mojang/blaze3d/vertex/PoseStack$Pose;Lnet/minecraft/client/renderer/rendertype/RenderType;Lnet/minecraft/client/renderer/SubmitNodeCollector$CustomGeometryRenderer;)V
+        16: astore        4
+        18: aload_2
+        19: invokevirtual #293                // Method net/minecraft/client/renderer/rendertype/RenderType.isOutline:()Z
+        22: ifeq          37
+        25: aload_0
+        26: getfield      #19                 // Field outline:Lnet/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase;
+        29: aload         4
+        31: invokevirtual #103                // Method net/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase.submit:(Lnet/minecraft/client/renderer/feature/submit/SubmitNode;)V
+        34: goto          65
+        37: aload_2
+        38: invokevirtual #312                // Method net/minecraft/client/renderer/rendertype/RenderType.hasBlending:()Z
+        41: ifeq          56
+        44: aload_0
+        45: getfield      #51                 // Field translucentCustomGeometry:Lnet/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase;
+        48: aload         4
+        50: invokevirtual #103                // Method net/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase.submit:(Lnet/minecraft/client/renderer/feature/submit/SubmitNode;)V
+        53: goto          65
+        56: aload_0
+        57: getfield      #10                 // Field solid:Lnet/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase;
+        60: aload         4
+        62: invokevirtual #103                // Method net/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase.submit:(Lnet/minecraft/client/renderer/feature/submit/SubmitNode;)V
+        65: return
+
+  public void submitQuadParticleGroup(net.minecraft.client.renderer.state.level.QuadParticleRenderState);
+    Code:
+         0: aload_0
+         1: getfield      #10                 // Field solid:Lnet/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase;
+         4: new           #453                // class net/minecraft/client/renderer/feature/QuadParticleFeatureRenderer$Submit
+         7: dup
+         8: aload_1
+         9: iconst_0
+        10: invokespecial #455                // Method net/minecraft/client/renderer/feature/QuadParticleFeatureRenderer$Submit."<init>":(Lnet/minecraft/client/renderer/state/level/QuadParticleRenderState;Z)V
+        13: invokevirtual #103                // Method net/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase.submit:(Lnet/minecraft/client/renderer/feature/submit/SubmitNode;)V
+        16: aload_0
+        17: getfield      #57                 // Field afterTerrain:Lnet/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase;
+        20: new           #453                // class net/minecraft/client/renderer/feature/QuadParticleFeatureRenderer$Submit
+        23: dup
+        24: aload_1
+        25: iconst_1
+        26: invokespecial #455                // Method net/minecraft/client/renderer/feature/QuadParticleFeatureRenderer$Submit."<init>":(Lnet/minecraft/client/renderer/state/level/QuadParticleRenderState;Z)V
+        29: invokevirtual #103                // Method net/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase.submit:(Lnet/minecraft/client/renderer/feature/submit/SubmitNode;)V
+        32: return
+
+  public void submitGizmoPrimitives(net.minecraft.client.renderer.gizmos.DrawableGizmoPrimitives$Group, net.minecraft.client.renderer.state.level.CameraRenderState, boolean);
+    Code:
+         0: new           #458                // class net/minecraft/client/renderer/feature/GizmoFeatureRenderer$Submit
+         3: dup
+         4: aload_1
+         5: aload_2
+         6: invokespecial #460                // Method net/minecraft/client/renderer/feature/GizmoFeatureRenderer$Submit."<init>":(Lnet/minecraft/client/renderer/gizmos/DrawableGizmoPrimitives$Group;Lnet/minecraft/client/renderer/state/level/CameraRenderState;)V
+         9: astore        4
+        11: iload_3
+        12: ifeq          27
+        15: aload_0
+        16: getfield      #22                 // Field alwaysOnTopGizmos:Lnet/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase;
+        19: aload         4
+        21: invokevirtual #103                // Method net/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase.submit:(Lnet/minecraft/client/renderer/feature/submit/SubmitNode;)V
+        24: goto          55
+        27: aload_1
+        28: invokevirtual #463                // Method net/minecraft/client/renderer/gizmos/DrawableGizmoPrimitives$Group.opaque:()Z
+        31: ifeq          46
+        34: aload_0
+        35: getfield      #10                 // Field solid:Lnet/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase;
+        38: aload         4
+        40: invokevirtual #103                // Method net/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase.submit:(Lnet/minecraft/client/renderer/feature/submit/SubmitNode;)V
+        43: goto          55
+        46: aload_0
+        47: getfield      #60                 // Field translucentGizmos:Lnet/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase;
+        50: aload         4
+        52: invokevirtual #103                // Method net/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase.submit:(Lnet/minecraft/client/renderer/feature/submit/SubmitNode;)V
+        55: return
+
+  public java.util.List<net.minecraft.client.renderer.feature.phase.FeatureRenderPhase<?>> allPhases();
+    Code:
+         0: aload_0
+         1: getfield      #69                 // Field allPhases:Ljava/util/List;
+         4: areturn
+}

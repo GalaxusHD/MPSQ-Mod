@@ -1,0 +1,6 @@
+allprojects {
+ afterEvaluate {
+  def dir = providers.gradleProperty('compatModsDir').get()
+  dependencies.add('clientRuntimeOnly', files("${dir}/flashback.jar", "${dir}/skinlayers.jar"))
+ }
+}

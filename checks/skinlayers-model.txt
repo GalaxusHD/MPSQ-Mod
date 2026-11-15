@@ -1,0 +1,211 @@
+Compiled from "PlayerModelMixin.java"
+public class dev.tr7zw.skinlayers.mixin.PlayerModelMixin<T extends net.minecraft.world.entity.LivingEntity> extends net.minecraft.client.model.HumanoidModel implements dev.tr7zw.skinlayers.accessor.PlayerEntityModelAccessor {
+  public net.minecraft.client.model.geom.ModelPart leftSleeve;
+
+  public net.minecraft.client.model.geom.ModelPart rightSleeve;
+
+  public net.minecraft.client.model.geom.ModelPart leftPants;
+
+  public net.minecraft.client.model.geom.ModelPart rightPants;
+
+  public net.minecraft.client.model.geom.ModelPart jacket;
+
+  private boolean slim;
+
+  private boolean ignored;
+
+  public dev.tr7zw.skinlayers.mixin.PlayerModelMixin(net.minecraft.client.model.geom.ModelPart);
+    Code:
+         0: aload_0
+         1: aload_1
+         2: invokespecial #1                  // Method net/minecraft/client/model/HumanoidModel."<init>":(Lnet/minecraft/client/model/geom/ModelPart;)V
+         5: return
+
+  public boolean hasThinArms();
+    Code:
+         0: aload_0
+         1: getfield      #7                  // Field slim:Z
+         4: ireturn
+
+  public void setupAnim(net.minecraft.client.renderer.entity.state.AvatarRenderState, org.spongepowered.asm.mixin.injection.callback.CallbackInfo);
+    Code:
+         0: aconst_null
+         1: astore_3
+         2: aload_0
+         3: getfield      #13                 // Field ignored:Z
+         6: ifeq          10
+         9: return
+        10: aload_0
+        11: instanceof    #16                 // class net/minecraft/client/model/player/PlayerCapeModel
+        14: ifne          60
+        17: aload_1
+        18: instanceof    #18                 // class dev/tr7zw/transition/mc/entitywrapper/EntityRenderStateExtender
+        21: ifeq          60
+        24: aload_1
+        25: checkcast     #18                 // class dev/tr7zw/transition/mc/entitywrapper/EntityRenderStateExtender
+        28: astore        4
+        30: aload         4
+        32: invokeinterface #20,  1           // InterfaceMethod dev/tr7zw/transition/mc/entitywrapper/EntityRenderStateExtender.getTransitionEntity:()Lnet/minecraft/world/entity/Entity;
+        37: astore        6
+        39: aload         6
+        41: instanceof    #24                 // class net/minecraft/world/entity/Avatar
+        44: ifeq          60
+        47: aload         6
+        49: checkcast     #24                 // class net/minecraft/world/entity/Avatar
+        52: astore        5
+        54: aload         5
+        56: astore_3
+        57: goto          61
+        60: return
+        61: aload_3
+        62: checkcast     #26                 // class dev/tr7zw/skinlayers/accessor/PlayerSettings
+        65: astore        6
+        67: aload_0
+        68: getfield      #28                 // Field hat:Lnet/minecraft/client/model/geom/ModelPart;
+        71: checkcast     #32                 // class dev/tr7zw/skinlayers/accessor/ModelPartInjector
+        74: aconst_null
+        75: aconst_null
+        76: invokeinterface #34,  3           // InterfaceMethod dev/tr7zw/skinlayers/accessor/ModelPartInjector.setInjectedMesh:(Ldev/tr7zw/skinlayers/api/Mesh;Ldev/tr7zw/skinlayers/api/OffsetProvider;)V
+        81: aload_0
+        82: getfield      #38                 // Field jacket:Lnet/minecraft/client/model/geom/ModelPart;
+        85: checkcast     #32                 // class dev/tr7zw/skinlayers/accessor/ModelPartInjector
+        88: aconst_null
+        89: aconst_null
+        90: invokeinterface #34,  3           // InterfaceMethod dev/tr7zw/skinlayers/accessor/ModelPartInjector.setInjectedMesh:(Ldev/tr7zw/skinlayers/api/Mesh;Ldev/tr7zw/skinlayers/api/OffsetProvider;)V
+        95: aload_0
+        96: getfield      #41                 // Field leftSleeve:Lnet/minecraft/client/model/geom/ModelPart;
+        99: checkcast     #32                 // class dev/tr7zw/skinlayers/accessor/ModelPartInjector
+       102: aconst_null
+       103: aconst_null
+       104: invokeinterface #34,  3           // InterfaceMethod dev/tr7zw/skinlayers/accessor/ModelPartInjector.setInjectedMesh:(Ldev/tr7zw/skinlayers/api/Mesh;Ldev/tr7zw/skinlayers/api/OffsetProvider;)V
+       109: aload_0
+       110: getfield      #44                 // Field rightSleeve:Lnet/minecraft/client/model/geom/ModelPart;
+       113: checkcast     #32                 // class dev/tr7zw/skinlayers/accessor/ModelPartInjector
+       116: aconst_null
+       117: aconst_null
+       118: invokeinterface #34,  3           // InterfaceMethod dev/tr7zw/skinlayers/accessor/ModelPartInjector.setInjectedMesh:(Ldev/tr7zw/skinlayers/api/Mesh;Ldev/tr7zw/skinlayers/api/OffsetProvider;)V
+       123: aload_0
+       124: getfield      #47                 // Field leftPants:Lnet/minecraft/client/model/geom/ModelPart;
+       127: checkcast     #32                 // class dev/tr7zw/skinlayers/accessor/ModelPartInjector
+       130: aconst_null
+       131: aconst_null
+       132: invokeinterface #34,  3           // InterfaceMethod dev/tr7zw/skinlayers/accessor/ModelPartInjector.setInjectedMesh:(Ldev/tr7zw/skinlayers/api/Mesh;Ldev/tr7zw/skinlayers/api/OffsetProvider;)V
+       137: aload_0
+       138: getfield      #50                 // Field rightPants:Lnet/minecraft/client/model/geom/ModelPart;
+       141: checkcast     #32                 // class dev/tr7zw/skinlayers/accessor/ModelPartInjector
+       144: aconst_null
+       145: aconst_null
+       146: invokeinterface #34,  3           // InterfaceMethod dev/tr7zw/skinlayers/accessor/ModelPartInjector.setInjectedMesh:(Ldev/tr7zw/skinlayers/api/Mesh;Ldev/tr7zw/skinlayers/api/OffsetProvider;)V
+       151: invokestatic  #53                 // Method net/minecraft/client/Minecraft.getInstance:()Lnet/minecraft/client/Minecraft;
+       154: getfield      #59                 // Field net/minecraft/client/Minecraft.player:Lnet/minecraft/client/player/LocalPlayer;
+       157: ifnull        188
+       160: aload_3
+       161: invokestatic  #63                 // Method dev/tr7zw/transition/mc/GeneralUtil.getCameraEntity:()Lnet/minecraft/world/entity/Entity;
+       164: invokevirtual #68                 // Method net/minecraft/world/entity/Entity.position:()Lnet/minecraft/world/phys/Vec3;
+       167: invokevirtual #74                 // Method net/minecraft/world/entity/Avatar.distanceToSqr:(Lnet/minecraft/world/phys/Vec3;)D
+       170: getstatic     #78                 // Field dev/tr7zw/skinlayers/SkinLayersModBase.config:Ldev/tr7zw/skinlayers/versionless/config/Config;
+       173: getfield      #84                 // Field dev/tr7zw/skinlayers/versionless/config/Config.renderDistanceLOD:I
+       176: getstatic     #78                 // Field dev/tr7zw/skinlayers/SkinLayersModBase.config:Ldev/tr7zw/skinlayers/versionless/config/Config;
+       179: getfield      #84                 // Field dev/tr7zw/skinlayers/versionless/config/Config.renderDistanceLOD:I
+       182: imul
+       183: i2d
+       184: dcmpl
+       185: ifle          189
+       188: return
+       189: aload_3
+       190: aload         6
+       192: aload_0
+       193: getfield      #7                  // Field slim:Z
+       196: invokestatic  #90                 // Method dev/tr7zw/skinlayers/SkinUtil.setup3dLayers:(Lnet/minecraft/world/entity/Avatar;Ldev/tr7zw/skinlayers/accessor/PlayerSettings;Z)Z
+       199: ifne          203
+       202: return
+       203: aload_3
+       204: getstatic     #96                 // Field net/minecraft/world/entity/EquipmentSlot.HEAD:Lnet/minecraft/world/entity/EquipmentSlot;
+       207: invokevirtual #102                // Method net/minecraft/world/entity/Avatar.getItemBySlot:(Lnet/minecraft/world/entity/EquipmentSlot;)Lnet/minecraft/world/item/ItemStack;
+       210: astore        7
+       212: getstatic     #78                 // Field dev/tr7zw/skinlayers/SkinLayersModBase.config:Ldev/tr7zw/skinlayers/versionless/config/Config;
+       215: getfield      #106                // Field dev/tr7zw/skinlayers/versionless/config/Config.enableHat:Z
+       218: ifeq          264
+       221: aload         7
+       223: ifnull        242
+       226: getstatic     #109                // Field dev/tr7zw/skinlayers/SkinLayersModBase.hideHeadLayers:Ljava/util/Set;
+       229: aload         7
+       231: invokevirtual #113                // Method net/minecraft/world/item/ItemStack.getItem:()Lnet/minecraft/world/item/Item;
+       234: invokeinterface #119,  2          // InterfaceMethod java/util/Set.contains:(Ljava/lang/Object;)Z
+       239: ifne          264
+       242: aload_0
+       243: getfield      #28                 // Field hat:Lnet/minecraft/client/model/geom/ModelPart;
+       246: checkcast     #32                 // class dev/tr7zw/skinlayers/accessor/ModelPartInjector
+       249: aload         6
+       251: invokeinterface #125,  1          // InterfaceMethod dev/tr7zw/skinlayers/accessor/PlayerSettings.getHeadMesh:()Ldev/tr7zw/skinlayers/api/Mesh;
+       256: getstatic     #129                // Field dev/tr7zw/skinlayers/api/OffsetProvider.HEAD:Ldev/tr7zw/skinlayers/api/OffsetProvider;
+       259: invokeinterface #34,  3           // InterfaceMethod dev/tr7zw/skinlayers/accessor/ModelPartInjector.setInjectedMesh:(Ldev/tr7zw/skinlayers/api/Mesh;Ldev/tr7zw/skinlayers/api/OffsetProvider;)V
+       264: getstatic     #78                 // Field dev/tr7zw/skinlayers/SkinLayersModBase.config:Ldev/tr7zw/skinlayers/versionless/config/Config;
+       267: getfield      #134                // Field dev/tr7zw/skinlayers/versionless/config/Config.enableJacket:Z
+       270: ifeq          295
+       273: aload_0
+       274: getfield      #38                 // Field jacket:Lnet/minecraft/client/model/geom/ModelPart;
+       277: checkcast     #32                 // class dev/tr7zw/skinlayers/accessor/ModelPartInjector
+       280: aload         6
+       282: invokeinterface #137,  1          // InterfaceMethod dev/tr7zw/skinlayers/accessor/PlayerSettings.getTorsoMesh:()Ldev/tr7zw/skinlayers/api/Mesh;
+       287: getstatic     #140                // Field dev/tr7zw/skinlayers/api/OffsetProvider.BODY:Ldev/tr7zw/skinlayers/api/OffsetProvider;
+       290: invokeinterface #34,  3           // InterfaceMethod dev/tr7zw/skinlayers/accessor/ModelPartInjector.setInjectedMesh:(Ldev/tr7zw/skinlayers/api/Mesh;Ldev/tr7zw/skinlayers/api/OffsetProvider;)V
+       295: getstatic     #78                 // Field dev/tr7zw/skinlayers/SkinLayersModBase.config:Ldev/tr7zw/skinlayers/versionless/config/Config;
+       298: getfield      #143                // Field dev/tr7zw/skinlayers/versionless/config/Config.enableLeftSleeve:Z
+       301: ifeq          339
+       304: aload_0
+       305: getfield      #41                 // Field leftSleeve:Lnet/minecraft/client/model/geom/ModelPart;
+       308: checkcast     #32                 // class dev/tr7zw/skinlayers/accessor/ModelPartInjector
+       311: aload         6
+       313: invokeinterface #146,  1          // InterfaceMethod dev/tr7zw/skinlayers/accessor/PlayerSettings.getLeftArmMesh:()Ldev/tr7zw/skinlayers/api/Mesh;
+       318: aload_0
+       319: getfield      #7                  // Field slim:Z
+       322: ifeq          331
+       325: getstatic     #149                // Field dev/tr7zw/skinlayers/api/OffsetProvider.LEFT_ARM_SLIM:Ldev/tr7zw/skinlayers/api/OffsetProvider;
+       328: goto          334
+       331: getstatic     #152                // Field dev/tr7zw/skinlayers/api/OffsetProvider.LEFT_ARM:Ldev/tr7zw/skinlayers/api/OffsetProvider;
+       334: invokeinterface #34,  3           // InterfaceMethod dev/tr7zw/skinlayers/accessor/ModelPartInjector.setInjectedMesh:(Ldev/tr7zw/skinlayers/api/Mesh;Ldev/tr7zw/skinlayers/api/OffsetProvider;)V
+       339: getstatic     #78                 // Field dev/tr7zw/skinlayers/SkinLayersModBase.config:Ldev/tr7zw/skinlayers/versionless/config/Config;
+       342: getfield      #155                // Field dev/tr7zw/skinlayers/versionless/config/Config.enableRightSleeve:Z
+       345: ifeq          383
+       348: aload_0
+       349: getfield      #44                 // Field rightSleeve:Lnet/minecraft/client/model/geom/ModelPart;
+       352: checkcast     #32                 // class dev/tr7zw/skinlayers/accessor/ModelPartInjector
+       355: aload         6
+       357: invokeinterface #158,  1          // InterfaceMethod dev/tr7zw/skinlayers/accessor/PlayerSettings.getRightArmMesh:()Ldev/tr7zw/skinlayers/api/Mesh;
+       362: aload_0
+       363: getfield      #7                  // Field slim:Z
+       366: ifeq          375
+       369: getstatic     #161                // Field dev/tr7zw/skinlayers/api/OffsetProvider.RIGHT_ARM_SLIM:Ldev/tr7zw/skinlayers/api/OffsetProvider;
+       372: goto          378
+       375: getstatic     #164                // Field dev/tr7zw/skinlayers/api/OffsetProvider.RIGHT_ARM:Ldev/tr7zw/skinlayers/api/OffsetProvider;
+       378: invokeinterface #34,  3           // InterfaceMethod dev/tr7zw/skinlayers/accessor/ModelPartInjector.setInjectedMesh:(Ldev/tr7zw/skinlayers/api/Mesh;Ldev/tr7zw/skinlayers/api/OffsetProvider;)V
+       383: getstatic     #78                 // Field dev/tr7zw/skinlayers/SkinLayersModBase.config:Ldev/tr7zw/skinlayers/versionless/config/Config;
+       386: getfield      #167                // Field dev/tr7zw/skinlayers/versionless/config/Config.enableLeftPants:Z
+       389: ifeq          414
+       392: aload_0
+       393: getfield      #47                 // Field leftPants:Lnet/minecraft/client/model/geom/ModelPart;
+       396: checkcast     #32                 // class dev/tr7zw/skinlayers/accessor/ModelPartInjector
+       399: aload         6
+       401: invokeinterface #170,  1          // InterfaceMethod dev/tr7zw/skinlayers/accessor/PlayerSettings.getLeftLegMesh:()Ldev/tr7zw/skinlayers/api/Mesh;
+       406: getstatic     #173                // Field dev/tr7zw/skinlayers/api/OffsetProvider.LEFT_LEG:Ldev/tr7zw/skinlayers/api/OffsetProvider;
+       409: invokeinterface #34,  3           // InterfaceMethod dev/tr7zw/skinlayers/accessor/ModelPartInjector.setInjectedMesh:(Ldev/tr7zw/skinlayers/api/Mesh;Ldev/tr7zw/skinlayers/api/OffsetProvider;)V
+       414: getstatic     #78                 // Field dev/tr7zw/skinlayers/SkinLayersModBase.config:Ldev/tr7zw/skinlayers/versionless/config/Config;
+       417: getfield      #176                // Field dev/tr7zw/skinlayers/versionless/config/Config.enableRightPants:Z
+       420: ifeq          445
+       423: aload_0
+       424: getfield      #50                 // Field rightPants:Lnet/minecraft/client/model/geom/ModelPart;
+       427: checkcast     #32                 // class dev/tr7zw/skinlayers/accessor/ModelPartInjector
+       430: aload         6
+       432: invokeinterface #179,  1          // InterfaceMethod dev/tr7zw/skinlayers/accessor/PlayerSettings.getRightLegMesh:()Ldev/tr7zw/skinlayers/api/Mesh;
+       437: getstatic     #182                // Field dev/tr7zw/skinlayers/api/OffsetProvider.RIGHT_LEG:Ldev/tr7zw/skinlayers/api/OffsetProvider;
+       440: invokeinterface #34,  3           // InterfaceMethod dev/tr7zw/skinlayers/accessor/ModelPartInjector.setInjectedMesh:(Ldev/tr7zw/skinlayers/api/Mesh;Ldev/tr7zw/skinlayers/api/OffsetProvider;)V
+       445: return
+
+  public void setIgnored(boolean);
+    Code:
+         0: aload_0
+         1: iload_1
+         2: putfield      #13                 // Field ignored:Z
+         5: return
+}
