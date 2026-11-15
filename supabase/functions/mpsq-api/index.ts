@@ -440,7 +440,7 @@ serve(async req => {
       if(!Array.isArray(assets))return out({error:"Accessoirekatalog nicht verfügbar"},502);
       const defs=await(await rest("/mpsq_accessories?select=id,accessory_key,display_name,model_id,description,price_points&order=display_name.asc&limit=500")).json();
       const owned=await(await rest(`/mpsq_user_accessories?client_id=eq.${clientId}&select=accessory_id`)).json(),ownedIds=new Set(Array.isArray(owned)?owned.map((x:any)=>x.accessory_id):[]);
-      return out(assets.map((a:any)=>{const d=defs.find((x:any)=>x.model_id===a.id);return {id:a.id,asset_id:a.id,accessory_id:d?.id??null,display_name:d?.display_name??a.display_name??a.id,description:d?.description??null,price_points:Number(d?.price_points??500),owned:ownedIds.has(d?.id),category:a.category,filename:a.filename,url:`${Deno.env.get("SUPABASE_URL")}/storage/v1/object/public/mpsq-assets/${a.path}`};}));
+      return out(assets.map((a:any)=>{const d=defs.find((x:any)=>x.model_id===a.id);return {id:a.id,asset_id:a.id,accessory_id:d?.id??null,accessory_key:d?.accessory_key??null,display_name:d?.display_name??a.display_name??a.id,description:d?.description??null,price_points:Number(d?.price_points??500),owned:ownedIds.has(d?.id),category:a.category,filename:a.filename,url:`${Deno.env.get("SUPABASE_URL")}/storage/v1/object/public/mpsq-assets/${a.path}`};}));
     }
     if(path==="/models/catalog" && req.method==="GET"){
       const self=await teamProfile(clientId);if(level(permissionRank(self))<level("offizier"))return out({error:"Keine Berechtigung"},403);
@@ -506,7 +506,8 @@ serve(async req => {
       if(b.action==="delete"&&/^[0-9a-f-]{36}$/i.test(String(b.questId??""))){const r=await rest(`/mpsq_quests?id=eq.${b.questId}&npc_id=eq.${id}`,{method:"DELETE"});return out({ok:r.ok},r.ok?200:r.status);}
       const title=String(b.title??"").trim(),description=String(b.description??"").trim(),icon=String(b.iconItem??"minecraft:paper"),item=String(b.objectiveItem??""),amount=Number(b.targetCount),points=Number(b.rewardPoints??0),reward=String(b.rewardAccessoryId??"");
       if(title.length<1||title.length>80||description.length<1||description.length>240||!/^[a-z0-9_.-]+:[a-z0-9_./-]+$/i.test(icon)||!/^[a-z0-9_.-]+:[a-z0-9_./-]+$/i.test(item)||!Number.isInteger(amount)||amount<1||amount>1000000||!Number.isInteger(points)||points<0||points>1000000||(points>0&&reward)||((points===0)&&! /^[0-9a-f-]{36}$/i.test(reward)))return out({error:"Quest-Daten ungültig"},400);
-      const payload={npc_id:id,title,description,icon_item:icon,objective_item:item,target_count:amount,reward_points:points,reward_accessory_id:points>0?null:reward};let r:Response;
+      const category=String(b.category??"standard");if(!["standard","event"].includes(category))return out({error:"Quest-Kategorie ungültig"},400);
+      const payload={npc_id:id,title,description,category,icon_item:icon,objective_item:item,target_count:amount,reward_points:points,reward_accessory_id:points>0?null:reward};let r:Response;
       if(/^[0-9a-f-]{36}$/i.test(String(b.questId??"")))r=await rest(`/mpsq_quests?id=eq.${b.questId}&npc_id=eq.${id}`,{method:"PATCH",headers:{Prefer:"return=representation"},body:JSON.stringify(payload)});
       else r=await rest("/mpsq_quests",{method:"POST",headers:{Prefer:"return=representation"},body:JSON.stringify(payload)});
       return out(r.ok?await r.json():{error:await r.text()},r.status);
@@ -533,7 +534,7 @@ serve(async req => {
       return out(r.ok?{ok:true}:{error:"Accessoire nicht freigeschaltet"},r.ok?200:403);
     }
     if(path==="/accessory-wearers" && req.method==="GET"){
-      const r=await rest("/mpsq_user_accessories?equipped=eq.true&select=client_id,mpsq_accessories(model_id)");
+      const r=await rest("/mpsq_user_accessories?equipped=eq.true&select=client_id,mpsq_accessories(model_id,accessory_key)");
       if(!r.ok)return out({error:"Accessoires nicht verfügbar"},r.status);
       const worn=await r.json();
       const ids=[...new Set(worn.map((w:any)=>w.client_id))];
@@ -541,8 +542,8 @@ serve(async req => {
       const assets=await(await rest("/mpsq_assets?kind=eq.model&category=in.(accessory,shared)&select=id,path")).json();
       return out(worn.map((w:any)=>{
         const asset=assets.find((a:any)=>a.id===w.mpsq_accessories?.model_id);
-        return {name:users.find((u:any)=>u.id===w.client_id)?.display_name,url:asset?`${Deno.env.get("SUPABASE_URL")}/storage/v1/object/public/mpsq-assets/${asset.path}`:null};
-      }).filter((w:any)=>w.name&&w.url));
+        return {name:users.find((u:any)=>u.id===w.client_id)?.display_name,accessory_key:w.mpsq_accessories?.accessory_key??null,url:asset?`${Deno.env.get("SUPABASE_URL")}/storage/v1/object/public/mpsq-assets/${asset.path}`:null};
+      }).filter((w:any)=>w.name&&(w.url||w.accessory_key)));
     }
     if(path === "/actions" && req.method === "POST") {
       const self=await teamProfile(clientId); if(!canEditEvent(self))return out({error:"Keine Berechtigung"},403);
@@ -672,7 +673,7 @@ serve(async req => {
         const screens = await screenResponse.json();
         const screen = Array.isArray(screens) ? screens[0] : null;
         const videoUrl = String(actionData.url ?? "");
-        if (!screen || screen.mode !== "KINO" || !validAction("OPEN_LINK", actionData)) {
+        if (!screen || !["KINO", "REDSTONE", "MPSQ_REDSTONE"].includes(screen.mode) || !validAction("OPEN_LINK", actionData)) {
           return out({ error: "Der verknüpfte Kinobildschirm ist nicht verfügbar." }, 404);
         }
         const oldState = screen.playback_state && typeof screen.playback_state === "object"
@@ -1100,11 +1101,11 @@ serve(async req => {
       return out(screens.map((screen: any) => ({ ...screen, is_owner: screen.owner_id === clientId })));
     }
     if (req.method === "POST" && path === "/screens") {
-      const b = await json(req); const mode = b.mode === "CAMERA" ? "CAMERA" : "KINO";
+      const b = await json(req); const mode = b.mode === "CAMERA" ? "CAMERA" : ["REDSTONE", "MPSQ_REDSTONE"].includes(b.mode) ? "REDSTONE" : "KINO";
       const p1 = b.pos1 ?? {}, p2 = b.pos2 ?? {};
       const requestedFront = String(b.front ?? "NORTH").toUpperCase();
       const front = ["NORTH", "SOUTH", "EAST", "WEST", "UP", "DOWN"].includes(requestedFront) ? requestedFront : "NORTH";
-      const row = { owner_id: clientId, name: String(b.name ?? "Bildschirm").slice(0, 64), mode, dimension: String(b.dimension ?? "minecraft:overworld"), pos1_x: p1.x|0, pos1_y: p1.y|0, pos1_z: p1.z|0, pos2_x: p2.x|0, pos2_y: p2.y|0, pos2_z: p2.z|0, front, activation_code: code(), cinema_url: mode === "KINO" ? String(b.cinemaUrl ?? "") : "" };
+      const row = { owner_id: clientId, name: String(b.name ?? "Bildschirm").slice(0, 64), mode, dimension: String(b.dimension ?? "minecraft:overworld"), pos1_x: p1.x|0, pos1_y: p1.y|0, pos1_z: p1.z|0, pos2_x: p2.x|0, pos2_y: p2.y|0, pos2_z: p2.z|0, front, activation_code: code(), cinema_url: mode !== "CAMERA" ? String(b.cinemaUrl ?? "") : "" };
       const r = await rest("/mpsq_screens", { method: "POST", headers: { Prefer: "return=representation" }, body: JSON.stringify(row) }); return out(await r.json(), r.status);
     }
     if (req.method === "POST" && path === "/join") {
@@ -1174,7 +1175,7 @@ serve(async req => {
         allowed.name = name;
       }
       if (typeof b.cinemaUrl === "string") allowed.cinema_url = b.cinemaUrl;
-      if (b.mode === "KINO" || b.mode === "CAMERA") allowed.mode = b.mode;
+      if (["KINO", "CAMERA", "REDSTONE", "MPSQ_REDSTONE"].includes(b.mode)) allowed.mode = b.mode === "MPSQ_REDSTONE" ? "REDSTONE" : b.mode;
       if (b.playbackState) allowed.playback_state = b.playbackState;
       allowed.updated_at = new Date().toISOString();
       const r = await rest(`/mpsq_screens?id=eq.${id}`, { method: "PATCH", headers: { Prefer: "return=representation" }, body: JSON.stringify(allowed) }); return out(await r.json(), r.status);
