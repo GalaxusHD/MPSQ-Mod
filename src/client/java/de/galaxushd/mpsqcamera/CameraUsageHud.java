@@ -1,10 +1,9 @@
 package de.galaxushd.mpsqcamera;
 
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.text.Text;
-
+import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
+import net.minecraft.client.Minecraft;
+import net.minecraft.network.chat.Component;
 import java.util.List;
 
 /** Zeigt unten links an, welche Kameras gerade verwendet werden. */
@@ -18,11 +17,11 @@ public final class CameraUsageHud {
 
     public static void initialize() {
         ClientTickEvents.END_CLIENT_TICK.register(CameraUsageHud::tick);
-        HudRenderCallback.EVENT.register((context, tickDelta) -> render(context));
+        HudElementRegistry.addLast(net.minecraft.resources.Identifier.fromNamespaceAndPath("mpsqcamera", "camera_usage"), (context, tickDelta) -> render(context));
     }
 
-    private static void tick(MinecraftClient client) {
-        if (client.player == null || !TeamVisibilitySettings.visible() || loading || !MpsqApiClient.isReady()) {
+    private static void tick(Minecraft client) {
+        if (client.player == null || !TeamVisibilitySettings.inArea() || loading || !MpsqApiClient.isReady()) {
             return;
         }
 
@@ -46,28 +45,28 @@ public final class CameraUsageHud {
         }));
     }
 
-    private static void render(net.minecraft.client.gui.DrawContext context) {
-        if (!TeamVisibilitySettings.visible() || active.isEmpty()) {
+    private static void render(net.minecraft.client.gui.GuiGraphicsExtractor context) {
+        if (!TeamVisibilitySettings.inArea() || active.isEmpty()) {
             return;
         }
 
-        MinecraftClient client = MinecraftClient.getInstance();
+        Minecraft client = Minecraft.getInstance();
         if (client.player == null) {
             return;
         }
 
         // Untere linke Ecke, oberhalb von Chat und Hotbar.
-        int y = context.getScaledWindowHeight() - 50;
+        int y = context.guiHeight() - 50;
 
         for (int i = active.size() - 1; i >= 0; i--) {
             CameraUsage usage = active.get(i);
-            Text text = Text.translatable(
+            Component text = Component.translatable(
                     "gui.mpsqcamera.team.camera_usage",
                     usage.cameraName()
             );
 
             // Minecraft-Grün / §a
-            context.drawTextWithShadow(client.textRenderer, text, 6, y, 0x55FF55);
+            context.text(client.font, text, 6, y, 0x55FF55);
             y -= 11;
         }
     }

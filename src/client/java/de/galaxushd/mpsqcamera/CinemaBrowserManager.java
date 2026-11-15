@@ -1,11 +1,11 @@
 package de.galaxushd.mpsqcamera;
 
-import com.cinemamod.mcef.MCEF;
-import com.cinemamod.mcef.MCEFBrowser;
+
+import net.dimaskama.mcef.api.MCEFBrowser;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.util.Identifier;
-import org.lwjgl.glfw.GLFW;
+import net.minecraft.client.Minecraft;
+import net.minecraft.resources.Identifier;
+
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -31,10 +31,12 @@ public final class CinemaBrowserManager {
     private static final Map<UUID, BrowserSession> BROWSERS = new HashMap<>();
     private static final Set<UUID> FAILED_BROWSERS = new HashSet<>();
     private static int ticks;
+    private static final Map<UUID,Long> completed=new HashMap<>();
     private static int mouseRestoreDelayTicks;
     private static volatile long cursorRestoreSpikeGuardUntilNanos;
     private static volatile boolean refreshInProgress;
     private static boolean initializationAttempted;
+    private static net.minecraft.client.multiplayer.ClientLevel playbackWorld;
 
     private CinemaBrowserManager() { }
 
@@ -44,12 +46,14 @@ public final class CinemaBrowserManager {
                 restoreGameMouse();
                 mouseRestoreDelayTicks--;
             }
-            if (client.world == null) {
+            checkWorld();
+            if (client.level == null || !TeamVisibilitySettings.visible()) {
                 clear();
                 return;
             }
+            BROWSERS.values().forEach(session -> removeLegacyCaptionShield(session.browser()));
             ticks++;
-            if (ticks % REFRESH_INTERVAL_TICKS == 0) synchronize();
+            if (ticks % REFRESH_INTERVAL_TICKS == 0) {checkVideoEnds();synchronize();}
             if (ticks % STATE_POLL_INTERVAL_TICKS == 0 && MpsqApiClient.isReady() && !refreshInProgress) {
                 refreshInProgress = true;
                 ScreenSyncManager.refresh().whenComplete((ignored, error) -> refreshInProgress = false);
@@ -63,32 +67,50 @@ public final class CinemaBrowserManager {
      */
     public static Identifier texture(UUID screenId) {
         BrowserSession session = BROWSERS.get(screenId);
-        if (session == null || !session.browser().isTextureReady()) return null;
-        return McefTextureCompat.texture(session.browser());
+        if (session == null || session.browser().getTextureView() == null) return null;
+        return McefModernBridge.texture(session.browser());
     }
 
     /** Human-readable state used by the screen renderer while no browser image is available. */
     public static ScreenStatus status(LocalScreenStore.LocalScreenData screen) {
         if (!isVideoScreen(screen)) return ScreenStatus.NONE;
+        if (screen.inputType()==LocalScreenStore.ScreenInputType.MPSQ_REDSTONE && completed.getOrDefault(screen.id(),-1L)==CinemaPlaybackStore.get(screen.id()).revision()) return ScreenStatus.OFFLINE;
+        if (screen.inputType() == LocalScreenStore.ScreenInputType.MPSQ_REDSTONE) {
+            if (!MpsqTriggerManager.hasScreenLink(screen.id())) return ScreenStatus.OFFLINE;
+            if (screen.url().isBlank()) return ScreenStatus.BUTTON_PRESS;
+        }
         if (screen.url().isBlank()) return ScreenStatus.OFFLINE;
         if (normalizeHttpUrl(screen.url()) == null || FAILED_BROWSERS.contains(screen.id())) return ScreenStatus.INACTIVE;
         if (!CinemaPlaybackStore.get(screen.id()).playing()) {
             return screen.inputType() == LocalScreenStore.ScreenInputType.MPSQ_REDSTONE
                     ? ScreenStatus.BUTTON_PRESS : ScreenStatus.INACTIVE;
         }
-        if (!MCEF.isInitialized() || texture(screen.id()) == null) return ScreenStatus.INACTIVE;
+        if (!McefModernBridge.ready() || texture(screen.id()) == null) return ScreenStatus.INACTIVE;
         return ScreenStatus.NONE;
     }
 
-    public static void synchronize() {
-        if (!MCEF.isInitialized() && !hasPlayingCinemaScreen()) return;
-        if (!MCEF.isInitialized() && !ensureInitialized()) return;
+    static void checkWorld() {
+        var world = Minecraft.getInstance().level;
+        if (world == playbackWorld) return;
+        clear();
+        playbackWorld = world;
+        completed.clear();
+        CinemaPlaybackStore.replace(Map.of());
+        LocalScreenStore.replaceAll(java.util.List.of());
+        ticks = 0;
+    }
+
+    public static void synchronize() { if(!TeamVisibilitySettings.visible()){clear();return;}
+        checkWorld();
+        if (playbackWorld == null) return;
+        if (!McefModernBridge.ready() && !hasPlayingCinemaScreen()) return;
+        if (!McefModernBridge.ready() && !ensureInitialized()) return;
 
         Set<UUID> wanted = new HashSet<>();
         for (LocalScreenStore.LocalScreenData screen : LocalScreenStore.getAllScreens()) {
             if (!isVideoScreen(screen) || screen.url().isBlank()) continue;
             CinemaPlaybackStore.PlaybackState playback = CinemaPlaybackStore.get(screen.id());
-            if (!playback.playing()) continue;
+            if (!playback.playing() || completed.getOrDefault(screen.id(),-1L)==playback.revision()) continue;
 
             BrowserSession current = BROWSERS.get(screen.id());
             if (current != null && current.revision() == playback.revision()) {
@@ -106,7 +128,7 @@ public final class CinemaBrowserManager {
 
             close(screen.id());
             try {
-                MCEFBrowser browser = MCEF.createBrowser(url, false);
+                MCEFBrowser browser = McefModernBridge.createBrowser(url, false);
                 CinemaAudioManager.registerBrowser(browser, audioRoute(screen));
                 // This browser is a texture source only. Never let its Chromium
                 // view take focus from Minecraft's mouse and camera controls.
@@ -127,6 +149,50 @@ public final class CinemaBrowserManager {
         }
     }
 
+    private static void checkVideoEnds(){
+        for(var entry:new java.util.ArrayList<>(BROWSERS.entrySet())){
+            var screen=LocalScreenStore.getAllScreens().stream().filter(v->v.id().equals(entry.getKey())).findFirst().orElse(null);
+            if(screen==null||screen.inputType()!=LocalScreenStore.ScreenInputType.MPSQ_REDSTONE)continue;
+            var session=entry.getValue();String marker="mpsq-ended-"+entry.getKey()+"-"+session.revision();
+            try{
+                var browser=session.browser().getCefBrowser();
+                if(browser.getURL().endsWith("#"+marker)){completed.put(entry.getKey(),session.revision());close(entry.getKey());continue;}
+                String script="""
+                    (()=>{if(window.__mpsqEndWatcher)return;window.__mpsqEndWatcher=true;
+                    const end=()=>{try{history.replaceState(null,'','#MARKER')}catch(e){location.hash='MARKER'}};
+                    const attach=()=>document.querySelectorAll('video,audio').forEach(v=>{if(!v.__mpsqEnd){v.__mpsqEnd=true;v.addEventListener('ended',end)}if(v.ended&&v.currentTime>0)end()});
+                    attach();new MutationObserver(attach).observe(document,{childList:true,subtree:true});
+                    window.addEventListener('message',e=>{
+                      if(!['https://www.youtube.com','https://youtube.com','https://www.youtube-nocookie.com'].includes(e.origin))return;
+                      if(![...document.querySelectorAll('iframe')].some(f=>f.contentWindow===e.source))return;
+                      let d;try{d=typeof e.data==='string'?JSON.parse(e.data):e.data}catch(_){return}
+                      if(d?.event==='onStateChange'&&d.info===0||d?.event==='infoDelivery'&&d.info?.playerState===0)end();
+                    });})();
+                    """.replace("MARKER",marker);
+                browser.executeJavaScript(script,browser.getURL(),0);
+            }catch(RuntimeException e){MpsqCameraClient.LOGGER.debug("Video-Ende noch nicht verfügbar",e);}
+        }
+    }
+
+    /** Older hosted player pages hide already-playing video behind a caption shield.
+     * Remove only that MPSQ overlay, including when it is inserted after page load.
+     * The observer runs before the next paint; subtitles can still be disabled normally. */
+    private static void removeLegacyCaptionShield(MCEFBrowser browser) {
+        try {
+            browser.getCefBrowser().executeJavaScript("""
+                (()=>{
+                  if(location.hostname!=='www.mixelpixel-squidgame.net'&&location.hostname!=='mixelpixel-squidgame.net')return;
+                  if(location.pathname!=='/mpsq-player.html'||window.__mpsqVisibleVideo)return;
+                  window.__mpsqVisibleVideo=true;
+                  const reveal=()=>document.getElementById('caption-shield')?.remove();
+                  new MutationObserver(reveal).observe(document,{childList:true,subtree:true});
+                  reveal();
+                })();
+                """,browser.getCefBrowser().getURL(),0);
+        } catch(RuntimeException error) {
+            MpsqCameraClient.LOGGER.debug("Video page is still loading",error);
+        }
+    }
     private static boolean hasPlayingCinemaScreen() {
         for (LocalScreenStore.LocalScreenData screen : LocalScreenStore.getAllScreens()) {
             if (isVideoScreen(screen)
@@ -152,12 +218,12 @@ public final class CinemaBrowserManager {
      * It is therefore initialized lazily, on the first world synchronization.
      */
     private static boolean ensureInitialized() {
-        if (MCEF.isInitialized()) return true;
-        if (initializationAttempted) return false;
+        if (McefModernBridge.ready()) return true;
+        
         initializationAttempted = true;
         try {
-            if (!MCEF.initialize()) {
-                MpsqCameraClient.LOGGER.warn("MCEF konnte nicht initialisiert werden; Kino-Bildschirme bleiben offline.");
+            if (!McefModernBridge.initialize()) {
+                // Initialization and native downloads complete asynchronously.
                 return false;
             }
             CinemaAudioManager.initialize();
@@ -169,8 +235,8 @@ public final class CinemaBrowserManager {
     }
 
     /** Lazily starts the shared MCEF audio bridge for uploaded MPSQ sounds. */
-    public static boolean ensureAudioReady() {
-        if (!MCEF.isInitialized() && !ensureInitialized()) return false;
+    public static boolean ensureAudioReady() { if(!TeamVisibilitySettings.visible())return false;
+        if (!McefModernBridge.ready() && !ensureInitialized()) return false;
         CinemaAudioManager.initialize();
         return true;
     }
@@ -186,7 +252,7 @@ public final class CinemaBrowserManager {
         if (session != null) {
             CinemaAudioManager.unregisterBrowser(session.browser());
             try {
-                session.browser().close();
+                McefModernBridge.close(session.browser());
             } finally {
                 requestGameMouseRestore();
             }
@@ -198,20 +264,11 @@ public final class CinemaBrowserManager {
 
     /** MCEF can alter GLFW cursor capture while initializing a hidden browser. */
     static void restoreGameMouse() {
-        MinecraftClient client = MinecraftClient.getInstance();
-        if (client.currentScreen == null && client.isWindowFocused()) {
-            long window = client.getWindow().getHandle();
-            // Re-lock only if MCEF actually released capture. Reapplying the
-            // GLFW mode every tick resets cursor tracking and can turn the
-            // stale delta into a sudden camera rotation when stop is pressed.
-            if (GLFW.glfwGetInputMode(window, GLFW.GLFW_CURSOR) == GLFW.GLFW_CURSOR_DISABLED) return;
+        Minecraft client = Minecraft.getInstance();
+        if (client.gui.screen() == null && client.isWindowActive()) {
+            if (client.mouseHandler.isMouseGrabbed()) return;
             cursorRestoreSpikeGuardUntilNanos = System.nanoTime() + 400_000_000L;
-            client.mouse.lockCursor();
-            // MCEF can change GLFW mode without updating Minecraft's internal
-            // locked flag, so use the raw GLFW fallback only if still needed.
-            if (GLFW.glfwGetInputMode(window, GLFW.GLFW_CURSOR) != GLFW.GLFW_CURSOR_DISABLED) {
-                GLFW.glfwSetInputMode(window, GLFW.GLFW_CURSOR, GLFW.GLFW_CURSOR_DISABLED);
-            }
+            client.mouseHandler.grabMouse();
         }
     }
 
@@ -225,10 +282,10 @@ public final class CinemaBrowserManager {
 
     /** MCEF may release GLFW cursor capture asynchronously after browser creation or close. */
     static void requestGameMouseRestore() {
-        MinecraftClient client = MinecraftClient.getInstance();
+        Minecraft client = Minecraft.getInstance();
         // Browser close callbacks may arrive outside the client thread.
         client.execute(() -> {
-            if (client.currentScreen == null && client.isWindowFocused()) {
+            if (client.gui.screen() == null && client.isWindowActive()) {
                 restoreGameMouse();
                 // Some MCEF builds change GLFW cursor mode well after close returns.
                 // Keep recapturing during the transition instead of relying on one retry.
@@ -290,40 +347,6 @@ public final class CinemaBrowserManager {
     /** A browser is recreated only for an explicit Start/Stop/seek command, never for normal time progression. */
     private record BrowserSession(long revision, MCEFBrowser browser) { }
 
-    /** Mirrors WatchParty's MCEF compatibility check without relying on raw OpenGL texture ids. */
-    private static final class McefTextureCompat {
-        private static final Method TEXTURE_METHOD = findTextureMethod();
-        private static boolean warningLogged;
-
-        private McefTextureCompat() { }
-
-        private static Identifier texture(MCEFBrowser browser) {
-            if (browser == null || TEXTURE_METHOD == null) return null;
-            try {
-                Object value = TEXTURE_METHOD.invoke(browser);
-                return value instanceof Identifier identifier ? identifier : null;
-            } catch (IllegalAccessException | InvocationTargetException exception) {
-                if (!warningLogged) {
-                    warningLogged = true;
-                    MpsqCameraClient.LOGGER.warn("MCEF-Texturkennung konnte nicht gelesen werden", exception);
-                }
-                return null;
-            }
-        }
-
-        private static Method findTextureMethod() {
-            for (String name : new String[]{"getTextureIdentifier", "getTextureLocation"}) {
-                try {
-                    return MCEFBrowser.class.getMethod(name);
-                } catch (NoSuchMethodException ignored) {
-                    // Try the next MCEF API variant.
-                }
-            }
-            MpsqCameraClient.LOGGER.warn("Diese MCEF-Version stellt keine Minecraft-Texturkennung bereit.");
-            return null;
-        }
-    }
-
     public enum ScreenStatus {
         NONE("", 0, 0, 0),
         OFFLINE("OFFLINE", 155, 155, 155, "screen_offline"),
@@ -354,7 +377,7 @@ public final class CinemaBrowserManager {
         }
 
         public Identifier overlayTexture() {
-            return overlay == null ? null : Identifier.of(MpsqCameraClient.MOD_ID, "textures/screens/" + overlay + ".png");
+            return overlay == null ? null : Identifier.fromNamespaceAndPath(MpsqCameraClient.MOD_ID, "textures/screens/" + overlay + ".png");
         }
         public String label() { return label; }
         public int red() { return red; }

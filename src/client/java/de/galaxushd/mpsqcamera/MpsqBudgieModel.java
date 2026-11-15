@@ -4,18 +4,17 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import net.minecraft.client.render.RenderLayer;
-import net.minecraft.client.render.VertexConsumer;
-import net.minecraft.client.render.VertexConsumerProvider;
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.math.RotationAxis;
-
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.VertexConsumer;
+import com.mojang.math.Axis;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import de.galaxushd.mpsqcamera.compat.MultiBufferSource;
+import net.minecraft.client.renderer.rendertype.RenderType;
+import net.minecraft.resources.Identifier;
 
 /** Loads each supplied Blockbench model and keyed poses for Nog's Budgie pet. */
 final class MpsqBudgieModel {
@@ -23,7 +22,7 @@ final class MpsqBudgieModel {
     private static final String RIGHT_WING = "02ece6ff-6b78-6b1f-faf7-bc4a28d12133";
     private static final String LEFT_WING = "c6d4927b-59a0-be89-75e9-4b299c563d15";
     private static String safeVariant(String value) { return MpsqBudgiePetRenderer.isVariant(value) ? value : "green"; }
-    private static Identifier texture(String variant) { return Identifier.of(MpsqCameraClient.MOD_ID,
+    private static Identifier texture(String variant) { return Identifier.fromNamespaceAndPath(MpsqCameraClient.MOD_ID,
             "textures/pets/budgies/" + safeVariant(variant) + ".png"); }
     private static String resource(String variant) { return "/assets/mpsqcamera/models/pets/budgies/" + safeVariant(variant) + ".bbmodel"; }
     private static final int FULL_BRIGHT = 0x00F000F0;
@@ -36,60 +35,60 @@ final class MpsqBudgieModel {
         return animation == null ? 1.0 : animation.length;
     }
 
-    static void render(MatrixStack matrices, VertexConsumerProvider consumers, int light,
+    static void render(PoseStack matrices, MultiBufferSource consumers, int light,
                        float x, float y, float z, float yaw, float scale,
                        String variant, String animation, double timeSeconds) {
         ModelData model = model(variant);
-        matrices.push();
+        matrices.pushPose();
         matrices.translate(x, y, z);
-        matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(180.0f - yaw));
+        matrices.rotate(Axis.YP.rotationDegrees(180.0f - yaw));
         matrices.scale(scale, scale, scale);
         // Plane-like feet and wing pieces contain coincident front/back faces;
         // back-face culling prevents those layers from fighting each other.
-        VertexConsumer vertices = consumers.getBuffer(RenderLayer.getEntityCutout(texture(variant)));
+        VertexConsumer vertices = consumers.getBuffer(net.minecraft.client.renderer.rendertype.RenderTypes.entityCutoutCull(texture(variant)));
         Animation pose = model.animations.get(animation);
         if (pose == null && !"fly".equals(animation)) pose = model.animations.get("idle");
         if (pose == null && "fly".equals(animation)) pose = Animation.proceduralFly();
         double poseTime = pose == null ? 0 : pose.loop
                 ? timeSeconds % Math.max(0.001, pose.length) : Math.min(timeSeconds, pose.length);
         renderGroup(model.root, matrices, vertices, light, pose, poseTime, 0, 0, 0);
-        matrices.pop();
+        matrices.popPose();
     }
 
-    private static void renderGroup(Group group, MatrixStack matrices, VertexConsumer vertices, int light,
+    private static void renderGroup(Group group, PoseStack matrices, VertexConsumer vertices, int light,
                                     Animation animation, double time, double parentX, double parentY,
                                     double parentZ) {
         double gx = group.origin.x, gy = group.origin.y, gz = group.origin.z;
-        matrices.push();
+        matrices.pushPose();
         matrices.translate((gx - parentX) / 16.0, (gy - parentY) / 16.0, (gz - parentZ) / 16.0);
         Vec3 rotation = group.rotation;
         Vec3 animatedRotation = animation == null ? Vec3.ZERO : animation.value(group.id, "rotation", time);
         if (animation != null && animation.name.equals("fly")) {
             // The supplied files have no authored fly clip. Add a symmetric
-            // flap to the actual wing bones while retaining their model pose.
-            double flap = Math.sin(time * Math.PI * 2.0 * 2.8) * 42.0;
+            // flap around the spread-wing pose, never folding through the body.
+            double flap = 90.0 + Math.sin(time * Math.PI * 2.0 * 3.0) * 35.0;
             if (group.id.equals(RIGHT_WING)) animatedRotation = animatedRotation.add(new Vec3(0, 0, flap));
             else if (group.id.equals(LEFT_WING)) animatedRotation = animatedRotation.add(new Vec3(0, 0, -flap));
         }
         Vec3 animatedPosition = animation == null ? Vec3.ZERO : animation.value(group.id, "position", time);
         matrices.translate(animatedPosition.x / 16.0, animatedPosition.y / 16.0, animatedPosition.z / 16.0);
-        matrices.multiply(RotationAxis.POSITIVE_Z.rotationDegrees((float) (rotation.z + animatedRotation.z)));
-        matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees((float) (rotation.y + animatedRotation.y)));
-        matrices.multiply(RotationAxis.POSITIVE_X.rotationDegrees((float) (rotation.x + animatedRotation.x)));
+        matrices.rotate(Axis.ZP.rotationDegrees((float) (rotation.z + animatedRotation.z)));
+        matrices.rotate(Axis.YP.rotationDegrees((float) (rotation.y + animatedRotation.y)));
+        matrices.rotate(Axis.XP.rotationDegrees((float) (rotation.x + animatedRotation.x)));
 
         for (Cube cube : group.cubes) renderCube(cube, matrices, vertices, light, gx, gy, gz);
         for (Group child : group.children) renderGroup(child, matrices, vertices, light, animation, time, gx, gy, gz);
-        matrices.pop();
+        matrices.popPose();
     }
 
-    private static void renderCube(Cube cube, MatrixStack matrices, VertexConsumer buffer, int light,
+    private static void renderCube(Cube cube, PoseStack matrices, VertexConsumer buffer, int light,
                                   double gx, double gy, double gz) {
-        matrices.push();
+        matrices.pushPose();
         matrices.translate((cube.origin.x - gx) / 16.0, (cube.origin.y - gy) / 16.0,
                 (cube.origin.z - gz) / 16.0);
-        matrices.multiply(RotationAxis.POSITIVE_Z.rotationDegrees((float) cube.rotation.z));
-        matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees((float) cube.rotation.y));
-        matrices.multiply(RotationAxis.POSITIVE_X.rotationDegrees((float) cube.rotation.x));
+        matrices.rotate(Axis.ZP.rotationDegrees((float) cube.rotation.z));
+        matrices.rotate(Axis.YP.rotationDegrees((float) cube.rotation.y));
+        matrices.rotate(Axis.XP.rotationDegrees((float) cube.rotation.x));
 
         double x0 = (cube.from.x - cube.origin.x) / 16.0;
         double y0 = (cube.from.y - cube.origin.y) / 16.0;
@@ -103,10 +102,10 @@ final class MpsqBudgieModel {
         face(cube, "east", buffer, matrices, light, new double[][]{{x1,y0,z0},{x1,y1,z0},{x1,y1,z1},{x1,y0,z1}}, 1,0,0);
         face(cube, "up", buffer, matrices, light, new double[][]{{x0,y1,z0},{x0,y1,z1},{x1,y1,z1},{x1,y1,z0}}, 0,1,0);
         face(cube, "down", buffer, matrices, light, new double[][]{{x0,y0,z1},{x0,y0,z0},{x1,y0,z0},{x1,y0,z1}}, 0,-1,0);
-        matrices.pop();
+        matrices.popPose();
     }
 
-    private static void face(Cube cube, String name, VertexConsumer buffer, MatrixStack matrices,
+    private static void face(Cube cube, String name, VertexConsumer buffer, PoseStack matrices,
                             int light, double[][] points, float nx, float ny, float nz) {
         double[] uv = cube.uv.get(name);
         if (uv == null) return;
@@ -116,10 +115,10 @@ final class MpsqBudgieModel {
         float[][] tex = {{u0,v0},{u0,v1},{u1,v1},{u1,v0}};
         for (int i = 0; i < 4; i++) {
             double[] p = points[i];
-            buffer.vertex(matrices.peek(), (float)p[0], (float)p[1], (float)p[2])
-                    .color(255,255,255,255).texture(tex[i][0], tex[i][1])
-                    .overlay(0).light(light == 0 ? FULL_BRIGHT : light)
-                    .normal(matrices.peek(), nx, ny, nz);
+            buffer.addVertex(matrices.last(), (float)p[0], (float)p[1], (float)p[2])
+                    .setColor(255,255,255,255).setUv(tex[i][0], tex[i][1])
+                    .setOverlay(net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY).setLight(light == 0 ? FULL_BRIGHT : light)
+                    .setNormal(matrices.last(), nx, ny, nz);
         }
     }
 

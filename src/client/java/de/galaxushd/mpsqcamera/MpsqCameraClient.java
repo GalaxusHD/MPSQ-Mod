@@ -3,7 +3,6 @@ package de.galaxushd.mpsqcamera;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
-import net.minecraft.client.MinecraftClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,18 +15,22 @@ public class MpsqCameraClient implements ClientModInitializer {
         LOGGER.info("[MPSQ Team] Client mod initialized.");
         // Keep Minecraft's subtitle option disabled across every world and menu.
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
-            if (client.options.getShowSubtitles().getValue()) {
-                client.options.getShowSubtitles().setValue(false);
+            if (client.options.showSubtitles().get()) {
+                client.options.showSubtitles().set(false);
             }
         });
         ModConfig.load();
+        MpsqStartupScreen.initialize();
+        MpsqLocalSkinRecovery.initialize();
         MpsqMusicPlayerManager.initialize();
         ScreenCreationManager.initialize();
         CameraCreationManager.initialize();
+        MpsqCinematicScreen.initialize();
         BodycamRequestManager.initialize();
         CameraHologramManager.initialize();
         SelectionRenderer.initialize();
         ScreenRenderer.initialize();
+        MpsqCameraCavity.initialize();
         RemoteCameraFrameManager.initialize();
 		TeamCommandManager.initialize();
 		TeamChatRelayManager.initialize();
@@ -35,18 +38,37 @@ public class MpsqCameraClient implements ClientModInitializer {
         CinemaBrowserManager.initialize();
         MpsqMediaAudioManager.initialize();
         MobileCameraManager.initialize();
+        MpsqTvFurniture.initialize();
         MpsqTriggerManager.initialize();
         MpsqBossbarHud.initialize();
+        MpsqQuestProgress.initialize();
         MpsqAudioManager.initialize();
         MpsqActionSync.initialize();
         MpsqMovementSensorSystem.initialize();
+        MpsqFinishZoneTool.initialize();
+        MpsqCinematicTriggers.initialize();
+        MpsqGamesRuntime.initialize();
+        MpsqReplayManager.initialize();
         MpsqDialogueManager.initialize();
         MpsqKickAnimationManager.initialize();
         MpsqTemplateAudio.initialize();
         MpsqAccessoryRenderer.initialize();
+        MpsqModularTimer.initialize();
+        MpsqChess.initialize();
+        // Register every built-in pet's local tick and world-render callbacks.
+        // These must not depend on the accessory subsystem being initialized.
+        MpsqPetVisibility.initialize();
+        MpsqPetRenderer.initialize();
+        MpsqMiniYouPetRenderer.initialize();
+        MpsqBudgiePetRenderer.initialize();
+        MpsqOtterPetRenderer.initialize();
+        MpsqHedgehogPetRenderer.initialize();
+        MpsqOwlPetRenderer.initialize();
+        MpsqCustomPetRenderer.initialize();
         MpsqPetPresenceClient.initialize();
         MpsqPetPresenceRenderer.initialize();
         MpsqNpcManager.initialize();
+        MpsqScenes.initialize();
         TeamProfileSync.initialize();
         // Load the rank cache independently. A temporary camera or screen API
         // error must never prevent MPSQ nametags from replacing server ranks.

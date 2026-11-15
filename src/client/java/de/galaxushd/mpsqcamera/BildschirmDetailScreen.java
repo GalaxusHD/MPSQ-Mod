@@ -1,15 +1,14 @@
 package de.galaxushd.mpsqcamera;
 
 import com.google.gson.JsonObject;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.ConfirmScreen;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.client.gui.widget.TextFieldWidget;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
-
 import java.util.UUID;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.screens.ConfirmScreen;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.network.chat.Component;
 
 public final class BildschirmDetailScreen extends Screen {
     private static final int BUTTON_WIDTH = 180;
@@ -28,13 +27,13 @@ public final class BildschirmDetailScreen extends Screen {
     private String streamUrl = "";
     private boolean preserveUnsavedStreamUrl;
 
-    private TextFieldWidget streamUrlField;
-    private ButtonWidget saveLinkButton;
+    private EditBox streamUrlField;
+    private Button saveLinkButton;
     private int scrollOffset;
     private int maxScrollOffset;
 
     public BildschirmDetailScreen(Screen parent, String screenId, String name, boolean isCreator) {
-        super(Text.literal(name));
+        super(Component.literal(name));
         this.parent = parent;
         this.screenId = UUID.fromString(screenId);
         this.isCreator = isCreator;
@@ -46,6 +45,8 @@ public final class BildschirmDetailScreen extends Screen {
         if (!preserveUnsavedStreamUrl) {
             loadCachedScreenData();
         }
+        streamUrlField = null;
+        saveLinkButton = null;
         activationCode = ScreenAccessStore.code(screenId);
 
         int x = width / 2 - BUTTON_WIDTH / 2;
@@ -57,93 +58,93 @@ public final class BildschirmDetailScreen extends Screen {
         int y = contentY - scrollOffset;
 
         if (isCreator) {
-            addDrawableChild(ButtonWidget.builder(
-                            Text.literal("Modus: " + screenMode.text().getString()),
+            addRenderableWidget(Button.builder(
+                            Component.literal("Modus: " + screenMode.text().getString()),
                             button -> toggleMode()
                     )
-                    .dimensions(x, y, BUTTON_WIDTH, BUTTON_HEIGHT)
+                    .bounds(x, y, BUTTON_WIDTH, BUTTON_HEIGHT)
                     .build());
             y += ROW_GAP;
             contentY += ROW_GAP;
 
-            addDrawableChild(ButtonWidget.builder(
-                            Text.literal("Umbenennen..."),
-                            button -> client.setScreen(new BildschirmNameScreen(this, screenId, title.getString()))
+            addRenderableWidget(Button.builder(
+                            Component.literal("Umbenennen..."),
+                            button -> minecraft.gui.setScreen(new BildschirmNameScreen(this, screenId, title.getString()))
                     )
-                    .dimensions(x, y, BUTTON_WIDTH, BUTTON_HEIGHT)
+                    .bounds(x, y, BUTTON_WIDTH, BUTTON_HEIGHT)
                     .build());
             y += ROW_GAP;
             contentY += ROW_GAP;
 
             if (screenMode == LocalScreenStore.ScreenInputType.CAMERA) {
-                addDrawableChild(ButtonWidget.builder(
-                                Text.literal("Kameras verwalten..."),
-                                button -> client.setScreen(new CameraAssignmentScreen(this, screenId))
+                addRenderableWidget(Button.builder(
+                                Component.literal("Kameras verwalten..."),
+                                button -> minecraft.gui.setScreen(new CameraAssignmentScreen(this, screenId))
                         )
-                        .dimensions(x, y, BUTTON_WIDTH, BUTTON_HEIGHT)
+                        .bounds(x, y, BUTTON_WIDTH, BUTTON_HEIGHT)
                         .build());
                 y += ROW_GAP;
                 contentY += ROW_GAP;
-            } else {
+            } else if (screenMode == LocalScreenStore.ScreenInputType.LINK) {
                 y = addCinemaControls(x, y);
                 contentY += ROW_GAP * 3;
             }
 
-            addDrawableChild(ButtonWidget.builder(
-                            Text.literal("Code: " + activationCode),
+            addRenderableWidget(Button.builder(
+                            Component.literal("Code: " + activationCode),
                             button -> copyActivationCode()
                     )
-                    .dimensions(x, y, BUTTON_WIDTH, BUTTON_HEIGHT)
+                    .bounds(x, y, BUTTON_WIDTH, BUTTON_HEIGHT)
                     .build());
             y += ROW_GAP;
             contentY += ROW_GAP;
 
-            addDrawableChild(ButtonWidget.builder(
-                            Text.literal("Berechtigungen..."),
-                            button -> client.setScreen(new BildschirmPermissionsScreen(this, screenId, activationCode))
+            addRenderableWidget(Button.builder(
+                            Component.literal("Berechtigungen..."),
+                            button -> minecraft.gui.setScreen(new BildschirmPermissionsScreen(this, screenId, activationCode))
                     )
-                    .dimensions(x, y, BUTTON_WIDTH, BUTTON_HEIGHT)
+                    .bounds(x, y, BUTTON_WIDTH, BUTTON_HEIGHT)
                     .build());
             y += ROW_GAP;
             contentY += ROW_GAP;
 
-            addDrawableChild(ButtonWidget.builder(
-                            Text.literal("Gruppieren..."),
-                            button -> client.setScreen(new BildschirmGroupingScreen(this))
+            addRenderableWidget(Button.builder(
+                            Component.literal("Gruppieren..."),
+                            button -> minecraft.gui.setScreen(new BildschirmGroupingScreen(this))
                     )
-                    .dimensions(x, y, BUTTON_WIDTH, BUTTON_HEIGHT)
+                    .bounds(x, y, BUTTON_WIDTH, BUTTON_HEIGHT)
                     .build());
             y += ROW_GAP;
             contentY += ROW_GAP;
 
             if (ScreenAccessStore.inGroup(screenId)) {
-                addDrawableChild(ButtonWidget.builder(
-                                Text.literal("Aus Gruppe entfernen"),
+                addRenderableWidget(Button.builder(
+                                Component.literal("Aus Gruppe entfernen"),
                                 button -> removeFromGroup()
                         )
-                        .dimensions(x, y, BUTTON_WIDTH, BUTTON_HEIGHT)
+                        .bounds(x, y, BUTTON_WIDTH, BUTTON_HEIGHT)
                         .build());
                 y += ROW_GAP;
                 contentY += ROW_GAP;
             }
 
-            addDrawableChild(ButtonWidget.builder(
-                            Text.literal("Bildschirm löschen").formatted(Formatting.RED),
+            addRenderableWidget(Button.builder(
+                            Component.literal("Bildschirm löschen").withStyle(ChatFormatting.RED),
                             button -> confirmDelete()
                     )
-                    .dimensions(x, y, BUTTON_WIDTH, BUTTON_HEIGHT)
+                    .bounds(x, y, BUTTON_WIDTH, BUTTON_HEIGHT)
                     .build());
             y += ROW_GAP;
             contentY += ROW_GAP;
-        } else if (screenMode != LocalScreenStore.ScreenInputType.CAMERA) {
+        } else if (screenMode == LocalScreenStore.ScreenInputType.LINK) {
             CinemaPlaybackStore.PlaybackState state = CinemaPlaybackStore.get(screenId);
 
-            addDrawableChild(ButtonWidget.builder(
-                            Text.literal(state.playing() ? "Kino läuft" : "Kino angehalten"),
+            addRenderableWidget(Button.builder(
+                            Component.literal(state.playing() ? "Kino läuft" : "Kino angehalten"),
                             button -> {
                             }
                     )
-                    .dimensions(x, y, BUTTON_WIDTH, BUTTON_HEIGHT)
+                    .bounds(x, y, BUTTON_WIDTH, BUTTON_HEIGHT)
                     .build());
             y += ROW_GAP;
             contentY += ROW_GAP;
@@ -152,11 +153,11 @@ public final class BildschirmDetailScreen extends Screen {
         maxScrollOffset = Math.max(0, contentY - (height - CONTENT_BOTTOM));
         scrollOffset = Math.min(scrollOffset, maxScrollOffset);
 
-        addDrawableChild(ButtonWidget.builder(
-                        Text.literal("Zurück zur Liste"),
-                        button -> client.setScreen(parent)
+        addRenderableWidget(Button.builder(
+                        Component.literal("Zurück zur Liste"),
+                        button -> minecraft.gui.setScreen(parent)
                 )
-                .dimensions(width / 2 - 75, height - 28, 150, BUTTON_HEIGHT)
+                .bounds(width / 2 - 75, height - 28, 150, BUTTON_HEIGHT)
                 .build());
     }
 
@@ -165,55 +166,55 @@ public final class BildschirmDetailScreen extends Screen {
     int halfWidth = (BUTTON_WIDTH - controlGap) / 2;
     int thirdWidth = (BUTTON_WIDTH - 2 * controlGap) / 3;
 
-    streamUrlField = new TextFieldWidget(
-            textRenderer, x, y, BUTTON_WIDTH, BUTTON_HEIGHT,
-            Text.literal("Video- oder Stream-Link")
+    streamUrlField = new EditBox(
+            font, x, y, BUTTON_WIDTH, BUTTON_HEIGHT,
+            Component.literal("Video- oder Stream-Link")
     );
     streamUrlField.setMaxLength(2048);
-    streamUrlField.setPlaceholder(Text.literal("https://..."));
-    streamUrlField.setText(streamUrl);
-    addDrawableChild(streamUrlField);
+    streamUrlField.setHint(Component.literal("https://..."));
+    streamUrlField.setValue(streamUrl);
+    addRenderableWidget(streamUrlField);
     y += ROW_GAP;
 
-    saveLinkButton = addDrawableChild(ButtonWidget.builder(
-                    Text.literal("Link speichern"),
+    saveLinkButton = addRenderableWidget(Button.builder(
+                    Component.literal("Link speichern"),
                     button -> saveCinemaLink()
             )
-            .dimensions(x, y, halfWidth, BUTTON_HEIGHT)
+            .bounds(x, y, halfWidth, BUTTON_HEIGHT)
             .build());
 
-    addDrawableChild(ButtonWidget.builder(
-                    Text.literal("Link reset"),
+    addRenderableWidget(Button.builder(
+                    Component.literal("Link reset"),
                     button -> resetCinemaLink()
             )
-            .dimensions(x + halfWidth + controlGap, y, halfWidth, BUTTON_HEIGHT)
+            .bounds(x + halfWidth + controlGap, y, halfWidth, BUTTON_HEIGHT)
             .build());
     y += ROW_GAP;
 
-    updateLinkButtons(streamUrlField.getText());
-    streamUrlField.setChangedListener(this::updateLinkButtons);
+    updateLinkButtons(streamUrlField.getValue());
+    streamUrlField.setResponder(this::updateLinkButtons);
 
     CinemaPlaybackStore.PlaybackState state = CinemaPlaybackStore.get(screenId);
 
-    addDrawableChild(ButtonWidget.builder(
-                    Text.literal("-10 Sek"),
+    addRenderableWidget(Button.builder(
+                    Component.literal("-10 Sek"),
                     button -> seek(-SEEK_AMOUNT_MS)
             )
-            .dimensions(x, y, thirdWidth, BUTTON_HEIGHT)
+            .bounds(x, y, thirdWidth, BUTTON_HEIGHT)
             .build());
 
-    addDrawableChild(ButtonWidget.builder(
-                    Text.literal(state.playing() ? "Stop" : "Start"),
+    addRenderableWidget(Button.builder(
+                    Component.literal(state.playing() ? "Stop" : "Start"),
                     button -> setPlaying(!state.playing())
             )
-            .dimensions(x + thirdWidth + controlGap, y, thirdWidth, BUTTON_HEIGHT)
+            .bounds(x + thirdWidth + controlGap, y, thirdWidth, BUTTON_HEIGHT)
             .build());
 
-    addDrawableChild(ButtonWidget.builder(
-                    Text.literal("+10 Sek"),
+    addRenderableWidget(Button.builder(
+                    Component.literal("+10 Sek"),
                     button -> seek(SEEK_AMOUNT_MS)
             )
-            .dimensions(
+            .bounds(
                     x + 2 * (thirdWidth + controlGap),
                     y,
                     BUTTON_WIDTH - 2 * (thirdWidth + controlGap),
@@ -253,21 +254,30 @@ public final class BildschirmDetailScreen extends Screen {
             case LINK -> LocalScreenStore.ScreenInputType.MPSQ_REDSTONE;
             case MPSQ_REDSTONE -> LocalScreenStore.ScreenInputType.CAMERA;
         };
-        if (nextMode == LocalScreenStore.ScreenInputType.CAMERA && !streamUrl.isBlank()) {
+        if (nextMode == LocalScreenStore.ScreenInputType.CAMERA
+                && screenMode != LocalScreenStore.ScreenInputType.MPSQ_REDSTONE && !streamUrl.isBlank()) {
             showStatus("Setze zuerst den Kino-Link zurück.");
             return;
         }
 
         JsonObject body = new JsonObject();
+        try{var screen=LocalScreenStore.findById(screenId).orElseThrow();TeamVisibilitySettings.requireScreenPlacement(nextMode,screen.pos1(),screen.pos2());}catch(Exception e){showStatus(e.getMessage());return;}
         body.addProperty("mode", apiMode(nextMode));
+        if (screenMode == LocalScreenStore.ScreenInputType.MPSQ_REDSTONE
+                && nextMode == LocalScreenStore.ScreenInputType.CAMERA) {
+            // The last triggered video is internal state, not an editable cinema link.
+            body.addProperty("cinemaUrl", "");
+            body.add("playbackState", playbackJson(false, 0L));
+        }
+        preserveUnsavedStreamUrl = false;
 
         MpsqApiClient.patch("/screens/" + screenId, body)
                 .thenCompose(ignored -> ScreenSyncManager.refresh())
-                .whenComplete((ignored, error) -> client.execute(() -> {
+                .whenComplete((ignored, error) -> minecraft.execute(() -> {
                     if (error != null) {
                         showStatus("Modus konnte nicht gespeichert werden.");
                     } else {
-                        clearAndInit();
+                        rebuildWidgets();
                     }
                 }));
     }
@@ -275,7 +285,7 @@ public final class BildschirmDetailScreen extends Screen {
     private static String apiMode(LocalScreenStore.ScreenInputType mode) { return mode == LocalScreenStore.ScreenInputType.CAMERA ? "CAMERA" : mode == LocalScreenStore.ScreenInputType.MPSQ_REDSTONE ? "REDSTONE" : "KINO"; }
 
     private void saveCinemaLink() {
-        String url = CinemaBrowserManager.normalizeHttpUrl(streamUrlField.getText());
+        String url = CinemaBrowserManager.normalizeHttpUrl(streamUrlField.getValue());
 
         if (url == null) {
             showStatus("Bitte gib einen gültigen http(s)-Link ein.");
@@ -350,7 +360,7 @@ public final class BildschirmDetailScreen extends Screen {
     private void saveScreenPatch(JsonObject body, String successMessage) {
         MpsqApiClient.patch("/screens/" + screenId, body)
                 .thenCompose(ignored -> ScreenSyncManager.refresh())
-                .whenComplete((ignored, error) -> client.execute(() -> {
+                .whenComplete((ignored, error) -> minecraft.execute(() -> {
                     if (error != null) {
                         Throwable cause = error.getCause() == null ? error : error.getCause();
                         String message = cause.getMessage();
@@ -358,66 +368,66 @@ public final class BildschirmDetailScreen extends Screen {
                         showStatus("Nicht gespeichert: " + (message == null ? "Unbekannter Serverfehler" : message));
                     } else {
                         showStatus(successMessage);
-                        clearAndInit();
+                        rebuildWidgets();
                     }
                 }));
     }
 
     private void copyActivationCode() {
-        client.keyboard.setClipboard(activationCode);
+        minecraft.keyboardHandler.setClipboard(activationCode);
         showStatus("Code kopiert.");
     }
 
     private void removeFromGroup() {
         MpsqApiClient.post("/screens/" + screenId + "/remove-from-group", new JsonObject())
                 .thenCompose(ignored -> ScreenSyncManager.refresh())
-                .whenComplete((ignored, error) -> client.execute(() -> client.setScreen(parent)));
+                .whenComplete((ignored, error) -> minecraft.execute(() -> minecraft.gui.setScreen(parent)));
     }
 
     private void confirmDelete() {
         boolean inGroup = ScreenAccessStore.inGroup(screenId);
 
-        client.setScreen(new ConfirmScreen(
+        minecraft.gui.setScreen(new ConfirmScreen(
                 confirmed -> {
                     if (confirmed) {
                         MpsqApiClient.delete("/screens/" + screenId)
                                 .thenCompose(ignored -> ScreenSyncManager.refresh())
                                 .whenComplete((ignored, error) ->
-                                        client.execute(() -> client.setScreen(parent))
+                                        minecraft.execute(() -> minecraft.gui.setScreen(parent))
                                 );
                     } else {
-                        client.setScreen(this);
+                        minecraft.gui.setScreen(this);
                     }
                 },
-                Text.literal("Bildschirm löschen"),
-                Text.literal(inGroup
+                Component.literal("Bildschirm löschen"),
+                Component.literal(inGroup
                         ? "Die gesamte Gruppe wird gelöscht."
                         : "Bildschirm wirklich löschen?"),
-                Text.literal("Löschen"),
-                Text.literal("Abbrechen")
+                Component.literal("Löschen"),
+                Component.literal("Abbrechen")
         ));
     }
 
     private void showStatus(String message) {
-        if (client.player != null) {
-            client.player.sendMessage(Text.literal(message), true);
+        if (minecraft.player != null) {
+            de.galaxushd.mpsqcamera.compat.PlayerMessages.send(minecraft.player, Component.literal(message), true);
         }
     }
 
     @Override
-    public void renderBackground(DrawContext context, int mouseX, int mouseY, float delta) {
-        super.renderBackground(context, mouseX, mouseY, delta);
+    public void extractBackground(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
+        super.extractBackground(context, mouseX, mouseY, delta);
         MpsqTheme.drawBackground(context, width, height);
     }
 
     @Override
-    public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        super.render(context, mouseX, mouseY, delta);
+    public void extractRenderState(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
+        super.extractRenderState(context, mouseX, mouseY, delta);
 
         int centerX = width / 2;
 
-        context.drawCenteredTextWithShadow(
-                textRenderer,
+        context.centeredText(
+                font,
                 title,
                 centerX,
                 28,
@@ -438,9 +448,9 @@ public final class BildschirmDetailScreen extends Screen {
                         ? MpsqTheme.TEXT_GEDAEMPT
                         : (status.red() << 16) | (status.green() << 8) | status.blue();
 
-                context.drawCenteredTextWithShadow(
-                        textRenderer,
-                        Text.literal(label),
+                context.centeredText(
+                        font,
+                        Component.literal(label),
                         centerX,
                         46,
                         color
@@ -450,7 +460,7 @@ public final class BildschirmDetailScreen extends Screen {
     }
 
     @Override
-    public boolean shouldPause() {
+    public boolean isPauseScreen() {
         return false;
     }
 
@@ -461,7 +471,7 @@ public final class BildschirmDetailScreen extends Screen {
         }
 
         if (streamUrlField != null) {
-            streamUrl = streamUrlField.getText();
+            streamUrl = streamUrlField.getValue();
             preserveUnsavedStreamUrl = true;
         }
 
@@ -470,7 +480,7 @@ public final class BildschirmDetailScreen extends Screen {
                 scrollOffset - (int) (verticalAmount * ROW_GAP)));
 
         if (scrollOffset != previousOffset) {
-            clearAndInit();
+            rebuildWidgets();
         }
         return true;
     }

@@ -1,13 +1,12 @@
 package de.galaxushd.mpsqcamera;
 
 import com.google.gson.JsonObject;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.text.Text;
-
 import java.util.List;
 import java.util.UUID;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.network.chat.Component;
 
 /**
  * Manages all cameras belonging to one screen. A click adds an unassigned
@@ -26,52 +25,52 @@ public final class CameraAssignmentScreen extends Screen {
     private boolean saving;
 
     public CameraAssignmentScreen(Screen parent, UUID screenId) {
-        super(Text.literal("Kameras verwalten"));
+        super(Component.literal("Kameras verwalten"));
         this.parent = parent;
         this.screenId = screenId;
     }
 
     @Override
     protected void init() {
-        addDrawableChild(ButtonWidget.builder(
-                        Text.translatable("gui.mpsqcamera.back"),
-                        button -> client.setScreen(parent))
-                .dimensions(width / 2 - 75, height - 36, 150, 20)
+        addRenderableWidget(Button.builder(
+                        Component.translatable("gui.mpsqcamera.back"),
+                        button -> minecraft.gui.setScreen(parent))
+                .bounds(width / 2 - 75, height - 36, 150, 20)
                 .build());
         clampScroll();
     }
 
     @Override
-    public void renderBackground(DrawContext context, int mouseX, int mouseY, float delta) {
-        super.renderBackground(context, mouseX, mouseY, delta);
+    public void extractBackground(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
+        super.extractBackground(context, mouseX, mouseY, delta);
         MpsqTheme.drawBackground(context, width, height);
     }
 
     @Override
-    public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        super.render(context, mouseX, mouseY, delta);
+    public void extractRenderState(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
+        super.extractRenderState(context, mouseX, mouseY, delta);
 
         int centerX = width / 2;
         int rowY = TOP - scroll;
         List<UUID> assigned = ScreenCameraStore.cameras(screenId);
 
-        context.drawCenteredTextWithShadow(textRenderer, title, centerX, 28, MpsqTheme.TEXT_TITEL);
+        context.centeredText(font, title, centerX, 28, MpsqTheme.TEXT_TITEL);
         context.fill(centerX - 140, 44, centerX + 140, 45, 0x44FFFFFF);
-        context.drawCenteredTextWithShadow(
-                textRenderer,
-                Text.literal("Ausgewählt: " + assigned.size()),
+        context.centeredText(
+                font,
+                Component.literal("Ausgewählt: " + assigned.size()),
                 centerX,
                 47,
                 MpsqTheme.TEXT_GEDAEMPT
         );
 
         if (!status.isBlank()) {
-            context.drawCenteredTextWithShadow(textRenderer, Text.literal(status), centerX, height - 52, 0xFFFF5555);
+            context.centeredText(font, Component.literal(status), centerX, height - 52, 0xFFFF5555);
         }
 
         List<LocalCameraStore.CameraData> cameras = LocalCameraStore.getAll();
         if (cameras.isEmpty()) {
-            context.drawCenteredTextWithShadow(textRenderer, Text.literal("Keine Kameras vorhanden."), centerX, 74, MpsqTheme.TEXT_GEDAEMPT);
+            context.centeredText(font, Component.literal("Keine Kameras vorhanden."), centerX, 74, MpsqTheme.TEXT_GEDAEMPT);
             return;
         }
 
@@ -82,7 +81,7 @@ public final class CameraAssignmentScreen extends Screen {
                         isAssigned ? 0x77555555 : 0x55000000);
                 String marker = isAssigned ? "✓ " : "+ ";
                 String label = marker + camera.name();
-                context.drawCenteredTextWithShadow(textRenderer, Text.literal(label), centerX, rowY + 6,
+                context.centeredText(font, Component.literal(label), centerX, rowY + 6,
                         isAssigned ? MpsqTheme.TEXT_NORMAL : MpsqTheme.TEXT_GEDAEMPT);
             }
             rowY += ROW_GAP;
@@ -90,8 +89,11 @@ public final class CameraAssignmentScreen extends Screen {
     }
 
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (button != 0 || saving) return super.mouseClicked(mouseX, mouseY, button);
+    public boolean mouseClicked(net.minecraft.client.input.MouseButtonEvent event, boolean doubled) {
+        double mouseX = event.x(), mouseY = event.y();
+        int button = event.button();
+
+        if (button != com.mojang.blaze3d.platform.InputConstants.MOUSE_BUTTON_LEFT || saving) return super.mouseClicked(event, doubled);
 
         int rowY = TOP - scroll;
         for (LocalCameraStore.CameraData camera : LocalCameraStore.getAll()) {
@@ -105,7 +107,7 @@ public final class CameraAssignmentScreen extends Screen {
             }
             rowY += ROW_GAP;
         }
-        return super.mouseClicked(mouseX, mouseY, button);
+        return super.mouseClicked(event, doubled);
     }
 
     private void add(LocalCameraStore.CameraData camera) {
@@ -122,7 +124,7 @@ public final class CameraAssignmentScreen extends Screen {
     private void save(java.util.concurrent.CompletableFuture<?> request, String success) {
         saving = true;
         status = "Speichere ...";
-        request.thenCompose(ignored -> ScreenSyncManager.refresh()).whenComplete((ignored, error) -> client.execute(() -> {
+        request.thenCompose(ignored -> ScreenSyncManager.refresh()).whenComplete((ignored, error) -> minecraft.execute(() -> {
             saving = false;
             if (error != null) {
                 Throwable cause = error.getCause() == null ? error : error.getCause();
@@ -130,7 +132,7 @@ public final class CameraAssignmentScreen extends Screen {
             } else {
                 status = success;
             }
-            clearAndInit();
+            rebuildWidgets();
         }));
     }
 
@@ -148,7 +150,7 @@ public final class CameraAssignmentScreen extends Screen {
     }
 
     @Override
-    public boolean shouldPause() {
+    public boolean isPauseScreen() {
         return false;
     }
 }

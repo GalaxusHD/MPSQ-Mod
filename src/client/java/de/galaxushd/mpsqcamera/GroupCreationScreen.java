@@ -2,14 +2,13 @@ package de.galaxushd.mpsqcamera;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.text.Text;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.network.chat.Component;
 
 /**
  * Screen zum Erstellen einer neuen Gruppe.
@@ -28,7 +27,7 @@ public class GroupCreationScreen extends Screen {
     private static final int LIST_BOTTOM_MARGIN = 60;
 
     public GroupCreationScreen(Screen parent) {
-        super(Text.literal("Neue Gruppe erstellen"));
+        super(Component.literal("Neue Gruppe erstellen"));
         this.parent = parent;
         this.allScreens = LocalScreenStore.getAllScreens();
     }
@@ -39,16 +38,16 @@ public class GroupCreationScreen extends Screen {
         int bottomY = this.height - 28;
 
         // Gruppe erstellen
-        addDrawableChild(ButtonWidget.builder(
-                Text.literal("Gruppe erstellen"),
+        addRenderableWidget(Button.builder(
+                Component.literal("Gruppe erstellen"),
                 b -> createGroup()
-        ).dimensions(cx - 90, bottomY, 86, 20).build());
+        ).bounds(cx - 90, bottomY, 86, 20).build());
 
         // Abbrechen
-        addDrawableChild(ButtonWidget.builder(
-                Text.literal("Abbrechen"),
-                b -> this.client.setScreen(parent)
-        ).dimensions(cx + 4, bottomY, 86, 20).build());
+        addRenderableWidget(Button.builder(
+                Component.literal("Abbrechen"),
+                b -> this.minecraft.gui.setScreen(parent)
+        ).bounds(cx + 4, bottomY, 86, 20).build());
     }
 
     private void createGroup() {
@@ -61,25 +60,25 @@ public class GroupCreationScreen extends Screen {
         JsonObject body = new JsonObject();
         body.add("screenIds", ids);
         MpsqApiClient.post("/groups", body).thenCompose(result -> ScreenSyncManager.refresh()).thenRun(() ->
-                this.client.execute(() -> this.client.setScreen(parent))
+                this.minecraft.execute(() -> this.minecraft.gui.setScreen(parent))
         ).exceptionally(error -> { MpsqCameraClient.LOGGER.warn("Gruppe konnte nicht erstellt werden", error); return null; });
     }
 
     @Override
-    public void renderBackground(DrawContext context, int mouseX, int mouseY, float delta) {
-        super.renderBackground(context, mouseX, mouseY, delta);
+    public void extractBackground(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
+        super.extractBackground(context, mouseX, mouseY, delta);
         MpsqTheme.drawBackground(context, this.width, this.height);
     }
 
     @Override
-    public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        super.render(context, mouseX, mouseY, delta);
+    public void extractRenderState(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
+        super.extractRenderState(context, mouseX, mouseY, delta);
 
         int cx = this.width / 2;
         int y = 20;
 
         // Titel
-        context.drawCenteredTextWithShadow(this.textRenderer, this.title, cx, y, MpsqTheme.TEXT_TITEL);
+        context.centeredText(this.font, this.title, cx, y, MpsqTheme.TEXT_TITEL);
         y += 14;
 
         // Trennlinie
@@ -91,12 +90,12 @@ public class GroupCreationScreen extends Screen {
                 ? "Wähle mindestens 2 Bildschirme aus (" + selectedScreenIds.size() + " ausgewählt)"
                 : selectedScreenIds.size() + " Bildschirme ausgewählt";
         int hintColor = selectedScreenIds.size() < 2 ? MpsqTheme.TEXT_GEDAEMPT : MpsqTheme.TEXT_TITEL;
-        context.drawCenteredTextWithShadow(this.textRenderer, Text.literal(hint), cx, y, hintColor);
+        context.centeredText(this.font, Component.literal(hint), cx, y, hintColor);
 
         if (allScreens.isEmpty()) {
-            context.drawCenteredTextWithShadow(
-                    this.textRenderer,
-                    Text.literal("Keine Bildschirme vorhanden."),
+            context.centeredText(
+                    this.font,
+                    Component.literal("Keine Bildschirme vorhanden."),
                     cx, LIST_TOP_OFFSET + 20, MpsqTheme.TEXT_GEDAEMPT);
             return;
         }
@@ -125,15 +124,15 @@ public class GroupCreationScreen extends Screen {
 
             // Checkbox-Symbol
             String checkbox = selected ? "[✓] " : "[ ] ";
-            context.drawTextWithShadow(
-                    this.textRenderer, Text.literal(checkbox + screen.name()),
+            context.text(
+                    this.font, Component.literal(checkbox + screen.name()),
                     cx - 125, listY + 4,
                     selected ? MpsqTheme.TEXT_TITEL : MpsqTheme.TEXT_NORMAL);
 
             // Gruppen-Status
             if (screen.groupId() != null) {
-                context.drawTextWithShadow(
-                        this.textRenderer, Text.literal("(Gruppe)"),
+                context.text(
+                        this.font, Component.literal("(Gruppe)"),
                         cx + 70, listY + 4, MpsqTheme.TEXT_GEDAEMPT);
             }
 
@@ -142,8 +141,11 @@ public class GroupCreationScreen extends Screen {
     }
 
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (button == 0) {
+    public boolean mouseClicked(net.minecraft.client.input.MouseButtonEvent event, boolean doubled) {
+        double mouseX = event.x(), mouseY = event.y();
+        int button = event.button();
+
+        if (button == com.mojang.blaze3d.platform.InputConstants.MOUSE_BUTTON_LEFT) {
             int cx = this.width / 2;
             int listBottom = this.height - LIST_BOTTOM_MARGIN;
             int listY = LIST_TOP_OFFSET - scrollOffset;
@@ -159,7 +161,7 @@ public class GroupCreationScreen extends Screen {
                 listY += ROW_HEIGHT + 2;
             }
         }
-        return super.mouseClicked(mouseX, mouseY, button);
+        return super.mouseClicked(event, doubled);
     }
 
     private void toggleSelection(UUID screenId) {
@@ -179,5 +181,5 @@ public class GroupCreationScreen extends Screen {
     }
 
     @Override
-    public boolean shouldPause() { return false; }
+    public boolean isPauseScreen() { return false; }
 }

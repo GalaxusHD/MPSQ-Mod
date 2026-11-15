@@ -11,6 +11,9 @@ final class MpsqBuiltinFurnitureCatalog {
     // Add future bobblehead/statue skins here; rendering and the local furniture catalogue
     // both resolve this same entry list, so a new model does not need parallel hard-coded lists.
     private static final List<Furniture> ITEMS=List.of(
+            new Furniture("mpsq_crate","crate","mpsq_crate","/assets/mpsqcamera/custom_models/mpsq_crate.json"),
+            new Furniture("mpsq_among_us","among_us","Among Us","/assets/mpsqcamera/custom_models/furniture/mpsq_among_us.json"),
+            new Furniture("mpsq_cat","cat","Katze (liegend)","/assets/mpsqcamera/custom_models/furniture/mpsq_cat.json"),
             item("donator","Donator You"),
             item("helpful","Helpful You"),
             item("parkour","Parkour You"),
@@ -18,11 +21,14 @@ final class MpsqBuiltinFurnitureCatalog {
             item("trophy_bronze","Trophy Bronze You"),
             item("trophy_silver","Trophy Silver You"),
             item("trophy_gold","Trophy Gold You"),
-            item("voter","Voter You"));
+            item("voter","Voter You"),
+            new Furniture("mpsq_tv","tv","MPSQ Bildschirm","/assets/mpsqcamera/custom_models/furniture/mpsq_tv.json"));
 
     private MpsqBuiltinFurnitureCatalog() { }
-    private static Furniture item(String slug,String name){return new Furniture("mpsq_bobblehead_"+slug+"_you",slug,name,"/assets/mpsqcamera/models/furniture/nm_bobblehead_"+slug+"_you.json");}
+    private static Furniture item(String slug,String name){return new Furniture("mpsq_bobblehead_"+slug+"_you",slug,name,"/assets/mpsqcamera/custom_models/furniture/nm_bobblehead_"+slug+"_you.json");}
     static List<Furniture> all(){return ITEMS;}
+    static boolean isRetired(String id){return "mpsq_sheep".equals(id);}
     static Furniture byId(String id){return ITEMS.stream().filter(item->item.id().equals(id)).findFirst().orElse(null);}
     static Furniture byUrl(String url){return ITEMS.stream().filter(item->item.url().equals(url)).findFirst().orElse(null);}
 }
+

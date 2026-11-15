@@ -9,25 +9,27 @@ public final class ModConfig {
 
     /** Item-ID des Erstellungs-Werkzeugs (Standard: minecraft:ink_sac). */
     public static String toolItemId = "minecraft:ink_sac";
+    public static String zoneToolItemId = "minecraft:glow_ink_sac";
 
     /** Globale Wiedergabe-Lautstärke (0.0 – 1.0). */
     public static float volume = 1.0f;
 
     /** Whether optional MPSQ client features are enabled; defaults to off. */
-    public static boolean mpsqEnabled = false;
+    public static boolean mpsqEnabled = true;
 
-    private static final java.nio.file.Path FILE=net.fabricmc.loader.api.FabricLoader.getInstance().getConfigDir().resolve("mpsq-settings.json");
+    private static final java.nio.file.Path FILE=net.fabricmc.loader.api.FabricLoader.getInstance().getConfigDir().resolve("mpsq-local-settings.json");
     public static void load(){
         if(!java.nio.file.Files.exists(FILE))return;
         try{
             var data=com.google.gson.JsonParser.parseString(java.nio.file.Files.readString(FILE)).getAsJsonObject();
-            if(data.has("toolItemId")&&net.minecraft.util.Identifier.tryParse(data.get("toolItemId").getAsString())!=null)toolItemId=data.get("toolItemId").getAsString();
+            if(data.has("toolItemId")&&net.minecraft.resources.Identifier.tryParse(data.get("toolItemId").getAsString())!=null)toolItemId=data.get("toolItemId").getAsString();
+            if(data.has("zoneToolItemId")&&net.minecraft.resources.Identifier.tryParse(data.get("zoneToolItemId").getAsString())!=null)zoneToolItemId=data.get("zoneToolItemId").getAsString();
             if(data.has("volume")){float v=data.get("volume").getAsFloat();if(Float.isFinite(v))volume=Math.max(0,Math.min(1,v));}
             if(data.has("mpsqEnabled"))mpsqEnabled=data.get("mpsqEnabled").getAsBoolean();
         }catch(Exception e){MpsqCameraClient.LOGGER.warn("MPSQ-Einstellungen konnten nicht gelesen werden",e);}
     }
     public static void save(){
-        try{var data=new com.google.gson.JsonObject();data.addProperty("toolItemId",toolItemId);data.addProperty("volume",volume);data.addProperty("mpsqEnabled",mpsqEnabled);java.nio.file.Files.createDirectories(FILE.getParent());java.nio.file.Files.writeString(FILE,data.toString());}
+        try{var data=new com.google.gson.JsonObject();data.addProperty("toolItemId",toolItemId);data.addProperty("zoneToolItemId",zoneToolItemId);data.addProperty("volume",volume);data.addProperty("mpsqEnabled",mpsqEnabled);java.nio.file.Files.createDirectories(FILE.getParent());java.nio.file.Files.writeString(FILE,data.toString());}
         catch(Exception e){MpsqCameraClient.LOGGER.warn("MPSQ-Einstellungen konnten nicht gespeichert werden",e);}
     }
 }

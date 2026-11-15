@@ -1,16 +1,16 @@
 package de.galaxushd.mpsqcamera;
 
-import net.minecraft.client.gl.RenderPipelines;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
 
 /** Main collection hub for the player's owned accessories and pets. */
 public final class MpsqCollectionScreen extends Screen {
     private static final int ART_WIDTH = 352;
-    private static final int ART_HEIGHT = 250;
-    private static final Identifier BACKGROUND = Identifier.of(
+    private static final int ART_HEIGHT = 264;
+    private static final Identifier BACKGROUND = Identifier.fromNamespaceAndPath(
             MpsqCameraClient.MOD_ID, "textures/gui/mpsq_collection.png");
 
     private final Screen parent;
@@ -19,19 +19,19 @@ public final class MpsqCollectionScreen extends Screen {
     private int drawTop;
 
     public MpsqCollectionScreen(Screen parent) {
-        super(Text.literal("Sammlung"));
+        super(Component.literal("Sammlung"));
         this.parent = parent;
     }
 
     @Override
-    public void renderBackground(DrawContext context, int mouseX, int mouseY, float delta) {
-        super.renderBackground(context, mouseX, mouseY, delta);
+    public void extractBackground(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
+        super.extractBackground(context, mouseX, mouseY, delta);
         context.fillGradient(0, 0, width, height, 0xD91A1A1A, 0xE6050505);
     }
 
     @Override
-    public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        super.render(context, mouseX, mouseY, delta);
+    public void extractRenderState(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
+        super.extractRenderState(context, mouseX, mouseY, delta);
 
         drawScale = Math.min(1.0f, Math.min((width - 16.0f) / ART_WIDTH, (height - 16.0f) / ART_HEIGHT));
         drawScale = Math.max(0.1f, drawScale);
@@ -40,14 +40,17 @@ public final class MpsqCollectionScreen extends Screen {
         drawLeft = (width - drawWidth) / 2;
         drawTop = (height - drawHeight) / 2;
 
-        context.drawTexture(RenderPipelines.GUI_TEXTURED, BACKGROUND,
+        context.blit(RenderPipelines.GUI_TEXTURED, BACKGROUND,
                 drawLeft, drawTop, 0, 0, drawWidth, drawHeight,
-                ART_WIDTH, ART_HEIGHT, ART_WIDTH, ART_HEIGHT);
+                ART_WIDTH, ART_HEIGHT, ART_WIDTH, 442);
     }
 
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (button != 0 || drawScale <= 0) return super.mouseClicked(mouseX, mouseY, button);
+    public boolean mouseClicked(net.minecraft.client.input.MouseButtonEvent event, boolean doubled) {
+        double mouseX = event.x(), mouseY = event.y();
+        int button = event.button();
+
+        if (button != com.mojang.blaze3d.platform.InputConstants.MOUSE_BUTTON_LEFT || drawScale <= 0) return super.mouseClicked(event, doubled);
 
         double guiX = (mouseX - drawLeft) / drawScale;
         double guiY = (mouseY - drawTop) / drawScale;
@@ -55,19 +58,19 @@ public final class MpsqCollectionScreen extends Screen {
         // The blue and green 3x3 card faces each act as one single button.
         // There are intentionally no individual slot widgets or hover glows.
         if (inside(guiX, guiY, 52, 107, 105, 105)) {
-            client.setScreen(new MpsqOwnedAccessoriesScreen(this));
+            minecraft.gui.setScreen(new MpsqOwnedAccessoriesScreen(this));
             return true;
         }
         if (inside(guiX, guiY, 196, 107, 105, 105)) {
-            client.setScreen(new MpsqPetMenuScreen(this));
+            minecraft.gui.setScreen(new MpsqPetMenuScreen(this));
             return true;
         }
         if (inside(guiX, guiY, 17, 218, 31, 32)) {
-            close();
+            onClose();
             return true;
         }
         if (inside(guiX, guiY, 306, 213, 34, 38)) {
-            client.setScreen(new MpsqCollectionTutorialScreen(this));
+            minecraft.gui.setScreen(new MpsqCollectionTutorialScreen(this));
             return true;
         }
 
@@ -80,12 +83,12 @@ public final class MpsqCollectionScreen extends Screen {
     }
 
     @Override
-    public void close() {
-        if (client != null) client.setScreen(parent);
+    public void onClose() {
+        if (minecraft != null) minecraft.gui.setScreen(parent);
     }
 
     @Override
-    public boolean shouldPause() {
+    public boolean isPauseScreen() {
         return false;
     }
 }

@@ -1,10 +1,10 @@
 package de.galaxushd.mpsqcamera;
 
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.text.Text;
 import java.util.List;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.network.chat.Component;
 
 /**
  * Übersicht aller Bildschirm-Gruppen.
@@ -17,40 +17,40 @@ public class BildschirmGroupingScreen extends Screen {
     private int scrollOffset = 0;
 
     public BildschirmGroupingScreen(Screen parent) {
-        super(Text.literal("Bildschirme Gruppieren"));
+        super(Component.literal("Bildschirme Gruppieren"));
         this.parent = parent;
     }
 
     @Override
     protected void init() {
         // Neue Gruppe erstellen → öffnet GroupCreationScreen
-        addDrawableChild(ButtonWidget.builder(
-                Text.literal("Neue Gruppe"),
-                b -> this.client.setScreen(new GroupCreationScreen(this))
-        ).dimensions(this.width / 2 - 70, 40, 140, 20).build());
+        addRenderableWidget(Button.builder(
+                Component.literal("Neue Gruppe"),
+                b -> this.minecraft.gui.setScreen(new GroupCreationScreen(this))
+        ).bounds(this.width / 2 - 70, 40, 140, 20).build());
 
         // Zurück-Button
-        addDrawableChild(ButtonWidget.builder(
-                Text.literal("Zurück"),
-                b -> this.client.setScreen(parent)
-        ).dimensions(this.width / 2 - 75, this.height - 28, 150, 20).build());
+        addRenderableWidget(Button.builder(
+                Component.literal("Zurück"),
+                b -> this.minecraft.gui.setScreen(parent)
+        ).bounds(this.width / 2 - 75, this.height - 28, 150, 20).build());
     }
 
     @Override
-    public void renderBackground(DrawContext context, int mouseX, int mouseY, float delta) {
-        super.renderBackground(context, mouseX, mouseY, delta);
+    public void extractBackground(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
+        super.extractBackground(context, mouseX, mouseY, delta);
         MpsqTheme.drawBackground(context, this.width, this.height);
     }
 
     @Override
-    public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        super.render(context, mouseX, mouseY, delta);
+    public void extractRenderState(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
+        super.extractRenderState(context, mouseX, mouseY, delta);
 
         int cx = this.width / 2;
         int startY = 28;
 
-        context.drawCenteredTextWithShadow(
-                this.textRenderer, this.title, cx, startY, MpsqTheme.TEXT_TITEL);
+        context.centeredText(
+                this.font, this.title, cx, startY, MpsqTheme.TEXT_TITEL);
         startY += 16;
 
         context.fill(cx - 130, startY, cx + 130, startY + 1, 0x44FFFFFF);
@@ -59,9 +59,9 @@ public class BildschirmGroupingScreen extends Screen {
         List<LocalScreenStore.LocalGroupData> groups = LocalScreenStore.getAllGroups();
 
         if (groups.isEmpty()) {
-            context.drawCenteredTextWithShadow(
-                    this.textRenderer,
-                    Text.literal("Keine Gruppen vorhanden."),
+            context.centeredText(
+                    this.font,
+                    Component.literal("Keine Gruppen vorhanden."),
                     cx, startY + 10, MpsqTheme.TEXT_GEDAEMPT);
             return;
         }
@@ -77,8 +77,8 @@ public class BildschirmGroupingScreen extends Screen {
             }
             List<LocalScreenStore.LocalScreenData> screens = LocalScreenStore.getScreensInGroup(group.id());
             String label = "Code: " + group.sharedCode() + "  (" + screens.size() + " Bildschirme)";
-            context.drawCenteredTextWithShadow(
-                    this.textRenderer, Text.literal(label), cx, lineY, MpsqTheme.TEXT_NORMAL);
+            context.centeredText(
+                    this.font, Component.literal(label), cx, lineY, MpsqTheme.TEXT_NORMAL);
             lineY += 18;
         }
     }
@@ -91,5 +91,5 @@ public class BildschirmGroupingScreen extends Screen {
     }
 
     @Override
-    public boolean shouldPause() { return false; }
+    public boolean isPauseScreen() { return false; }
 }

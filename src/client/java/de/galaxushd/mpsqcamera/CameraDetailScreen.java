@@ -1,16 +1,15 @@
 package de.galaxushd.mpsqcamera;
 
 import com.google.gson.JsonObject;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.ConfirmScreen;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.client.gui.widget.TextFieldWidget;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
-import net.minecraft.util.math.Vec3d;
-
 import java.util.UUID;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.screens.ConfirmScreen;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.phys.Vec3;
 
 /** Owner management menu for one static camera. */
 public final class CameraDetailScreen extends Screen {
@@ -19,12 +18,12 @@ public final class CameraDetailScreen extends Screen {
 
     private final Screen parent;
     private final UUID cameraId;
-    private TextFieldWidget nameField;
-    private ButtonWidget saveButton;
+    private EditBox nameField;
+    private Button saveButton;
     private String status = "";
 
     public CameraDetailScreen(Screen parent, UUID cameraId) {
-        super(Text.literal("Kamera verwalten"));
+        super(Component.literal("Kamera verwalten"));
         this.parent = parent;
         this.cameraId = cameraId;
     }
@@ -33,43 +32,51 @@ public final class CameraDetailScreen extends Screen {
     protected void init() {
         LocalCameraStore.CameraData camera = LocalCameraStore.find(cameraId).orElse(null);
         if (camera == null) {
-            client.setScreen(parent);
+            minecraft.gui.setScreen(parent);
             return;
         }
 
         int x = width / 2 - WIDTH / 2;
-        int y = 62;
-        nameField = new TextFieldWidget(textRenderer, x, y, WIDTH, 20, Text.literal("Kameraname"));
+        int y = 30;
+        int rowGap=Math.min(ROW_GAP,Math.max(14,(height-70)/7)),buttonHeight=rowGap-3;
+        nameField = new EditBox(font, x, y, WIDTH, buttonHeight, Component.literal("Kameraname"));
         nameField.setMaxLength(64);
-        nameField.setText(camera.name());
-        nameField.setChangedListener(ignored -> updateSaveButton());
-        addDrawableChild(nameField);
-        y += ROW_GAP;
+        nameField.setValue(camera.name());
+        nameField.setResponder(ignored -> updateSaveButton());
+        addRenderableWidget(nameField);
+        y += rowGap;
 
-        saveButton = addDrawableChild(ButtonWidget.builder(Text.literal("Name speichern"), button -> saveName())
-                .dimensions(x, y, WIDTH, 20).build());
-        y += ROW_GAP;
+        saveButton = addRenderableWidget(Button.builder(Component.literal("Name speichern"), button -> saveName())
+                .bounds(x, y, WIDTH, buttonHeight).build());
+        y += rowGap;
 
         if (camera.kind() == LocalCameraStore.CameraKind.STATIC) {
-            addDrawableChild(ButtonWidget.builder(Text.literal("Hier verschieben"), button -> moveHere())
-                    .dimensions(x, y, WIDTH, 20).build());
-            y += ROW_GAP;
-            addDrawableChild(ButtonWidget.builder(Text.literal("In Blickrichtung drehen"), button -> rotateHere())
-                    .dimensions(x, y, WIDTH, 20).build());
-            y += ROW_GAP;
+            addRenderableWidget(Button.builder(Component.literal("Position: X / Y / Z"), button -> minecraft.gui.setScreen(new MpsqPositionScreen(this,"Kamera positionieren",camera.position(),position->{
+                JsonObject body=new JsonObject();body.addProperty("x",position.x);body.addProperty("y",position.y);body.addProperty("z",position.z);
+                return MpsqApiClient.patch("/cameras/"+cameraId,body).thenCompose(ignored->MpsqApiClient.refreshCameras()).thenAccept(ignored->{});
+            }))).bounds(x,y,WIDTH,buttonHeight).build());
+            y+=rowGap;
+            addRenderableWidget(Button.builder(Component.literal("Hier verschieben"), button -> moveHere())
+                    .bounds(x, y, WIDTH, buttonHeight).build());
+            y += rowGap;
+            addRenderableWidget(Button.builder(Component.literal("Drehen −22,5°"),button->rotateStep(-22.5f)).bounds(x,y,108,buttonHeight).build());
+            addRenderableWidget(Button.builder(Component.literal("Drehen +22,5°"),button->rotateStep(22.5f)).bounds(x+112,y,108,buttonHeight).build());y+=rowGap;
+            addRenderableWidget(Button.builder(Component.literal("In Blickrichtung drehen"), button -> rotateHere())
+                    .bounds(x, y, WIDTH, buttonHeight).build());
+            y += rowGap;
         }
 
-        addDrawableChild(ButtonWidget.builder(Text.literal("Kamera löschen").formatted(Formatting.RED), button -> confirmDelete())
-                .dimensions(x, y, WIDTH, 20).build());
-        addDrawableChild(ButtonWidget.builder(Text.translatable("gui.mpsqcamera.back"), button -> client.setScreen(parent))
-                .dimensions(width / 2 - 75, height - 28, 150, 20).build());
+        addRenderableWidget(Button.builder(Component.literal("Kamera löschen").withStyle(ChatFormatting.RED), button -> confirmDelete())
+                .bounds(x, y, WIDTH, buttonHeight).build());
+        addRenderableWidget(Button.builder(Component.translatable("gui.mpsqcamera.back"), button -> minecraft.gui.setScreen(parent))
+                .bounds(width / 2 - 75, height - 28, 150, 20).build());
         updateSaveButton();
         setInitialFocus(nameField);
     }
 
     private void updateSaveButton() {
         if (nameField == null || saveButton == null) return;
-        String wanted = nameField.getText().trim();
+        String wanted = nameField.getValue().trim();
         boolean duplicate = LocalCameraStore.getAll().stream()
                 .anyMatch(camera -> !camera.id().equals(cameraId) && camera.name().trim().equalsIgnoreCase(wanted));
         saveButton.active = !wanted.isEmpty() && !duplicate;
@@ -78,73 +85,74 @@ public final class CameraDetailScreen extends Screen {
 
     private void saveName() {
         JsonObject body = new JsonObject();
-        body.addProperty("name", nameField.getText().trim());
+        body.addProperty("name", nameField.getValue().trim());
         saveButton.active = false;
         save(body, "Name gespeichert.");
     }
 
     private void moveHere() {
-        if (client.player == null || client.world == null) return;
-        Vec3d position = client.player.getCameraPosVec(1.0F).add(client.player.getRotationVec(1.0F).multiply(0.65));
+        if (minecraft.player == null || minecraft.level == null) return;
+        Vec3 position = minecraft.player.getEyePosition(1.0F).add(minecraft.player.getViewVector(1.0F).scale(0.65)); try{TeamVisibilitySettings.requirePlacement(position.x,position.y,position.z);}catch(IllegalArgumentException e){status=e.getMessage();return;}
         JsonObject body = new JsonObject();
-        body.addProperty("dimension", client.world.getRegistryKey().getValue().toString());
+        body.addProperty("dimension", minecraft.level.dimension().identifier().toString());
         body.addProperty("x", position.x);
         body.addProperty("y", position.y);
         body.addProperty("z", position.z);
-        body.addProperty("yaw", client.player.getYaw());
-        body.addProperty("pitch", client.player.getPitch());
+        body.addProperty("yaw", minecraft.player.getYRot());
+        body.addProperty("pitch", minecraft.player.getXRot());
         save(body, "Kamera verschoben.");
     }
 
+    private void rotateStep(float step){LocalCameraStore.find(cameraId).ifPresent(camera->{JsonObject body=new JsonObject();body.addProperty("yaw",net.minecraft.util.Mth.wrapDegrees(camera.yaw()+step));save(body,"Kamera gedreht.");});}
     private void rotateHere() {
-        if (client.player == null) return;
+        if (minecraft.player == null) return;
         JsonObject body = new JsonObject();
-        body.addProperty("yaw", client.player.getYaw());
-        body.addProperty("pitch", client.player.getPitch());
+        body.addProperty("yaw", minecraft.player.getYRot());
+        body.addProperty("pitch", minecraft.player.getXRot());
         save(body, "Kamera gedreht.");
     }
 
     private void save(JsonObject body, String success) {
         MpsqApiClient.patch("/cameras/" + cameraId, body)
                 .thenCompose(ignored -> MpsqApiClient.refreshCameras())
-                .whenComplete((ignored, error) -> client.execute(() -> {
+                .whenComplete((ignored, error) -> minecraft.execute(() -> {
                     if (error != null) {
                         Throwable cause = error.getCause() == null ? error : error.getCause();
                         status = "Nicht gespeichert: " + (cause.getMessage() == null ? "Serverfehler" : cause.getMessage());
                         updateSaveButton();
                     } else {
                         status = success;
-                        clearAndInit();
+                        rebuildWidgets();
                     }
                 }));
     }
 
     private void confirmDelete() {
-        client.setScreen(new ConfirmScreen(confirmed -> {
+        minecraft.gui.setScreen(new ConfirmScreen(confirmed -> {
             if (!confirmed) {
-                client.setScreen(this);
+                minecraft.gui.setScreen(this);
                 return;
             }
             MpsqApiClient.delete("/cameras/" + cameraId)
                     .thenCompose(ignored -> MpsqApiClient.refreshCameras())
-                    .whenComplete((ignored, error) -> client.execute(() -> client.setScreen(parent)));
-        }, Text.literal("Kamera löschen"), Text.literal("Kamera wirklich löschen?"),
-                Text.literal("Löschen").formatted(Formatting.RED), Text.literal("Abbrechen")));
+                    .whenComplete((ignored, error) -> minecraft.execute(() -> minecraft.gui.setScreen(parent)));
+        }, Component.literal("Kamera löschen"), Component.literal("Kamera wirklich löschen?"),
+                Component.literal("Löschen").withStyle(ChatFormatting.RED), Component.literal("Abbrechen")));
     }
 
     @Override
-    public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        super.render(context, mouseX, mouseY, delta);
+    public void extractRenderState(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
+        super.extractRenderState(context, mouseX, mouseY, delta);
         int centerX = width / 2;
-        context.drawCenteredTextWithShadow(textRenderer, title, centerX, 30, MpsqTheme.TEXT_TITEL);
-        if (!status.isEmpty()) context.drawCenteredTextWithShadow(textRenderer, Text.literal(status), centerX, height - 54, MpsqTheme.TEXT_GEDAEMPT);
+        context.centeredText(font, title, centerX, 12, MpsqTheme.TEXT_TITEL);
+        if (!status.isEmpty()) context.centeredText(font, Component.literal(status), centerX, height - 42, MpsqTheme.TEXT_GEDAEMPT);
     }
 
     @Override
-    public void renderBackground(DrawContext context, int mouseX, int mouseY, float delta) {
-        super.renderBackground(context, mouseX, mouseY, delta);
+    public void extractBackground(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
+        super.extractBackground(context, mouseX, mouseY, delta);
         MpsqTheme.drawBackground(context, width, height);
     }
 
-    @Override public boolean shouldPause() { return false; }
+    @Override public boolean isPauseScreen() { return false; }
 }

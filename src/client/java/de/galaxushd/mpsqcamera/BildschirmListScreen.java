@@ -1,24 +1,28 @@
 package de.galaxushd.mpsqcamera;
 
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.text.Text;
-
 import java.util.ArrayList;
 import java.util.List;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.network.chat.Component;
 
 public class BildschirmListScreen extends Screen {
     private static final int LIST_TOP = 54;
     private static final int LIST_BOTTOM_MARGIN = 62;
     private static final int ROW_HEIGHT = 18;
     private final Screen parent;
+    private final boolean cinema;
     private final List<BildschirmEntry> bildschirme = new ArrayList<>();
     private int scrollOffset;
     private int selectedIndex = -1;
 
     public BildschirmListScreen(Screen parent) {
-        super(Text.literal("Bildschirme"));
+        this(parent,true);
+    }
+    public BildschirmListScreen(Screen parent, boolean cinema) {
+        super(Component.literal("Bildschirme"));
+        this.cinema=cinema;
         this.parent = parent;
     }
 
@@ -33,24 +37,24 @@ public class BildschirmListScreen extends Screen {
     @Override
     protected void init() {
         loadJoinedScreens();
-        addDrawableChild(ButtonWidget.builder(Text.literal("Zurück"), button -> client.setScreen(parent))
-                .dimensions(width / 2 - 75, height - 28, 150, 20).build());
+        addRenderableWidget(Button.builder(Component.literal("Zurück"), button -> minecraft.gui.setScreen(parent))
+                .bounds(width / 2 - 75, height - 28, 150, 20).build());
     }
 
     @Override
-    public void renderBackground(DrawContext context, int mouseX, int mouseY, float delta) {
-        super.renderBackground(context, mouseX, mouseY, delta);
+    public void extractBackground(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
+        super.extractBackground(context, mouseX, mouseY, delta);
         MpsqTheme.drawBackground(context, width, height);
     }
 
     @Override
-    public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        super.render(context, mouseX, mouseY, delta);
+    public void extractRenderState(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
+        super.extractRenderState(context, mouseX, mouseY, delta);
         int centerX = width / 2;
-        context.drawCenteredTextWithShadow(textRenderer, title, centerX, 28, MpsqTheme.TEXT_TITEL);
+        context.centeredText(font, title, centerX, 28, MpsqTheme.TEXT_TITEL);
         context.fill(centerX - 140, 44, centerX + 140, 45, 0x44FFFFFF);
         if (bildschirme.isEmpty()) {
-            context.drawCenteredTextWithShadow(textRenderer, Text.literal("Keine Bildschirme vorhanden."), centerX, LIST_TOP + 26, MpsqTheme.TEXT_GEDAEMPT);
+            context.centeredText(font, Component.literal("Keine Bildschirme vorhanden."), centerX, LIST_TOP + 26, MpsqTheme.TEXT_GEDAEMPT);
             return;
         }
         int listBottom = height - LIST_BOTTOM_MARGIN;
@@ -60,11 +64,11 @@ public class BildschirmListScreen extends Screen {
                 BildschirmEntry entry = bildschirme.get(i);
                 context.fill(centerX - 140, rowY, centerX + 140, rowY + ROW_HEIGHT - 2,
                         i == selectedIndex ? 0x55AA0000 : 0x33000000);
-                context.drawCenteredTextWithShadow(textRenderer, Text.literal(entry.name + " [CREATOR]"), centerX, rowY + 4, MpsqTheme.TEXT_NORMAL);
+                context.centeredText(font, Component.literal(entry.name + (entry.creator ? " [Eigener Bildschirm]" : " [Beigetreten]")), centerX, rowY + 4, MpsqTheme.TEXT_NORMAL);
             }
             rowY += ROW_HEIGHT;
         }
-        if (maxScroll() > 0) context.drawCenteredTextWithShadow(textRenderer, Text.literal("Mausrad zum Scrollen"), centerX, height - 54, MpsqTheme.TEXT_GEDAEMPT);
+        if (maxScroll() > 0) context.centeredText(font, Component.literal("Mausrad zum Scrollen"), centerX, height - 54, MpsqTheme.TEXT_GEDAEMPT);
     }
 
     @Override
@@ -75,8 +79,11 @@ public class BildschirmListScreen extends Screen {
     }
 
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (button == 0) {
+    public boolean mouseClicked(net.minecraft.client.input.MouseButtonEvent event, boolean doubled) {
+        double mouseX = event.x(), mouseY = event.y();
+        int button = event.button();
+
+        if (button == com.mojang.blaze3d.platform.InputConstants.MOUSE_BUTTON_LEFT) {
             int centerX = width / 2;
             int listBottom = height - LIST_BOTTOM_MARGIN;
             int rowY = LIST_TOP - scrollOffset;
@@ -85,18 +92,18 @@ public class BildschirmListScreen extends Screen {
                         && mouseY >= rowY && mouseY < rowY + ROW_HEIGHT - 2) {
                     selectedIndex = i;
                     BildschirmEntry entry = bildschirme.get(i);
-                    client.setScreen(new BildschirmDetailScreen(this, entry.id, entry.name, entry.creator));
+                    minecraft.gui.setScreen(new BildschirmDetailScreen(this, entry.id, entry.name, entry.creator));
                     return true;
                 }
                 rowY += ROW_HEIGHT;
             }
         }
-        return super.mouseClicked(mouseX, mouseY, button);
+        return super.mouseClicked(event, doubled);
     }
 
     private int maxScroll() { return Math.max(0, bildschirme.size() * ROW_HEIGHT - (height - LIST_TOP - LIST_BOTTOM_MARGIN)); }
     private void clampScroll() { scrollOffset = Math.max(0, Math.min(scrollOffset, maxScroll())); }
-    @Override public boolean shouldPause() { return false; }
+    @Override public boolean isPauseScreen() { return false; }
 
     public static final class BildschirmEntry {
         private final String id;

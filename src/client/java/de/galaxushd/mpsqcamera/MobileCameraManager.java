@@ -1,11 +1,10 @@
 package de.galaxushd.mpsqcamera;
 
 import net.fabricmc.fabric.api.event.player.UseItemCallback;
-import net.minecraft.item.Items;
-import net.minecraft.text.Text;
-import net.minecraft.util.ActionResult;
-import net.minecraft.util.Hand;
-
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.item.Items;
 import java.util.List;
 import java.util.UUID;
 
@@ -15,20 +14,20 @@ public final class MobileCameraManager {
 
     public static void initialize() {
         UseItemCallback.EVENT.register((player, world, hand) -> {
-            if (hand != Hand.MAIN_HAND || !player.getStackInHand(hand).isOf(Items.CLOCK)) {
-                return ActionResult.PASS;
+            if (hand != InteractionHand.MAIN_HAND || !player.getItemInHand(hand).is(Items.CLOCK)) {
+                return InteractionResult.PASS;
             }
-            if (!world.isClient || !TeamVisibilitySettings.visible()) return ActionResult.PASS;
+            if (!world.isClientSide() || !TeamVisibilitySettings.inArea()) return InteractionResult.PASS;
 
             List<UUID> linked = MobileCameraLinkStore.linkedCameras();
-            if (player.isSneaking() || linked.isEmpty()) {
-                net.minecraft.client.MinecraftClient.getInstance().setScreen(new MobileCameraLinkScreen());
-                return ActionResult.SUCCESS;
+            if (player.isShiftKeyDown() || linked.isEmpty()) {
+                net.minecraft.client.Minecraft.getInstance().gui.setScreen(new MobileCameraLinkScreen());
+                return InteractionResult.SUCCESS;
             }
             if (!ScreenCreationManager.enterMobileView(linked)) {
-                player.sendMessage(Text.translatable("status.mpsqcamera.mobile.offline"), true);
+                de.galaxushd.mpsqcamera.compat.PlayerMessages.send(player, Component.translatable("status.mpsqcamera.mobile.offline"), true);
             }
-            return ActionResult.SUCCESS;
+            return InteractionResult.SUCCESS;
         });
     }
 }

@@ -1,14 +1,13 @@
 package de.galaxushd.mpsqcamera;
 
-import net.minecraft.text.Text;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Vec3d;
-
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.phys.Vec3;
 
 /** Client cache for screens. The API is the persistent source of truth. */
 public final class LocalScreenStore {
@@ -26,19 +25,20 @@ public final class LocalScreenStore {
         GROUPS.clear();
     }
 
-    public static LocalScreenData addScreen(BlockPos anchor, Vec3d createdFrom) {
+    public static LocalScreenData addScreen(BlockPos anchor, Vec3 createdFrom) {
         return addScreenFromSelection(anchor, anchor, "Bildschirm", ScreenInputType.LINK, "", createdFrom);
     }
 
     public static LocalScreenData addScreenFromSelection(BlockPos pos1, BlockPos pos2, String name) {
-        return addScreenFromSelection(pos1, pos2, name, ScreenInputType.LINK, "", new Vec3d(pos1.getX(), pos1.getY(), pos1.getZ()));
+        return addScreenFromSelection(pos1, pos2, name, ScreenInputType.LINK, "", new Vec3(pos1.getX(), pos1.getY(), pos1.getZ()));
     }
 
     public static LocalScreenData addScreenFromSelection(
-            BlockPos pos1, BlockPos pos2, String name, ScreenInputType inputType, String url, Vec3d createdFrom
+            BlockPos pos1, BlockPos pos2, String name, ScreenInputType inputType, String url, Vec3 createdFrom
     ) {
+        TeamVisibilitySettings.requireScreenPlacement(inputType,pos1,pos2);
         LocalScreenData screen = new LocalScreenData(
-                UUID.randomUUID(), pos1.toImmutable(), pos2.toImmutable(),
+                UUID.randomUUID(), pos1.immutable(), pos2.immutable(),
                 name.isBlank() ? "Bildschirm" : name, createdFrom, inputType,
                 url == null ? "" : url, null, null
         );
@@ -82,8 +82,8 @@ public final class LocalScreenStore {
         return SCREENS.stream().filter(screen -> groupId.equals(screen.groupId())).toList();
     }
     public static List<LocalScreenData> getAllScreens() { return List.copyOf(SCREENS); }
-    public static List<LocalScreenData> getInRange(Vec3d playerPos) {
-        return SCREENS.stream().filter(screen -> screen.pos1().getSquaredDistance(playerPos.x, playerPos.y, playerPos.z) <= LOAD_RANGE * LOAD_RANGE).toList();
+    public static List<LocalScreenData> getInRange(Vec3 playerPos) {
+        return SCREENS.stream().filter(screen -> screen.pos1().distToLowCornerSqr(playerPos.x, playerPos.y, playerPos.z) <= LOAD_RANGE * LOAD_RANGE).toList();
     }
     public static Optional<LocalScreenData> findByAnchor(BlockPos anchor) {
         return SCREENS.stream().filter(screen -> screen.pos1().equals(anchor)).findFirst();
@@ -91,11 +91,11 @@ public final class LocalScreenStore {
     public static Optional<LocalScreenData> findById(UUID id) {
         return SCREENS.stream().filter(screen -> screen.id().equals(id)).findFirst();
     }
-    public static Optional<LocalScreenData> findNearest(Vec3d pos, double maxDistance) {
+    public static Optional<LocalScreenData> findNearest(Vec3 pos, double maxDistance) {
         LocalScreenData result = null;
         double best = maxDistance * maxDistance;
         for (LocalScreenData screen : SCREENS) {
-            double distance = screen.pos1().getSquaredDistance(pos.x, pos.y, pos.z);
+            double distance = screen.pos1().distToLowCornerSqr(pos.x, pos.y, pos.z);
             if (distance <= best) { best = distance; result = screen; }
         }
         return Optional.ofNullable(result);
@@ -105,6 +105,7 @@ public final class LocalScreenStore {
         for (int i = 0; i < SCREENS.size(); i++) {
             LocalScreenData screen = SCREENS.get(i);
             if (screen.id().equals(id)) {
+                TeamVisibilitySettings.requireScreenPlacement(mode,screen.pos1(),screen.pos2());
                 SCREENS.set(i, new LocalScreenData(screen.id(), screen.pos1(), screen.pos2(), screen.name(),
                         screen.createdFrom(), mode, url == null ? "" : url, cameraId, screen.groupId()));
                 return;
@@ -122,7 +123,7 @@ public final class LocalScreenStore {
         LINK("Kino"), CAMERA("Kamera"), MPSQ_REDSTONE("MPSQ Redstone");
         private final String label;
         ScreenInputType(String label) { this.label = label; }
-        public Text text() { return Text.literal(label); }
+        public Component text() { return Component.literal(label); }
     }
 
     public enum DeleteBehavior {
@@ -133,7 +134,7 @@ public final class LocalScreenStore {
         public DeleteBehavior next() { return values()[(ordinal() + 1) % values().length]; }
     }
 
-    public record LocalScreenData(UUID id, BlockPos pos1, BlockPos pos2, String name, Vec3d createdFrom,
+    public record LocalScreenData(UUID id, BlockPos pos1, BlockPos pos2, String name, Vec3 createdFrom,
                                   ScreenInputType inputType, String url, UUID cameraId, UUID groupId) { }
     public record LocalGroupData(UUID id, String sharedCode) { }
 }

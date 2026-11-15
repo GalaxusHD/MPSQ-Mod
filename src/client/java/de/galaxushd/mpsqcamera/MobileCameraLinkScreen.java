@@ -1,13 +1,12 @@
 package de.galaxushd.mpsqcamera;
 
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.text.Text;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.network.chat.Component;
 
 /** Chooses which cameras belong to the player's mobile clock screen. */
 public final class MobileCameraLinkScreen extends Screen {
@@ -15,35 +14,35 @@ public final class MobileCameraLinkScreen extends Screen {
     private int scroll;
 
     public MobileCameraLinkScreen() {
-        super(Text.translatable("gui.mpsqcamera.mobile.title"));
+        super(Component.translatable("gui.mpsqcamera.mobile.title"));
     }
 
     @Override
     protected void init() {
         int y = height - 36;
-        addDrawableChild(ButtonWidget.builder(Text.translatable("gui.mpsqcamera.mobile.save"), button -> {
+        addRenderableWidget(Button.builder(Component.translatable("gui.mpsqcamera.mobile.save"), button -> {
             MobileCameraLinkStore.replace(selected);
-            close();
-        }).dimensions(width / 2 - 154, y, 150, 20).build());
-        addDrawableChild(ButtonWidget.builder(Text.translatable("gui.mpsqcamera.back"), button -> close())
-                .dimensions(width / 2 + 4, y, 150, 20).build());
+            onClose();
+        }).bounds(width / 2 - 154, y, 150, 20).build());
+        addRenderableWidget(Button.builder(Component.translatable("gui.mpsqcamera.back"), button -> onClose())
+                .bounds(width / 2 + 4, y, 150, 20).build());
     }
 
     @Override
-    public void renderBackground(DrawContext context, int mouseX, int mouseY, float delta) {
-        super.renderBackground(context, mouseX, mouseY, delta);
+    public void extractBackground(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
+        super.extractBackground(context, mouseX, mouseY, delta);
         MpsqTheme.drawBackground(context, width, height);
     }
 
     @Override
-    public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        super.render(context, mouseX, mouseY, delta);
-        context.drawCenteredTextWithShadow(textRenderer, title, width / 2, 22, MpsqTheme.TEXT_TITEL);
+    public void extractRenderState(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
+        super.extractRenderState(context, mouseX, mouseY, delta);
+        context.centeredText(font, title, width / 2, 22, MpsqTheme.TEXT_TITEL);
         context.fill(32, 42, width - 32, 43, 0xFF888888);
         List<LocalCameraStore.CameraData> cameras = LocalCameraStore.getAll();
         if (cameras.isEmpty()) {
-            context.drawCenteredTextWithShadow(textRenderer,
-                    Text.translatable("gui.mpsqcamera.mobile.empty"), width / 2, 72, MpsqTheme.TEXT_GEDAEMPT);
+            context.centeredText(font,
+                    Component.translatable("gui.mpsqcamera.mobile.empty"), width / 2, 72, MpsqTheme.TEXT_GEDAEMPT);
             return;
         }
         int row = 56 - scroll;
@@ -51,12 +50,12 @@ public final class MobileCameraLinkScreen extends Screen {
             if (row >= 50 && row < height - 62) {
                 context.fill(width / 2 - 150, row, width / 2 + 150, row + 22, 0x66000000);
                 int boxX = width / 2 - 138;
-                context.drawTextWithShadow(textRenderer, Text.literal("[ ]"), boxX, row + 7,
+                context.text(font, Component.literal("[ ]"), boxX, row + 7,
                         MpsqTheme.TEXT_NORMAL);
                 if (selected.contains(camera.id())) {
                     drawGreenCheck(context, boxX + 3, row + 8);
                 }
-                context.drawTextWithShadow(textRenderer, Text.literal(camera.name()), boxX + 26, row + 7,
+                context.text(font, Component.literal(camera.name()), boxX + 26, row + 7,
                         MpsqTheme.TEXT_NORMAL);
             }
             row += 25;
@@ -64,8 +63,11 @@ public final class MobileCameraLinkScreen extends Screen {
     }
 
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (button == 0 && mouseX >= width / 2.0 - 150 && mouseX < width / 2.0 + 150) {
+    public boolean mouseClicked(net.minecraft.client.input.MouseButtonEvent event, boolean doubled) {
+        double mouseX = event.x(), mouseY = event.y();
+        int button = event.button();
+
+        if (button == com.mojang.blaze3d.platform.InputConstants.MOUSE_BUTTON_LEFT && mouseX >= width / 2.0 - 150 && mouseX < width / 2.0 + 150) {
             int row = 56 - scroll;
             for (LocalCameraStore.CameraData camera : LocalCameraStore.getAll()) {
                 if (row >= 50 && row < height - 62 && mouseY >= row && mouseY < row + 22) {
@@ -75,7 +77,7 @@ public final class MobileCameraLinkScreen extends Screen {
                 row += 25;
             }
         }
-        return super.mouseClicked(mouseX, mouseY, button);
+        return super.mouseClicked(event, doubled);
     }
 
     @Override
@@ -85,10 +87,10 @@ public final class MobileCameraLinkScreen extends Screen {
         return true;
     }
 
-    @Override public boolean shouldPause() { return false; }
+    @Override public boolean isPauseScreen() { return false; }
 
     /** Drawn from pixels so the check does not depend on a Unicode font glyph. */
-    private static void drawGreenCheck(DrawContext context, int x, int y) {
+    private static void drawGreenCheck(GuiGraphicsExtractor context, int x, int y) {
         int green = 0xFF55FF55;
         context.fill(x, y + 4, x + 2, y + 7, green);
         context.fill(x + 2, y + 6, x + 4, y + 9, green);

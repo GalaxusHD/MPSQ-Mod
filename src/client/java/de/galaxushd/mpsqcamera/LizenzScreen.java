@@ -1,9 +1,9 @@
 package de.galaxushd.mpsqcamera;
 
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.text.Text;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.network.chat.Component;
 
 /**
  * Zeigt die Mod-Lizenzinformationen an (nicht editierbarer Platzhaltertext).
@@ -51,36 +51,38 @@ public class LizenzScreen extends Screen {
         "© MPSQ Team",
     };
 
+    public static String[] licenseLines() { return LIZENZ_ZEILEN.clone(); }
+
     public LizenzScreen(Screen parent) {
-        super(Text.translatable("gui.mpsqcamera.lizenz.titel"));
+        super(Component.translatable("gui.mpsqcamera.lizenz.titel"));
         this.parent = parent;
     }
 
     @Override
     protected void init() {
         // Zurück-Button unten mittig
-        addDrawableChild(ButtonWidget.builder(
-                Text.translatable("gui.mpsqcamera.lizenz.zurueck"),
-                b -> this.client.setScreen(parent)
-        ).dimensions(this.width / 2 - 75, this.height - 28, 150, 20).build());
+        addRenderableWidget(Button.builder(
+                Component.translatable("gui.mpsqcamera.lizenz.zurueck"),
+                b -> this.minecraft.gui.setScreen(parent)
+        ).bounds(this.width / 2 - 75, this.height - 28, 150, 20).build());
     }
 
     @Override
-    public void renderBackground(DrawContext context, int mouseX, int mouseY, float delta) {
-        super.renderBackground(context, mouseX, mouseY, delta);
+    public void extractBackground(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
+        super.extractBackground(context, mouseX, mouseY, delta);
         MpsqTheme.drawBackground(context, this.width, this.height);
     }
 
     @Override
-    public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        super.render(context, mouseX, mouseY, delta);
+    public void extractRenderState(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
+        super.extractRenderState(context, mouseX, mouseY, delta);
 
         int cx     = this.width / 2;
         int startY = 28;
 
         // Titel
-        context.drawCenteredTextWithShadow(
-                this.textRenderer, this.title, cx, startY, MpsqTheme.TEXT_TITEL);
+        context.centeredText(
+                this.font, this.title, cx, startY, MpsqTheme.TEXT_TITEL);
         startY += 16;
 
         // Trennlinie unter Titel
@@ -93,8 +95,8 @@ public class LizenzScreen extends Screen {
 
         for (String zeile : LIZENZ_ZEILEN) {
             if (lineY > startY - 5 && lineY < maxDisplayY) {
-                context.drawCenteredTextWithShadow(
-                        this.textRenderer, Text.literal(zeile),
+                context.centeredText(
+                        this.font, Component.literal(zeile),
                         cx, lineY, MpsqTheme.TEXT_NORMAL);
             }
             lineY += 11;
@@ -110,5 +112,5 @@ public class LizenzScreen extends Screen {
     }
 
     @Override
-    public boolean shouldPause() { return false; }
+    public boolean isPauseScreen() { return false; }
 }

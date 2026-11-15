@@ -1,8 +1,8 @@
 package de.galaxushd.mpsqcamera;
 
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.text.Text;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.network.chat.Component;
 
 /** Temporary tutorial destination until collection help content is ready. */
 public final class MpsqCollectionTutorialScreen extends Screen {
@@ -14,20 +14,20 @@ public final class MpsqCollectionTutorialScreen extends Screen {
     }
 
     public MpsqCollectionTutorialScreen(Screen parent, String topic) {
-        super(Text.literal(topic + " · Tutorial"));
+        super(Component.literal(topic + " · Tutorial"));
         this.parent = parent;
         this.topic = topic;
     }
 
     @Override
-    public void renderBackground(DrawContext context, int mouseX, int mouseY, float delta) {
-        super.renderBackground(context, mouseX, mouseY, delta);
+    public void extractBackground(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
+        super.extractBackground(context, mouseX, mouseY, delta);
         context.fillGradient(0, 0, width, height, 0xD91A1A1A, 0xE6050505);
     }
 
     @Override
-    public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        super.render(context, mouseX, mouseY, delta);
+    public void extractRenderState(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
+        super.extractRenderState(context, mouseX, mouseY, delta);
         int centerX = width / 2;
         int panelWidth = Math.min(300, width - 24);
         int panelHeight = 92;
@@ -36,30 +36,33 @@ public final class MpsqCollectionTutorialScreen extends Screen {
         context.fill(left + 3, top + 4, left + panelWidth + 3, top + panelHeight + 4, 0x99000000);
         context.fill(left, top, left + panelWidth, top + panelHeight, 0xEE101014);
         context.fill(left, top, left + panelWidth, top + 3, 0xFFFF1764);
-        context.drawCenteredTextWithShadow(textRenderer, "Tutorial · " + topic,
+        context.centeredText(font, "Tutorial · " + topic,
                 centerX, top + 24, 0xFFF4F0F2);
-        context.drawCenteredTextWithShadow(textRenderer, "Kommt bald",
+        context.centeredText(font, "Kommt bald",
                 centerX, top + 48, 0xFFFF4F83);
-        context.drawCenteredTextWithShadow(textRenderer, "Klicken oder Esc: zurück",
+        context.centeredText(font, "Klicken oder Esc: zurück",
                 centerX, top + 70, 0xFFB9B7BA);
     }
 
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (button == 0) {
-            close();
+    public boolean mouseClicked(net.minecraft.client.input.MouseButtonEvent event, boolean doubled) {
+        double mouseX = event.x(), mouseY = event.y();
+        int button = event.button();
+
+        if (button == com.mojang.blaze3d.platform.InputConstants.MOUSE_BUTTON_LEFT) {
+            onClose();
             return true;
         }
-        return super.mouseClicked(mouseX, mouseY, button);
+        return super.mouseClicked(event, doubled);
     }
 
     @Override
-    public void close() {
-        if (client != null) client.setScreen(parent);
+    public void onClose() {
+        if (minecraft != null) minecraft.gui.setScreen(parent);
     }
 
     @Override
-    public boolean shouldPause() {
+    public boolean isPauseScreen() {
         return false;
     }
 }

@@ -2,16 +2,15 @@ package de.galaxushd.mpsqcamera;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.ConfirmScreen;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.client.gui.widget.TextFieldWidget;
-import net.minecraft.text.Text;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.screens.ConfirmScreen;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.network.chat.Component;
 
 /** Owner view for access granted through a screen's activation code. */
 public final class BildschirmPermissionsScreen extends Screen {
@@ -28,11 +27,11 @@ public final class BildschirmPermissionsScreen extends Screen {
     private boolean membersLoaded;
     private int memberScrollOffset;
     private int maxMemberScrollOffset;
-    private TextFieldWidget playerNameField;
-    private ButtonWidget grantButton;
+    private EditBox playerNameField;
+    private Button grantButton;
 
     public BildschirmPermissionsScreen(Screen parent, UUID screenId, String activationCode) {
-        super(Text.literal("Berechtigungen"));
+        super(Component.literal("Berechtigungen"));
         this.parent = parent;
         this.screenId = screenId;
         this.activationCode = activationCode;
@@ -42,31 +41,31 @@ public final class BildschirmPermissionsScreen extends Screen {
     protected void init() {
         int centerX = width / 2;
         int x = centerX - BUTTON_WIDTH / 2;
-        addDrawableChild(ButtonWidget.builder(Text.literal("Code kopieren: " + activationCode), button -> {
-                    client.keyboard.setClipboard(activationCode);
+        addRenderableWidget(Button.builder(Component.literal("Code kopieren: " + activationCode), button -> {
+                    minecraft.keyboardHandler.setClipboard(activationCode);
                     status = "Code kopiert. Teile ihn nur mit berechtigten Spielern.";
                 })
-                .dimensions(x, 54, BUTTON_WIDTH, BUTTON_HEIGHT)
+                .bounds(x, 54, BUTTON_WIDTH, BUTTON_HEIGHT)
                 .build());
-        playerNameField = new TextFieldWidget(textRenderer, x, 84, 148, BUTTON_HEIGHT, Text.literal("Minecraft-Name"));
+        playerNameField = new EditBox(font, x, 84, 148, BUTTON_HEIGHT, Component.literal("Minecraft-Name"));
         playerNameField.setMaxLength(32);
-        playerNameField.setPlaceholder(Text.literal("Spielername"));
-        addDrawableChild(playerNameField);
-        grantButton = addDrawableChild(ButtonWidget.builder(Text.literal("Freigeben"), button -> grantPlayer())
-                .dimensions(x + 152, 84, 68, BUTTON_HEIGHT).build());
+        playerNameField.setHint(Component.literal("Spielername"));
+        addRenderableWidget(playerNameField);
+        grantButton = addRenderableWidget(Button.builder(Component.literal("Freigeben"), button -> grantPlayer())
+                .bounds(x + 152, 84, 68, BUTTON_HEIGHT).build());
         grantButton.active = false;
-        playerNameField.setChangedListener(value -> grantButton.active = !value.trim().isEmpty());
-        addDrawableChild(ButtonWidget.builder(Text.literal("Aktualisieren"), button -> loadMembers())
-                .dimensions(x, height - 54, BUTTON_WIDTH, BUTTON_HEIGHT)
+        playerNameField.setResponder(value -> grantButton.active = !value.trim().isEmpty());
+        addRenderableWidget(Button.builder(Component.literal("Aktualisieren"), button -> loadMembers())
+                .bounds(x, height - 54, BUTTON_WIDTH, BUTTON_HEIGHT)
                 .build());
-        addDrawableChild(ButtonWidget.builder(Text.translatable("gui.mpsqcamera.back"), button -> client.setScreen(parent))
-                .dimensions(width / 2 - 75, height - 28, 150, BUTTON_HEIGHT)
+        addRenderableWidget(Button.builder(Component.translatable("gui.mpsqcamera.back"), button -> minecraft.gui.setScreen(parent))
+                .bounds(width / 2 - 75, height - 28, 150, BUTTON_HEIGHT)
                 .build());
         int memberY = MEMBER_START_Y - memberScrollOffset;
         for (Member member : members) {
             if (memberY >= MEMBER_START_Y && memberY <= height - 92) {
-                addDrawableChild(ButtonWidget.builder(Text.literal("Entfernen"), button -> remove(member))
-                        .dimensions(centerX + BUTTON_WIDTH / 2 - 74, memberY, 74, BUTTON_HEIGHT).build());
+                addRenderableWidget(Button.builder(Component.literal("Entfernen"), button -> remove(member))
+                        .bounds(centerX + BUTTON_WIDTH / 2 - 74, memberY, 74, BUTTON_HEIGHT).build());
             }
             memberY += ROW_GAP;
         }
@@ -79,7 +78,7 @@ public final class BildschirmPermissionsScreen extends Screen {
         membersLoaded = false;
         status = "Lade Berechtigungen...";
         MpsqApiClient.get("/screens/" + screenId + "/members")
-                .whenComplete((response, error) -> client.execute(() -> {
+                .whenComplete((response, error) -> minecraft.execute(() -> {
                     members.clear();
                     if (error != null) {
                         Throwable cause = error.getCause() == null ? error : error.getCause();
@@ -89,7 +88,7 @@ public final class BildschirmPermissionsScreen extends Screen {
                         status = members.isEmpty() ? "Noch keine weiteren Spieler berechtigt." : "";
                     }
                     membersLoaded = true;
-                    clearAndInit();
+                    rebuildWidgets();
                 }));
     }
 
@@ -110,61 +109,61 @@ public final class BildschirmPermissionsScreen extends Screen {
     }
 
     private void grantPlayer() {
-        String playerName = playerNameField.getText().trim();
+        String playerName = playerNameField.getValue().trim();
         if (playerName.isEmpty()) return;
 
         JsonObject body = new JsonObject();
         body.addProperty("displayName", playerName);
         grantButton.active = false;
         MpsqApiClient.post("/screens/" + screenId + "/members", body)
-                .whenComplete((ignored, error) -> client.execute(() -> {
+                .whenComplete((ignored, error) -> minecraft.execute(() -> {
                     if (error != null) {
                         Throwable cause = error.getCause() == null ? error : error.getCause();
                         status = "Freigabe fehlgeschlagen: " + (cause.getMessage() == null ? "Spieler nicht gefunden" : cause.getMessage());
-                        grantButton.active = !playerNameField.getText().trim().isEmpty();
+                        grantButton.active = !playerNameField.getValue().trim().isEmpty();
                     } else {
                         status = playerName + " wurde freigegeben.";
-                        playerNameField.setText("");
+                        playerNameField.setValue("");
                         loadMembers();
                     }
                 }));
     }
 
     private void remove(Member member) {
-        client.setScreen(new ConfirmScreen(confirmed -> {
+        minecraft.gui.setScreen(new ConfirmScreen(confirmed -> {
             if (!confirmed) {
-                client.setScreen(this);
+                minecraft.gui.setScreen(this);
                 return;
             }
             MpsqApiClient.delete("/screens/" + screenId + "/members/" + member.clientId)
-                    .whenComplete((ignored, error) -> client.execute(() -> {
+                    .whenComplete((ignored, error) -> minecraft.execute(() -> {
                         status = error == null ? member.name + " entfernt." : "Spieler konnte nicht entfernt werden.";
                         loadMembers();
                     }));
-        }, Text.literal("Berechtigung entfernen"), Text.literal(member.name + " den Zugriff entziehen?"),
-                Text.literal("Entfernen"), Text.literal("Abbrechen")));
+        }, Component.literal("Berechtigung entfernen"), Component.literal(member.name + " den Zugriff entziehen?"),
+                Component.literal("Entfernen"), Component.literal("Abbrechen")));
     }
 
     @Override
-    public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        super.render(context, mouseX, mouseY, delta);
+    public void extractRenderState(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
+        super.extractRenderState(context, mouseX, mouseY, delta);
         int centerX = width / 2;
-        context.drawCenteredTextWithShadow(textRenderer, title, centerX, 28, MpsqTheme.TEXT_TITEL);
-        context.drawCenteredTextWithShadow(textRenderer, Text.literal("Freigabe per Name oder Aktivierungscode."), centerX, 112, MpsqTheme.TEXT_GEDAEMPT);
-        if (!status.isBlank()) context.drawCenteredTextWithShadow(textRenderer, Text.literal(status), centerX, 122, MpsqTheme.TEXT_GEDAEMPT);
+        context.centeredText(font, title, centerX, 28, MpsqTheme.TEXT_TITEL);
+        context.centeredText(font, Component.literal("Freigabe per Name oder Aktivierungscode."), centerX, 112, MpsqTheme.TEXT_GEDAEMPT);
+        if (!status.isBlank()) context.centeredText(font, Component.literal(status), centerX, 122, MpsqTheme.TEXT_GEDAEMPT);
 
         int y = MEMBER_START_Y - memberScrollOffset;
         for (Member member : members) {
             if (y >= MEMBER_START_Y && y <= height - 92) {
-                context.drawTextWithShadow(textRenderer, Text.literal(member.name), centerX - BUTTON_WIDTH / 2, y + 6, MpsqTheme.TEXT_NORMAL);
+                context.text(font, Component.literal(member.name), centerX - BUTTON_WIDTH / 2, y + 6, MpsqTheme.TEXT_NORMAL);
             }
             y += ROW_GAP;
         }
     }
 
     @Override
-    public void renderBackground(DrawContext context, int mouseX, int mouseY, float delta) {
-        super.renderBackground(context, mouseX, mouseY, delta);
+    public void extractBackground(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
+        super.extractBackground(context, mouseX, mouseY, delta);
         MpsqTheme.drawBackground(context, width, height);
     }
 
@@ -174,7 +173,7 @@ public final class BildschirmPermissionsScreen extends Screen {
         int oldScroll = memberScrollOffset;
         memberScrollOffset = Math.max(0, Math.min(maxMemberScrollOffset,
                 memberScrollOffset - (int) (verticalAmount * ROW_GAP)));
-        if (oldScroll != memberScrollOffset) clearAndInit();
+        if (oldScroll != memberScrollOffset) rebuildWidgets();
         return true;
     }
 

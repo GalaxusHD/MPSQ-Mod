@@ -40,6 +40,7 @@ public final class MpsqBossbarManager {
             }
         }
         return STATES.values().stream()
+                .filter(state -> !"game_active".equals(state.id()) || MpsqFinishZoneTool.staff())
                 .sorted(java.util.Comparator.comparing(state -> "rlgl_phase".equals(state.id()) ? "~~~~rlgl_phase" : state.id()))
                 .toList();
     }

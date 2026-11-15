@@ -7,10 +7,9 @@ import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Vec3d;
-
+import net.minecraft.client.Minecraft;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.phys.Vec3;
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -29,7 +28,7 @@ import java.util.concurrent.CompletableFuture;
 
 /** HTTP access to the public MPSQ Edge Function. No Supabase secret is stored in the mod. */
 public final class MpsqApiClient {
-    public static final String API_URL = "https://hbikjzzkxsvjoqnedbmm.supabase.co/functions/v1/mpsq-api";
+    public static final String API_URL = "local://mpsq";
     private static final Path TOKEN_FILE = FabricLoader.getInstance().getConfigDir().resolve("mpsqcamera-token.txt");
     private static final HttpClient HTTP = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
     private static final Gson GSON = new Gson();
@@ -39,29 +38,15 @@ public final class MpsqApiClient {
     private static final Map<UUID, String> FRAME_UPLOAD_URLS = new ConcurrentHashMap<>();
     private static final Map<UUID, Long> FRAME_UPLOAD_URL_EXPIRY_MS = new ConcurrentHashMap<>();
     private static String token;
+    private static volatile long quotaRetryAt;
+    private static volatile String teamProfileError = "";
+
+    public static String teamProfileError() { return teamProfileError; }
 
     private MpsqApiClient() { }
 
     public static CompletableFuture<Void> initialize() {
-        token = readToken();
-        String displayName = currentDisplayName();
-        if (token != null && !token.isBlank()) {
-            JsonObject body = new JsonObject();
-            body.addProperty("displayName", displayName);
-            return request("PATCH", "/me", body, true).thenApply(ignored -> (Void) null)
-                    .exceptionally(ignored -> null);
-        }
-        JsonObject body = new JsonObject();
-        body.addProperty("displayName", displayName);
-        return request("POST", "/register", body, false).thenAccept(json -> {
-            token = json.getAsJsonObject().get("token").getAsString();
-            try {
-                Files.createDirectories(TOKEN_FILE.getParent());
-                Files.writeString(TOKEN_FILE, token, StandardCharsets.UTF_8);
-            } catch (IOException exception) {
-                throw new IllegalStateException("MPSQ-Zugang konnte nicht gespeichert werden", exception);
-            }
-        });
+        return LocalMpsqBackend.initialize().thenRun(() -> token = "local-only");
     }
 
     public static CompletableFuture<JsonElement> get(String path) { return request("GET", path, null, true); }
@@ -70,6 +55,15 @@ public final class MpsqApiClient {
     public static CompletableFuture<JsonElement> delete(String path) { return request("DELETE", path, null, true); }
 
     /** Loads enabled redstone triggers for the currently joined server. */
+    private static Map<String, Object> triggerActionData(JsonObject row) {
+        Map<String, Object> data = new java.util.HashMap<>();
+        if (row.has("action_data") && row.get("action_data").isJsonObject()) {
+            for (var entry : row.getAsJsonObject("action_data").entrySet()) {
+                if (entry.getValue().isJsonPrimitive()) data.put(entry.getKey(), entry.getValue().getAsString());
+            }
+        }
+        return data;
+    }
     public static CompletableFuture<List<MpsqTrigger>> loadTriggers() {
         String server = java.net.URLEncoder.encode(MpsqActionSync.server(), StandardCharsets.UTF_8);
         return get("/triggers?server=" + server).thenApply(json -> {
@@ -80,7 +74,7 @@ public final class MpsqApiClient {
                 result.add(new MpsqTrigger(UUID.fromString(row.get("id").getAsString()), row.get("world_id").getAsString(),
                         new BlockPos(row.get("pos_x").getAsInt(), row.get("pos_y").getAsInt(), row.get("pos_z").getAsInt()),
                         row.get("block_id").getAsString(), row.has("object_type") ? row.get("object_type").getAsString() : "TRIGGER",
-                        row.get("action_type").getAsString(), Map.of()));
+                        row.get("action_type").getAsString(), triggerActionData(row)));
             }
             return result;
         });
@@ -113,40 +107,7 @@ public final class MpsqApiClient {
 
     /** Uploads one frame directly to R2 using a short-lived, camera-scoped URL. */
     public static CompletableFuture<JsonElement> postCameraFrame(UUID cameraId, byte[] png) {
-        return frameUploadUrl(cameraId).thenCompose(url -> {
-            HttpRequest request = HttpRequest.newBuilder(URI.create(url))
-                    .timeout(Duration.ofSeconds(15))
-                    .header("Content-Type", "image/png")
-                    .PUT(HttpRequest.BodyPublishers.ofByteArray(png))
-                    .build();
-            return HTTP.sendAsync(request, HttpResponse.BodyHandlers.discarding()).thenApply(response -> {
-                if (response.statusCode() < 200 || response.statusCode() >= 300) {
-                    FRAME_UPLOAD_URLS.remove(cameraId);
-                    FRAME_UPLOAD_URL_EXPIRY_MS.remove(cameraId);
-                    throw new IllegalStateException("R2-Frame-Upload fehlgeschlagen (HTTP " + response.statusCode() + ")");
-                }
-                return JsonNull.INSTANCE;
-            });
-        });
-    }
-
-    private static CompletableFuture<String> frameUploadUrl(UUID cameraId) {
-        long now = System.currentTimeMillis();
-        String cached = FRAME_UPLOAD_URLS.get(cameraId);
-        if (cached != null && now < FRAME_UPLOAD_URL_EXPIRY_MS.getOrDefault(cameraId, 0L)) {
-            return CompletableFuture.completedFuture(cached);
-        }
-        return post("/cameras/" + cameraId + "/frame-upload-url", new JsonObject()).thenApply(result -> {
-            JsonObject object = result.getAsJsonObject();
-            if (!object.has("url")) throw new IllegalStateException("MPSQ-API lieferte keine R2-Upload-URL");
-            String url = object.get("url").getAsString();
-            long lifetime = object.has("expiresIn") ? object.get("expiresIn").getAsLong() : 60L;
-            // Renew well before expiry so an in-flight frame cannot reach a
-            // link that has just expired.
-            FRAME_UPLOAD_URLS.put(cameraId, url);
-            FRAME_UPLOAD_URL_EXPIRY_MS.put(cameraId, System.currentTimeMillis() + Math.max(10L, lifetime - 15L) * 1_000L);
-            return url;
-        });
+        return LocalCameraFrameStore.replace(cameraId, png).thenApply(ignored -> JsonNull.INSTANCE);
     }
 
     /** Cameras whose wearer is this client. Their wearer publishes a bodycam frame. */
@@ -177,7 +138,7 @@ public final class MpsqApiClient {
                 JsonObject row = element.getAsJsonObject();
                 LocalCameraStore.CameraKind kind = "BODYCAM".equals(row.get("kind").getAsString())
                         ? LocalCameraStore.CameraKind.BODYCAM : LocalCameraStore.CameraKind.STATIC;
-                Vec3d position = row.get("x").isJsonNull() ? null : new Vec3d(row.get("x").getAsDouble(), row.get("y").getAsDouble(), row.get("z").getAsDouble());
+                Vec3 position = row.get("x").isJsonNull() ? null : new Vec3(row.get("x").getAsDouble(), row.get("y").getAsDouble(), row.get("z").getAsDouble());
                 UUID wearer = row.has("body_owner_id") && !row.get("body_owner_id").isJsonNull()
                         ? UUID.fromString(row.get("body_owner_id").getAsString()) : null;
                 String wearerName = row.has("body_owner_name") && !row.get("body_owner_name").isJsonNull()
@@ -191,7 +152,7 @@ public final class MpsqApiClient {
 
     /** Refreshes the local camera cache and its client-only holograms from the shared API. */
     public static CompletableFuture<Void> refreshCameras() {
-        return loadCameras().thenAccept(cameras -> MinecraftClient.getInstance().execute(() -> {
+        return loadCameras().thenAccept(cameras -> Minecraft.getInstance().execute(() -> {
             LocalCameraStore.getAll().forEach(camera -> CameraHologramManager.remove(camera.id()));
             LocalCameraStore.replaceAll(cameras);
             cameras.forEach(CameraHologramManager::show);
@@ -208,7 +169,7 @@ public final class MpsqApiClient {
                 String modeValue = row.get("mode").getAsString();
                 LocalScreenStore.ScreenInputType mode = "CAMERA".equals(modeValue)
                         ? LocalScreenStore.ScreenInputType.CAMERA
-                        : "MPSQ_REDSTONE".equals(modeValue) ? LocalScreenStore.ScreenInputType.MPSQ_REDSTONE
+                        : ("REDSTONE".equals(modeValue) || "MPSQ_REDSTONE".equals(modeValue)) ? LocalScreenStore.ScreenInputType.MPSQ_REDSTONE
                         : LocalScreenStore.ScreenInputType.LINK;
                 UUID cameraId = null;
                 if (row.has("mpsq_screen_cameras") && row.get("mpsq_screen_cameras").isJsonArray()) {
@@ -220,7 +181,7 @@ public final class MpsqApiClient {
                 }
                 UUID groupId = row.has("group_id") && !row.get("group_id").isJsonNull() ? UUID.fromString(row.get("group_id").getAsString()) : null;
                 screens.add(new LocalScreenStore.LocalScreenData(UUID.fromString(row.get("id").getAsString()), pos1, pos2,
-                        row.get("name").getAsString(), new Vec3d(pos1.getX(), pos1.getY(), pos1.getZ()), mode,
+                        row.get("name").getAsString(), new Vec3(pos1.getX(), pos1.getY(), pos1.getZ()), mode,
                         row.has("cinema_url") && !row.get("cinema_url").isJsonNull() ? row.get("cinema_url").getAsString() : "", cameraId, groupId));
             }
             return screens;
@@ -231,7 +192,12 @@ public final class MpsqApiClient {
     public static CompletableFuture<TeamProfile> refreshTeamProfile() {
         return get("/team/me").thenApply(MpsqApiClient::parseTeamProfile).thenApply(profile -> {
             TeamStateStore.setSelf(profile);
+            teamProfileError = "";
             return profile;
+        }).whenComplete((profile, error) -> {
+            if (error != null) teamProfileError = quotaRetryAt > System.currentTimeMillis()
+                    ? "Rang nicht abrufbar: Supabase-Datenlimit erreicht."
+                    : "Rang nicht abrufbar: Verbindung zum Teamserver fehlgeschlagen.";
         });
     }
 
@@ -455,33 +421,15 @@ public final class MpsqApiClient {
     }
 
     private static CompletableFuture<JsonElement> request(String method, String path, JsonObject body, boolean authenticated) {
-        HttpRequest.Builder request = HttpRequest.newBuilder(URI.create(API_URL + path)).timeout(Duration.ofSeconds(15)).header("Accept", "application/json");
-        if (authenticated) {
-            if (token == null || token.isBlank()) return CompletableFuture.failedFuture(new IllegalStateException("MPSQ ist nicht verbunden"));
-            request.header("x-mpsq-token", token);
-        }
-        if (body == null) request.method(method, HttpRequest.BodyPublishers.noBody());
-        else request.header("Content-Type", "application/json").method(method, HttpRequest.BodyPublishers.ofString(GSON.toJson(body)));
-        return HTTP.sendAsync(request.build(), HttpResponse.BodyHandlers.ofString()).thenApply(response -> {
-            JsonElement json = JsonParser.parseString(response.body());
-            if (response.statusCode() < 200 || response.statusCode() >= 300) {
-                String message = json.isJsonObject() && json.getAsJsonObject().has("error") ? json.getAsJsonObject().get("error").getAsString() : response.body();
-                MpsqCameraClient.LOGGER.warn("MPSQ-API {} {} fehlgeschlagen ({}): {}", method, path, response.statusCode(), message);
-                throw new IllegalStateException(message);
-            }
-            return json;
-        });
+        return LocalMpsqBackend.request(method, path, body);
     }
 
-    private static String readToken() {
-        try { return Files.exists(TOKEN_FILE) ? Files.readString(TOKEN_FILE, StandardCharsets.UTF_8).trim() : null; }
-        catch (IOException exception) { MpsqCameraClient.LOGGER.warn("MPSQ-Zugang konnte nicht gelesen werden", exception); return null; }
-    }
+
 
     private static String currentDisplayName() {
-        MinecraftClient client = MinecraftClient.getInstance();
-        if (client != null && client.getSession() != null && !client.getSession().getUsername().isBlank()) {
-            return client.getSession().getUsername();
+        Minecraft client = Minecraft.getInstance();
+        if (client != null && client.getUser() != null && !client.getUser().getName().isBlank()) {
+            return client.getUser().getName();
         }
         return "Minecraft Client";
     }
