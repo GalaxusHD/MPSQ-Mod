@@ -1,4 +1,11 @@
 {
+  "key.mpsqcamera.dialogue_next": "Next dialogue page",
+  "gui.mpsqcamera.einstellungen.zone_item_label": "Zone tool (item ID):",
   "category.mpsqcamera.main": "MPSQ",
-  "key.mpsqcamera.music_player": "Open music player"
+  "key.mpsqcamera.music_player": "Open music player",
+  "key.category.mpsqcamera.main": "MPSQ",
+  "key.category.mpsqcamera.replay": "MPSQ Replay",
+  "category.mpsqcamera.replay": "MPSQ Replay",
+  "key.mpsqcamera.stop_recording": "Stop NPC recording",
+  "key.mpsqcamera.record_animation": "Recording: select Scenes animation"
 }

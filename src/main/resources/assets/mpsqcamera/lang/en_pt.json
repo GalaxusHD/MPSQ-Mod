@@ -1,5 +1,7 @@
 {
-  "category.mpsqcamera.main": "MPSQ Spyglasses",
+  "key.mpsqcamera.dialogue_next": "Next dialogue page",
+  "gui.mpsqcamera.einstellungen.zone_item_label": "Zone tool (item ID):",
+  "category.mpsqcamera.main": "MPSQ",
   "key.mpsqcamera.hauptmenu": "Open ye main menu",
   "key.mpsqcamera.create_camera": "Rig a camera",
   "gui.mpsqcamera.main.title": "MPSQ Spyglasses",
@@ -100,9 +102,13 @@
   "gui.mpsqcamera.team.templates.copied": "Text copied",
   "gui.mpsqcamera.team.templates.hint": "Choose the speaker side and text",
   "gui.mpsqcamera.team.templates.speaker.offizier": "Officer text (right side)",
-  "gui.mpsqcamera.team.templates.speaker.frontman": "Front Man text (left side)"
-  ,"gui.mpsqcamera.mobile.title": "Mobile camera"
-  ,"gui.mpsqcamera.mobile.save": "Save camera links"
-  ,"gui.mpsqcamera.mobile.empty": "No cameras available."
-  ,"status.mpsqcamera.mobile.offline": "None of the linked cameras is currently available."
+  "gui.mpsqcamera.team.templates.speaker.frontman": "Front Man text (left side)",
+  "gui.mpsqcamera.mobile.title": "Mobile camera",
+  "gui.mpsqcamera.mobile.save": "Save camera links",
+  "gui.mpsqcamera.mobile.empty": "No cameras available.",
+  "status.mpsqcamera.mobile.offline": "None of the linked cameras is currently available.",
+  "key.category.mpsqcamera.main": "MPSQ",
+  "key.category.mpsqcamera.replay": "MPSQ Replay",
+  "category.mpsqcamera.replay": "MPSQ Replay",
+  "key.mpsqcamera.record_animation": "Recording: select Scenes animation"
 }

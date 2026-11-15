@@ -1,4 +1,6 @@
 {
+  "key.mpsqcamera.dialogue_next": "Dialog weiter",
+  "gui.mpsqcamera.einstellungen.zone_item_label": "Zonen-Werkzeug (Item-ID):",
   "category.mpsqcamera.main": "MPSQ",
   "key.mpsqcamera.hauptmenu": "Hauptmenü öffnen",
   "key.mpsqcamera.create_camera": "Kamera erstellen",
@@ -107,5 +109,10 @@
   "status.mpsqcamera.mobile.offline": "Keine der verknüpften Kameras ist derzeit verfügbar.",
   "key.mpsqcamera.music_player": "Musikplayer öffnen",
   "gui.mpsqcamera.team.command.filtered": "Deine Nachricht enthält unzulässige Wörter.",
-  "gui.mpsqcamera.selection.dimensions": "Dimensionen auswählen"
+  "gui.mpsqcamera.selection.dimensions": "Dimensionen auswählen",
+  "key.category.mpsqcamera.main": "MPSQ",
+  "key.category.mpsqcamera.replay": "MPSQ Replay",
+  "category.mpsqcamera.replay": "MPSQ Replay",
+  "key.mpsqcamera.stop_recording": "NPC-Aufnahme beenden",
+  "key.mpsqcamera.record_animation": "Aufnahme: Scenes-Animation auswählen"
 }
