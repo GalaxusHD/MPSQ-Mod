@@ -1,0 +1,113 @@
+package de.galaxushd.mpsqcamera;
+
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import java.util.ArrayList;
+import java.util.List;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.network.chat.Component;
+
+/** Pixel-styled client configurator for an already placed MPSQ NPC. */
+public final class MpsqNpcConfiguratorScreen extends Screen {
+    private static final String[] TABS={"Aussehen","Interaktion","Winkel","Aufgabe"};
+    private static final String[] TASKS={"none","accessories","tutorial","quest"};
+    private static final String[] TASK_LABELS={"Keine Aufgabe","Accessoires","Wiki","Quests"};
+
+    private final Screen parent;
+    private final String npcId,server,world;
+    private final boolean wumpus;
+    private int tab;
+    private String displayName,glowColor,dialogue,soundId,status="",taskType="none";
+    private float scale;
+    private float yaw,pitch;
+    private boolean facePlayer,discordTagEnabled;
+    private EditBox nameField,dialogueField,soundField;
+    private boolean pending,glowEnabled;
+    private int scroll;
+
+    public MpsqNpcConfiguratorScreen(Screen parent,JsonObject npc){
+        super(Component.literal("NPC-Konfigurator"));this.parent=parent;this.npcId=npc.get("id").getAsString();this.wumpus=MpsqAccessoryRenderer.WUMPUS_ASSET_ID.equals(str(npc,"asset_id",""));
+        this.server=MpsqActionSync.server();this.world=MpsqActionSync.world();
+        this.displayName=str(npc,"display_name",str(npc,"name","NPC"));this.scale=npc.has("scale")?npc.get("scale").getAsFloat():1f;
+        this.taskType=str(npc,"task_type","none");
+        this.glowColor=configuredGlowColor();
+        this.glowEnabled=MpsqNpcVisitStore.isGlowEnabled(this.npcId,false)&&(!isRoleTask(this.taskType)||!MpsqNpcVisitStore.hasVisited(this.taskType,this.npcId));
+        this.yaw=npc.has("yaw")?npc.get("yaw").getAsFloat():0f;this.pitch=npc.has("pitch")?npc.get("pitch").getAsFloat():0f;this.facePlayer=npc.has("face_player")&&npc.get("face_player").getAsBoolean();this.discordTagEnabled=npc.has("discord_tag_enabled")?npc.get("discord_tag_enabled").getAsBoolean():npc.has("discordTagEnabled")&&npc.get("discordTagEnabled").getAsBoolean();
+        JsonObject interaction=npc.has("interaction_data")&&npc.get("interaction_data").isJsonObject()?npc.getAsJsonObject("interaction_data"):new JsonObject();
+        List<String> pages=new ArrayList<>();if(interaction.has("pages")&&interaction.get("pages").isJsonArray())for(var page:interaction.getAsJsonArray("pages"))pages.add(page.getAsString());this.dialogue=String.join(" || ",pages);this.soundId=str(interaction,"soundId","");
+    }
+
+    @Override protected void init(){
+        clearWidgets();int left=panelLeft(),content=left+122,top=panelTop(),footer=panelBottom()-28;
+        if(tab==0){nameField=addRenderableWidget(new EditBox(font,content,top+52-scroll,panelRight()-12-content,22,Component.literal("Name")));nameField.setMaxLength(64);nameField.setValue(displayName);
+            addRenderableWidget(Button.builder(Component.literal("−"),b->{captureFields();scale=Math.max(.25f,scale-.25f);rebuildWidgets();}).bounds(content,top+103-scroll,34,22).build());
+            addRenderableWidget(Button.builder(Component.literal("+"),b->{captureFields();scale=Math.min(3f,scale+.25f);rebuildWidgets();}).bounds(content+142,top+103-scroll,34,22).build());
+            boolean visited=isRoleTask(taskType)&&MpsqNpcVisitStore.hasVisited(taskType,npcId);String glowLabel=visited?"Aus · bereits genutzt":glowEnabled?"An":"Aus";
+            addRenderableWidget(Button.builder(Component.literal("Glow: "+glowLabel),b->{if(visited){glowEnabled=false;status="Nach der ersten Nutzung bleibt dieser Aufgaben-Glow aus.";}else{glowEnabled=!glowEnabled;status="Glow-Einstellung geändert – bitte speichern.";}rebuildWidgets();}).bounds(content,top+157-scroll,184,24).build());
+            if(wumpus)addRenderableWidget(Button.builder(Component.literal("Discord-Tag: "+(discordTagEnabled?"An":"Aus")),b->{discordTagEnabled=!discordTagEnabled;status="Discord-Tag-Einstellung geändert – bitte speichern.";rebuildWidgets();}).bounds(content,top+207-scroll,184,24).build());
+        }else if(tab==1){dialogueField=addRenderableWidget(new EditBox(font,content,top+65-scroll,panelRight()-12-content,22,Component.literal("Dialog")));dialogueField.setMaxLength(3072);dialogueField.setValue(dialogue);soundField=addRenderableWidget(new EditBox(font,content,top+145-scroll,panelRight()-12-content,22,Component.literal("Sound-ID")));soundField.setMaxLength(128);soundField.setHint(Component.literal("Minecraft-Sound oder MPSQ-MP3/MP4-ID (optional)"));soundField.setValue(soundId);}
+        else if(tab==2){
+            addRenderableWidget(Button.builder(Component.literal("Yaw −15°"),b->{yaw=wrapYaw(MpsqCinematicScene.snapRotation(yaw)-15);rebuildWidgets();}).bounds(content,top+76-scroll,88,22).build());
+            addRenderableWidget(Button.builder(Component.literal("Yaw +15°"),b->{yaw=wrapYaw(MpsqCinematicScene.snapRotation(yaw)+15);rebuildWidgets();}).bounds(content+96,top+76-scroll,88,22).build());
+            if(!wumpus){
+                addRenderableWidget(Button.builder(Component.literal("Pitch −15°"),b->{pitch=Math.max(-90,MpsqCinematicScene.snapRotation(pitch)-15);rebuildWidgets();}).bounds(content,top+119-scroll,88,22).build());
+                addRenderableWidget(Button.builder(Component.literal("Pitch +15°"),b->{pitch=Math.min(90,MpsqCinematicScene.snapRotation(pitch)+15);rebuildWidgets();}).bounds(content+96,top+119-scroll,88,22).build());
+                addRenderableWidget(Button.builder(Component.literal("Blick zu Spielern: "+(facePlayer?"An":"Aus")),b->{facePlayer=!facePlayer;rebuildWidgets();}).bounds(content,top+163-scroll,184,22).build());
+            }
+        }else if(tab==3){
+            int current=Math.max(0,java.util.Arrays.asList(TASKS).indexOf(taskType));
+            addRenderableWidget(Button.builder(Component.literal("Aufgabe: "+taskLabel(taskType)),b->{taskType=TASKS[(current+1)%TASKS.length];glowColor=configuredGlowColor();glowEnabled=MpsqNpcVisitStore.isGlowEnabled(npcId,false)&&(!isRoleTask(taskType)||!MpsqNpcVisitStore.hasVisited(taskType,npcId));rebuildWidgets();}).bounds(content,top+68-scroll,210,26).build());
+        }
+        addRenderableWidget(Button.builder(Component.literal(pending?"Speichert …":"Änderungen speichern"),b->save()).bounds(content,footer,panelRight()-12-content,22).build());
+        addRenderableWidget(Button.builder(Component.literal("Schließen"),b->onClose()).bounds(panelLeft()+12,footer,96,22).build());
+    }
+
+    @Override public void extractBackground(GuiGraphicsExtractor c,int x,int y,float delta){
+        super.extractBackground(c,x,y,delta);MpsqTheme.drawBackground(c,width,height);
+        int left=panelLeft(),right=panelRight(),top=panelTop(),bottom=panelBottom();
+        c.fill(left+4,top+5,right+4,bottom+5,0x88000000);c.fill(left,top,right,bottom,0xF0191D28);c.fill(left,top,right,top+3,0xFFFF536A);c.fill(left,top,left+2,bottom,0xFF9C203C);c.fill(right-2,top,right,bottom,0xFF9C203C);c.fill(left,bottom-2,right,bottom,0xFF9C203C);
+    }
+    @Override public void extractRenderState(GuiGraphicsExtractor c,int mouseX,int mouseY,float delta){
+        int left=panelLeft(),right=panelRight(),top=panelTop(),bottom=panelBottom();
+        c.enableScissor(left+2,top+2,right-2,bottom-2);super.extractRenderState(c,mouseX,mouseY,delta);c.disableScissor();
+        c.text(font,Component.literal("MPSQ  /  NPC STUDIO"),left+14,top+8,0xFFFF7182);c.text(font,Component.literal("NPC-Konfigurator · "+TABS[tab]),left+14,top+24,0xFFFFFFFF);
+        for(int i=0;i<TABS.length;i++)drawTab(c,left+10,top+48+i*26,i,i==tab);
+        int content=left+122,viewportBottom=bottom-50;c.enableScissor(content-4,top+43,right-10,viewportBottom);
+        c.fill(content-9,top+43,right-12,top+45,0xFF9C203C);
+        if(tab==0){c.text(font,Component.literal("Anzeigename"),content,top+43-scroll,0xFFE8EAF0);c.text(font,Component.literal("Größe"),content,top+91-scroll,0xFFE8EAF0);c.centeredText(font,Component.literal(String.format(java.util.Locale.ROOT,"%.2f×",scale)),content+88,top+109-scroll,0xFFFFFFFF);c.text(font,Component.literal("Glowfarbe: "+colorName(glowColor)+" · fest nach Rolle"),content,top+137-scroll,0xFFE8EAF0);if(wumpus)c.text(font,Component.literal("Optionaler Discord-Tag über dem Wumpus."),content,top+184-scroll,0xFFBBBBBB);}
+        else if(tab==1){c.text(font,Component.literal("Dialog beim Rechtsklick"),content,top+47-scroll,0xFFE8EAF0);c.text(font,Component.literal("Seiten mit  ||  trennen · max. 12 × 240 Zeichen"),content,top+96-scroll,0xFFBBBBBB);c.text(font,Component.literal("Der Text erscheint im MPSQ-Dialogfenster."),content,top+115-scroll,0xFF999999);c.text(font,Component.literal("Optionaler Sound beim Anklicken"),content,top+127-scroll,0xFFE8EAF0);}
+        else if(tab==2){c.text(font,Component.literal(wumpus?"Drehung relativ zu deiner Blickrichtung":"Kopfrotation · Schritte von 15°"),content,top+49-scroll,0xFFE8EAF0);c.text(font,Component.literal("Yaw: "+Math.round(yaw)+"°"),content,top+104-scroll,0xFFFFFFFF);if(wumpus){c.text(font,Component.literal("Wumpus folgt deiner Blickrichtung."),content,top+139-scroll,0xFFBBBBBB);c.text(font,Component.literal("Beim Winken dreht er sich zu dir."),content,top+158-scroll,0xFFBBBBBB);}else{c.text(font,Component.literal("Pitch: "+Math.round(pitch)+"°"),content,top+147-scroll,0xFFFFFFFF);c.text(font,Component.literal("Folgt Spielern nur bis 30 Blöcke Entfernung."),content,top+196-scroll,0xFFBBBBBB);}}
+        else {c.text(font,Component.literal("NPC-Funktion auswählen"),content,top+48-scroll,0xFFE8EAF0);c.text(font,Component.literal("Accessoires: Shop · Wiki: Hilfe · Quests: Aufgaben"),content,top+108-scroll,0xFFBBBBBB);c.text(font,Component.literal("Der passende Bild-Tag wird über dem NPC angezeigt."),content,top+128-scroll,0xFF999999);}
+        c.disableScissor();c.text(font,font.plainSubstrByWidth(status,right-left-30),left+15,bottom-39,status.startsWith("Gespeichert")?0xFF77DD99:0xFFFFA0AA);
+    }
+
+    private void drawTab(GuiGraphicsExtractor c,int x,int y,int index,boolean selected){c.fill(x,y,x+106,y+25,selected?0xFF9C203C:0xFF242A35);drawPixelIcon(c,x+6,y+6,index,selected?0xFFFF9BA7:0xFFB9C0CD);c.text(font,Component.literal(switch(index){case 0->"Optik";case 1->"Text";case 2->"Winkel";default->"Aufgabe";}),x+23,y+9,0xFFFFFFFF);}
+    private void drawPixelIcon(GuiGraphicsExtractor c,int x,int y,int icon,int color){String[] pattern=switch(icon%6){case 0->new String[]{"01110","11111","10101","11111","01010"};case 1->new String[]{"00100","01110","11111","01110","00100"};case 2->new String[]{"10001","01010","00100","01010","10001"};case 3->new String[]{"00100","01110","11111","00100","00100"};case 4->new String[]{"01010","11111","11111","01110","00100"};default->new String[]{"10001","01010","00100","01010","10001"};};for(int row=0;row<pattern.length;row++)for(int col=0;col<pattern[row].length();col++)if(pattern[row].charAt(col)=='1')c.fill(x+col*2,y+row*2,x+col*2+2,y+row*2+2,color);}
+    private int panelWidth(){return Math.max(280,Math.min(520,width-24));}private int panelLeft(){return Math.max(8,(width-panelWidth())/2);}private int panelRight(){return panelLeft()+panelWidth();}private int panelTop(){return 24;}private int panelBottom(){return height-8;}
+    private String colorName(String value){return switch(value.toLowerCase(java.util.Locale.ROOT)){case "#c3971f"->"Gelb";case "#8027b0"->"Violett";case "#2149c4"->"Blau";case "#7582e3"->"Discord-Blau";default->"Pink";};}
+    private String configuredGlowColor(){return wumpus?"#7582e3":defaultGlowColor(taskType);}
+    private static String defaultGlowColor(String task){return switch(task){case "tutorial"->"#c3971f";case "accessories"->"#8027b0";case "quest"->"#2149c4";default->"#ec2f53";};}
+    private String taskLabel(String value){for(int i=0;i<TASKS.length;i++)if(TASKS[i].equals(value))return TASK_LABELS[i];return TASK_LABELS[0];}
+    private static boolean isRoleTask(String value){return "tutorial".equals(value)||"accessories".equals(value)||"quest".equals(value);}
+    private void captureFields(){if(nameField!=null)displayName=nameField.getValue().trim();if(dialogueField!=null)dialogue=dialogueField.getValue();if(soundField!=null)soundId=soundField.getValue().trim();}
+    private void save(){if(pending)return;captureFields();List<String> pages=new ArrayList<>();if(!dialogue.isBlank())for(String p:dialogue.split("\\|\\|",-1)){String page=p.trim();if(page.isEmpty()||page.length()>240||pages.size()>=12){status="Jede Dialogseite braucht 1–240 Zeichen (max. 12 Seiten).";return;}pages.add(page);}if(displayName.isBlank()){status="Bitte einen NPC-Namen eingeben.";return;}if(soundId.length()>128||(!soundId.isBlank()&&!soundId.matches("[a-zA-Z0-9_.:/-]+"))){status="Ungültige Minecraft- oder MPSQ-Sound-ID.";return;}
+        glowColor=configuredGlowColor();JsonArray pageArray=new JsonArray();pages.forEach(pageArray::add);JsonObject interaction=new JsonObject();interaction.add("pages",pageArray);interaction.addProperty("soundId",soundId);JsonObject body=new JsonObject();body.addProperty("name",displayName);body.addProperty("scale",scale);body.addProperty("glowColor",glowColor);body.addProperty("animation","none");body.addProperty("yaw",yaw);body.addProperty("pitch",wumpus?0:pitch);body.addProperty("facePlayer",wumpus||facePlayer);body.addProperty("taskType",taskType);body.addProperty("discordTagEnabled",discordTagEnabled);body.add("interactionData",interaction);body.addProperty("server",server);body.addProperty("world",world);
+        String savedSettings="Gespeichert · "+colorName(glowColor);
+        if(server.isBlank()&&minecraft.getSingleplayerServer()!=null){pending=true;status="Wird lokal gespeichert …";rebuildWidgets();boolean saved=MpsqLocalNpcStore.update(MpsqActionSync.world(),npcId,body);pending=false;status=saved?savedSettings:"Lokaler NPC wurde nicht gefunden.";if(saved&&(!isRoleTask(taskType)||!MpsqNpcVisitStore.hasVisited(taskType,npcId)))MpsqNpcVisitStore.setGlowEnabled(npcId,glowEnabled,false);MpsqAccessoryRenderer.refresh();rebuildWidgets();return;}
+        pending=true;status="Wird gespeichert …";rebuildWidgets();MpsqApiClient.patch("/npcs/"+npcId,body).whenComplete((data,error)->minecraft.execute(()->{pending=false;status=error==null?savedSettings:"Speichern fehlgeschlagen: "+error.getMessage();if(error==null&&(!isRoleTask(taskType)||!MpsqNpcVisitStore.hasVisited(taskType,npcId)))MpsqNpcVisitStore.setGlowEnabled(npcId,glowEnabled,false);MpsqAccessoryRenderer.refresh();rebuildWidgets();}));}
+    private static String str(JsonObject o,String key,String fallback){return o.has(key)&&!o.get(key).isJsonNull()?o.get(key).getAsString():fallback;}
+    private static float wrapYaw(float value){return ((value%360)+360)%360;}
+
+    @Override public boolean mouseClicked(net.minecraft.client.input.MouseButtonEvent event, boolean doubled) {
+        double x = event.x(), y = event.y();
+        int button = event.button();
+if(button == com.mojang.blaze3d.platform.InputConstants.MOUSE_BUTTON_LEFT){int left=panelLeft(),top=panelTop();if(x>=left+8&&x<=left+114&&y>=top+48&&y<top+48+TABS.length*26){captureFields();tab=Math.max(0,Math.min(TABS.length-1,(int)(y-(top+48))/26));scroll=0;rebuildWidgets();return true;}if(tab==3&&x>=left+122&&y>=top+68-scroll&&y<top+94-scroll){int current=Math.max(0,java.util.Arrays.asList(TASKS).indexOf(taskType));taskType=TASKS[(current+1)%TASKS.length];glowColor=configuredGlowColor();glowEnabled=MpsqNpcVisitStore.isGlowEnabled(npcId,false)&&(!isRoleTask(taskType)||!MpsqNpcVisitStore.hasVisited(taskType,npcId));rebuildWidgets();return true;}}return super.mouseClicked(event, doubled);}
+    private int contentHeight(){return switch(tab){case 0->244;case 1->182;case 2->220;default->184;};}
+    private int maxScroll(){return Math.max(0,contentHeight()-(panelBottom()-50-(panelTop()+43)));}
+    @Override public boolean mouseScrolled(double x,double y,double horizontal,double vertical){if(x<panelLeft()+118||x>panelRight()-8)return false;captureFields();scroll=Math.max(0,Math.min(maxScroll(),scroll-(int)Math.signum(vertical)*24));rebuildWidgets();return true;}
+    @Override public void onClose(){minecraft.gui.setScreen(parent);}
+    @Override public boolean isPauseScreen(){return false;}
+}

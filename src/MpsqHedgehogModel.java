@@ -4,23 +4,22 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import net.minecraft.client.render.RenderLayer;
-import net.minecraft.client.render.OverlayTexture;
-import net.minecraft.client.render.VertexConsumer;
-import net.minecraft.client.render.VertexConsumerProvider;
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.math.RotationAxis;
-
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.VertexConsumer;
+import com.mojang.math.Axis;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import de.galaxushd.mpsqcamera.compat.MultiBufferSource;
+import net.minecraft.client.renderer.rendertype.RenderType;
+import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.resources.Identifier;
 
 /** Loads the supplied Blockbench model and keyed poses for Nog's hedgehog pet. */
 final class MpsqHedgehogModel {
-    private static final Identifier MODEL_TEXTURE = Identifier.of(MpsqCameraClient.MOD_ID,
+    private static final Identifier MODEL_TEXTURE = Identifier.fromNamespaceAndPath(MpsqCameraClient.MOD_ID,
             "textures/pets/nogs_hedgehog.png");
     private static final String MODEL_RESOURCE = "/assets/mpsqcamera/models/pets/nogs_hedgehog.bbmodel";
     private static final int FULL_BRIGHT = 0x00F000F0;
@@ -33,50 +32,50 @@ final class MpsqHedgehogModel {
         return animation == null ? 1.0 : animation.length;
     }
 
-    static void render(MatrixStack matrices, VertexConsumerProvider consumers, int light,
+    static void render(PoseStack matrices, MultiBufferSource consumers, int light,
                        float x, float y, float z, float yaw, float scale,
                        String animation, double timeSeconds) {
         ModelData model = model();
-        matrices.push();
+        matrices.pushPose();
         matrices.translate(x, y, z);
-        matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(180.0f - yaw));
+        matrices.rotate(Axis.YP.rotationDegrees(180.0f - yaw));
         matrices.scale(scale, scale, scale);
-        VertexConsumer vertices = consumers.getBuffer(RenderLayer.getEntityCutoutNoCull(MODEL_TEXTURE));
+        VertexConsumer vertices = consumers.getBuffer(net.minecraft.client.renderer.rendertype.RenderTypes.entityCutoutCull(MODEL_TEXTURE));
         Animation pose = model.animations.get(animation);
         if (pose == null) pose = model.animations.get("idle");
         double poseTime = pose == null ? 0 : pose.loop
                 ? timeSeconds % Math.max(0.001, pose.length) : Math.min(timeSeconds, pose.length);
         renderGroup(model.root, matrices, vertices, light, pose, poseTime, 0, 0, 0);
-        matrices.pop();
+        matrices.popPose();
     }
 
-    private static void renderGroup(Group group, MatrixStack matrices, VertexConsumer vertices, int light,
+    private static void renderGroup(Group group, PoseStack matrices, VertexConsumer vertices, int light,
                                     Animation animation, double time, double parentX, double parentY,
                                     double parentZ) {
         double gx = group.origin.x, gy = group.origin.y, gz = group.origin.z;
-        matrices.push();
+        matrices.pushPose();
         matrices.translate((gx - parentX) / 16.0, (gy - parentY) / 16.0, (gz - parentZ) / 16.0);
         Vec3 rotation = group.rotation;
         Vec3 animatedRotation = animation == null ? Vec3.ZERO : animation.value(group.id, "rotation", time);
         Vec3 animatedPosition = animation == null ? Vec3.ZERO : animation.value(group.id, "position", time);
         matrices.translate(animatedPosition.x / 16.0, animatedPosition.y / 16.0, animatedPosition.z / 16.0);
-        matrices.multiply(RotationAxis.POSITIVE_Z.rotationDegrees((float) (rotation.z + animatedRotation.z)));
-        matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees((float) (rotation.y + animatedRotation.y)));
-        matrices.multiply(RotationAxis.POSITIVE_X.rotationDegrees((float) (rotation.x + animatedRotation.x)));
+        matrices.rotate(Axis.ZP.rotationDegrees((float) (rotation.z + animatedRotation.z)));
+        matrices.rotate(Axis.YP.rotationDegrees((float) (rotation.y + animatedRotation.y)));
+        matrices.rotate(Axis.XP.rotationDegrees((float) (rotation.x + animatedRotation.x)));
 
         for (Cube cube : group.cubes) renderCube(cube, matrices, vertices, light, gx, gy, gz);
         for (Group child : group.children) renderGroup(child, matrices, vertices, light, animation, time, gx, gy, gz);
-        matrices.pop();
+        matrices.popPose();
     }
 
-    private static void renderCube(Cube cube, MatrixStack matrices, VertexConsumer buffer, int light,
+    private static void renderCube(Cube cube, PoseStack matrices, VertexConsumer buffer, int light,
                                   double gx, double gy, double gz) {
-        matrices.push();
+        matrices.pushPose();
         matrices.translate((cube.origin.x - gx) / 16.0, (cube.origin.y - gy) / 16.0,
                 (cube.origin.z - gz) / 16.0);
-        matrices.multiply(RotationAxis.POSITIVE_Z.rotationDegrees((float) cube.rotation.z));
-        matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees((float) cube.rotation.y));
-        matrices.multiply(RotationAxis.POSITIVE_X.rotationDegrees((float) cube.rotation.x));
+        matrices.rotate(Axis.ZP.rotationDegrees((float) cube.rotation.z));
+        matrices.rotate(Axis.YP.rotationDegrees((float) cube.rotation.y));
+        matrices.rotate(Axis.XP.rotationDegrees((float) cube.rotation.x));
 
         double x0 = (cube.from.x - cube.origin.x) / 16.0;
         double y0 = (cube.from.y - cube.origin.y) / 16.0;
@@ -84,45 +83,36 @@ final class MpsqHedgehogModel {
         double x1 = (cube.to.x - cube.origin.x) / 16.0;
         double y1 = (cube.to.y - cube.origin.y) / 16.0;
         double z1 = (cube.to.z - cube.origin.z) / 16.0;
-        // Blockbench exports the hedgehog's spikes as zero-thickness planes. Drawing both
-        // sides of those planes puts identical polygons in the same place and causes z-fighting.
-        boolean flatX = Math.abs(x1 - x0) < 1.0e-6;
-        boolean flatY = Math.abs(y1 - y0) < 1.0e-6;
-        boolean flatZ = Math.abs(z1 - z0) < 1.0e-6;
-        face(cube, "north", buffer, matrices, light,
-                new double[][]{{x0,y0,z0},{x1,y0,z0},{x1,y1,z0},{x0,y1,z0}}, 0,0,-1);
-        if (!flatZ) {
-            face(cube, "south", buffer, matrices, light,
-                    new double[][]{{x1,y0,z1},{x0,y0,z1},{x0,y1,z1},{x1,y1,z1}}, 0,0,1);
-        }
-        face(cube, "west", buffer, matrices, light,
-                new double[][]{{x0,y0,z1},{x0,y0,z0},{x0,y1,z0},{x0,y1,z1}}, -1,0,0);
-        if (!flatX) {
-            face(cube, "east", buffer, matrices, light,
-                    new double[][]{{x1,y0,z0},{x1,y0,z1},{x1,y1,z1},{x1,y1,z0}}, 1,0,0);
-        }
-        face(cube, "up", buffer, matrices, light,
-                new double[][]{{x0,y1,z0},{x1,y1,z0},{x1,y1,z1},{x0,y1,z1}}, 0,1,0);
-        if (!flatY) {
-            face(cube, "down", buffer, matrices, light,
-                    new double[][]{{x0,y0,z1},{x1,y0,z1},{x1,y0,z0},{x0,y0,z0}}, 0,-1,0);
-        }
-        matrices.pop();
+        face(cube, "north", buffer, matrices, light, new double[][]{{x0,y0,z0},{x0,y1,z0},{x1,y1,z0},{x1,y0,z0}}, 0,0,-1);
+        face(cube, "south", buffer, matrices, light, new double[][]{{x1,y0,z1},{x1,y1,z1},{x0,y1,z1},{x0,y0,z1}}, 0,0,1);
+        face(cube, "west", buffer, matrices, light, new double[][]{{x0,y0,z1},{x0,y1,z1},{x0,y1,z0},{x0,y0,z0}}, -1,0,0);
+        face(cube, "east", buffer, matrices, light, new double[][]{{x1,y0,z0},{x1,y1,z0},{x1,y1,z1},{x1,y0,z1}}, 1,0,0);
+        face(cube, "up", buffer, matrices, light, new double[][]{{x0,y1,z0},{x0,y1,z1},{x1,y1,z1},{x1,y1,z0}}, 0,1,0);
+        face(cube, "down", buffer, matrices, light, new double[][]{{x0,y0,z1},{x0,y0,z0},{x1,y0,z0},{x1,y0,z1}}, 0,-1,0);
+        matrices.popPose();
     }
 
-    private static void face(Cube cube, String name, VertexConsumer buffer, MatrixStack matrices,
+    private static void face(Cube cube, String name, VertexConsumer buffer, PoseStack matrices,
                             int light, double[][] points, float nx, float ny, float nz) {
         double[] uv = cube.uv.get(name);
-        if (uv == null) return;
+        if (uv == null || uv[0] == uv[2] || uv[1] == uv[3]) return;
+        double[] a = points[0], b = points[1], c = points[2];
+        double ax=b[0]-a[0], ay=b[1]-a[1], az=b[2]-a[2];
+        double bx=c[0]-a[0], by=c[1]-a[1], bz=c[2]-a[2];
+        if (Math.abs(ay*bz-az*by)+Math.abs(az*bx-ax*bz)+Math.abs(ax*by-ay*bx) < 1e-12) return;
         float u0 = (float) (uv[0] / 32.0), v0 = (float) (uv[1] / 32.0);
         float u1 = (float) (uv[2] / 32.0), v1 = (float) (uv[3] / 32.0);
-        float[][] tex = {{u0,v0},{u1,v0},{u1,v1},{u0,v1}};
+        // The vertex order runs vertically first on side faces, and along Z on caps.
+        // Mapping U along that first edge rotated the narrow spike textures by 90 degrees.
+        float[][] tex = name.equals("up") || name.equals("down")
+                ? new float[][]{{u0,v0},{u0,v1},{u1,v1},{u1,v0}}
+                : new float[][]{{u1,v1},{u1,v0},{u0,v0},{u0,v1}};
         for (int i = 0; i < 4; i++) {
             double[] p = points[i];
-            buffer.vertex(matrices.peek(), (float)p[0], (float)p[1], (float)p[2])
-                    .color(255,255,255,255).texture(tex[i][0], tex[i][1])
-                    .overlay(OverlayTexture.DEFAULT_UV).light(light == 0 ? FULL_BRIGHT : light)
-                    .normal(matrices.peek(), nx, ny, nz);
+            buffer.addVertex(matrices.last(), (float)p[0], (float)p[1], (float)p[2])
+                    .setColor(255,255,255,255).setUv(tex[i][0], tex[i][1])
+                    .setOverlay(OverlayTexture.NO_OVERLAY).setLight(light == 0 ? FULL_BRIGHT : light)
+                    .setNormal(matrices.last(), nx, ny, nz);
         }
     }
 
@@ -162,7 +152,7 @@ final class MpsqHedgehogModel {
         if (object.has("children")) for (JsonElement child : object.getAsJsonArray("children")) {
             if (child.isJsonPrimitive()) {
                 JsonObject element = elements.get(child.getAsString());
-                if (element != null && element.get("type").getAsString().equals("cube")) group.cubes.add(Cube.parse(element));
+                if (element != null && (!element.has("visibility") || element.get("visibility").getAsBoolean()) && element.get("type").getAsString().equals("cube")) group.cubes.add(Cube.parse(element));
             } else {
                 JsonObject nested = child.getAsJsonObject();
                 if (nested.has("name")) {
@@ -219,7 +209,7 @@ final class MpsqHedgehogModel {
             for (String face : new String[]{"north","south","east","west","up","down"}) {
                 if (!faces.has(face)) continue;
                 JsonObject faceObject=faces.getAsJsonObject(face);
-                if (!faceObject.has("uv")) continue;
+                if (!faceObject.has("uv") || !faceObject.has("texture") || faceObject.get("texture").isJsonNull()) continue;
                 JsonArray rect=faceObject.getAsJsonArray("uv");
                 cube.uv.put(face,new double[]{number(rect,0),number(rect,1),number(rect,2),number(rect,3)});
             }

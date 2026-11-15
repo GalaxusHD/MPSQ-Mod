@@ -1,13 +1,12 @@
 package de.galaxushd.mpsqcamera;
 
-import com.cinemamod.mcef.MCEF;
-import com.cinemamod.mcef.MCEFBrowser;
+
+import net.dimaskama.mcef.api.MCEFBrowser;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.util.Identifier;
-
+import net.minecraft.client.Minecraft;
+import net.minecraft.resources.Identifier;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -26,8 +25,8 @@ public final class MpsqMediaAudioManager {
 
     public static void initialize() {
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
-            if (client.world == null) {
-                if (browser != null) stop();
+            if (client.level == null || !TeamVisibilitySettings.visible()) {
+                if (browser != null || active) stop();
                 closeEffectBrowser();
             } else if (effectBrowser != null && System.currentTimeMillis() >= effectExpiresAt) {
                 closeEffectBrowser();
@@ -40,13 +39,14 @@ public final class MpsqMediaAudioManager {
         stop();
         if (id == null) return;
         String value=id.trim();
+        if(MpsqBuiltinMusic.sound(value)!=null){MpsqAudioManager.startPlaylist("Specials",List.of(MpsqBuiltinMusic.sound(value)));return;}
         if (value.isEmpty() || value.length()>128 || !value.matches("[a-zA-Z0-9_.:/-]+")) return;
         if (value.contains(":")) {
             Identifier identifier=Identifier.tryParse(value);
             if (identifier!=null) { MpsqAudioManager.startPlaylist("MPSQ", List.of(identifier.toString()), MpsqAudioManager.categoryForSoundId(identifier)); return; }
         }
         long request=++generation;
-        MpsqApiClient.get("/sounds/"+value).whenComplete((json,error)->MinecraftClient.getInstance().execute(()->{
+        MpsqApiClient.get("/sounds/"+value).whenComplete((json,error)->Minecraft.getInstance().execute(()->{
             if(request!=generation)return;
             if(error==null&&json!=null&&json.isJsonObject()) {
                 JsonObject result=json.getAsJsonObject();
@@ -63,25 +63,46 @@ public final class MpsqMediaAudioManager {
     public static void play(String type, List<String> assetIds) {
         stop();
         if (!(type.equals("mp3") || type.equals("mp4")) || assetIds == null || assetIds.isEmpty() || assetIds.size() > 100) return;
+        if(assetIds.stream().allMatch(id->MpsqBuiltinMusic.sound(id)!=null)){MpsqAudioManager.startPlaylist("Specials",assetIds.stream().map(MpsqBuiltinMusic::sound).toList());return;}
         long request = ++generation;
         List<java.util.concurrent.CompletableFuture<String>> lookups = new ArrayList<>();
         for (String id : assetIds) {
-            if (id == null || !id.matches("[a-zA-Z0-9_-]{1,64}")) return;
-            lookups.add(MpsqApiClient.get("/sounds/" + id + "?type=" + type).thenApply(data -> {
-                JsonObject result = data.getAsJsonObject();
-                String url = result.has("url") ? result.get("url").getAsString() : "";
-                return safeHttps(url) ? url : "";
+            if (id != null && safeHttps(id)) {
+                lookups.add(java.util.concurrent.CompletableFuture.completedFuture(id));
+                continue;
+            }
+            if (id == null || !id.matches("[a-zA-Z0-9_-]{1,64}")) {
+                MpsqCameraClient.LOGGER.warn("Ungültige MPSQ-Playlist-ID übersprungen: {}", id);
+                continue;
+            }
+            lookups.add(MpsqApiClient.get("/sounds/" + id + "?type=" + type).handle((data, error) -> {
+                if (error != null) {
+                    MpsqCameraClient.LOGGER.warn("MPSQ-Playlist-Titel '{}' konnte nicht geladen werden und wird übersprungen", id, error);
+                    return "";
+                }
+                try {
+                    JsonObject result = data.getAsJsonObject();
+                    String url = result.has("url") ? result.get("url").getAsString() : "";
+                    if (safeHttps(url)) return url;
+                } catch (RuntimeException ignored) { }
+                MpsqCameraClient.LOGGER.warn("MPSQ-Playlist-Titel '{}' lieferte keine gültige Audio-URL und wird übersprungen", id);
+                return "";
             }));
         }
+        if (lookups.isEmpty()) {
+            MpsqCameraClient.LOGGER.warn("MPSQ-Playlist enthält keine gültigen Audio-IDs.");
+            return;
+        }
         java.util.concurrent.CompletableFuture.allOf(lookups.toArray(java.util.concurrent.CompletableFuture[]::new))
-                .whenComplete((ignored, error) -> MinecraftClient.getInstance().execute(() -> {
+                .whenComplete((ignored, error) -> Minecraft.getInstance().execute(() -> {
                     if (request != generation || error != null) {
                         if (error != null) MpsqCameraClient.LOGGER.warn("MPSQ-Audiodatei konnte nicht geladen werden", error);
                         return;
                     }
-                    List<String> urls = lookups.stream().map(java.util.concurrent.CompletableFuture::join).toList();
-                    if (urls.isEmpty() || urls.stream().anyMatch(String::isBlank)) {
-                        MpsqCameraClient.LOGGER.warn("Mindestens eine MPSQ-Audiodatei-ID ist ungültig oder nicht verfügbar.");
+                    List<String> urls = lookups.stream().map(java.util.concurrent.CompletableFuture::join)
+                            .filter(url -> !url.isBlank()).toList();
+                    if (urls.isEmpty()) {
+                        MpsqCameraClient.LOGGER.warn("Kein Titel der MPSQ-Playlist konnte geladen werden; Playlist bleibt ohne Wiedergabe.");
                         return;
                     }
                     openPlayer(urls,1.0f);
@@ -90,8 +111,8 @@ public final class MpsqMediaAudioManager {
 
     /** Plays the bundled short kick effect at a reduced volume without interrupting music. */
     public static void playBundledMp3(String resourcePath,float volume) {
-        MinecraftClient client=MinecraftClient.getInstance();
-        if(client.world==null||!CinemaBrowserManager.ensureAudioReady())return;
+        Minecraft client=Minecraft.getInstance();
+        if(client.level==null||!CinemaBrowserManager.ensureAudioReady())return;
         try(var stream=MpsqMediaAudioManager.class.getResourceAsStream(resourcePath)) {
             if(stream==null){MpsqCameraClient.LOGGER.warn("MPSQ-Sounddatei fehlt: {}",resourcePath);return;}
             String encoded=Base64.getEncoder().encodeToString(stream.readAllBytes());
@@ -101,7 +122,7 @@ public final class MpsqMediaAudioManager {
             String html="<!doctype html><meta charset=utf-8><audio id=a autoplay></audio><script>const q="+urls+";let i=0,a=document.getElementById('a');a.volume="+safeVolume+";a.src=q[0];a.play().catch(()=>{});</script>";
             String page="data:text/html;base64,"+Base64.getEncoder().encodeToString(html.getBytes(StandardCharsets.UTF_8));
             closeEffectBrowser();
-            effectBrowser=MCEF.createBrowser(page,false);
+            effectBrowser=McefModernBridge.createBrowser(page,false);
             CinemaAudioManager.registerBrowser(effectBrowser, CinemaAudioManager.AudioRoute.AMBIENT);
             effectBrowser.setFocus(false);
             effectBrowser.resize(64,64);
@@ -113,17 +134,17 @@ public final class MpsqMediaAudioManager {
     }
 
     private static void openPlayer(List<String> urls,float volume) {
-        MinecraftClient client = MinecraftClient.getInstance();
-        if (client.world == null || !CinemaBrowserManager.ensureAudioReady()) return;
+        Minecraft client = Minecraft.getInstance();
+        if (client.level == null || !CinemaBrowserManager.ensureAudioReady()) return;
         JsonArray json = new JsonArray();
         urls.forEach(json::add);
         // A tiny off-screen Chromium page owns the HTML audio element; PCM is
         // routed back into Minecraft by the existing MCEF/OpenAL bridge.
-        String html = "<!doctype html><meta charset=utf-8><audio id=a preload=auto></audio><script>const q=" + json
-                + ";let i=0,a=document.getElementById('a');a.preload='auto';a.volume="+Math.max(0.0f,Math.min(1.0f,volume))+";const next=()=>{i++;if(i<q.length){a.dataset.started='';a.src=q[i];a.load()}};a.onended=next;a.onerror=next;a.oncanplay=()=>{if(a.dataset.started===String(i))return;a.dataset.started=String(i);a.currentTime=0;a.play().catch(()=>{a.dataset.started=''})};a.src=q[0];a.load();</script>";
+        String html = "<!doctype html><meta charset=utf-8><audio id=a preload=auto autoplay></audio><script>const q=" + json
+                + ";let i=0,a=document.getElementById('a');a.autoplay=true;a.preload='auto';a.volume="+Math.max(0.0f,Math.min(1.0f,volume))+";const next=()=>{i++;if(i<q.length){a.dataset.started='';a.src=q[i];a.load()}};const start=()=>{if(a.dataset.started===String(i))return;a.dataset.started=String(i);a.currentTime=0;a.play().catch(e=>{a.dataset.started='';console.error('MPSQ playlist audio start failed',e)})};a.onended=next;a.onerror=next;a.oncanplay=start;a.onloadeddata=start;a.src=q[0];a.load();</script>";
         String page = "data:text/html;base64," + Base64.getEncoder().encodeToString(html.getBytes(StandardCharsets.UTF_8));
         try {
-            browser = MCEF.createBrowser(page, false);
+            browser = McefModernBridge.createBrowser(page, false);
             CinemaAudioManager.registerBrowser(browser, CinemaAudioManager.AudioRoute.AMBIENT);
             // The hidden audio browser must never capture Minecraft mouse or camera input.
             browser.setFocus(false);
@@ -155,7 +176,7 @@ public final class MpsqMediaAudioManager {
         browser = null;
         if (current != null) {
             CinemaAudioManager.unregisterBrowser(current);
-            try { current.close(); }
+            try { McefModernBridge.close(current); }
             catch (RuntimeException exception) { MpsqCameraClient.LOGGER.debug("MPSQ-Medienbrowser ließ sich nicht schließen", exception); }
             finally { CinemaBrowserManager.requestGameMouseRestore(); }
         }
@@ -164,6 +185,6 @@ public final class MpsqMediaAudioManager {
     private static void closeEffectBrowser() {
         MCEFBrowser current=effectBrowser;
         effectBrowser=null;effectExpiresAt=0L;
-        if(current!=null){CinemaAudioManager.unregisterBrowser(current);try{current.close();}catch(RuntimeException exception){MpsqCameraClient.LOGGER.debug("MPSQ-Effektbrowser ließ sich nicht schließen",exception);}finally{CinemaBrowserManager.requestGameMouseRestore();}}
+        if(current!=null){CinemaAudioManager.unregisterBrowser(current);try{McefModernBridge.close(current);}catch(RuntimeException exception){MpsqCameraClient.LOGGER.debug("MPSQ-Effektbrowser ließ sich nicht schließen",exception);}finally{CinemaBrowserManager.requestGameMouseRestore();}}
     }
 }
