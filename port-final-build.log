@@ -1,0 +1,60 @@
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/9.6.0/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+
+> Configure project :
+Fabric Loom: 1.17.21
+Project directory 'C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo' is located in OneDrive. This is known to cause issues and slower performance. Consider moving the project to a different location.
+
+> Task :clean
+> Task :compileJava NO-SOURCE
+> Task :processResources
+> Task :classes
+
+Hinweis: Einige Eingabedateien verwenden oder überschreiben eine veraltete API.
+Hinweis: Wiederholen Sie die Kompilierung mit -Xlint:deprecation, um Details zu erhalten.
+> Task :compileClientJava
+
+> Task :processClientResources
+> Task :processIncludeJars
+> Task :jar
+> Task :sourcesJar
+> Task :assemble
+> Task :clientClasses
+> Task :compileTestJava NO-SOURCE
+> Task :processTestResources NO-SOURCE
+> Task :testClasses UP-TO-DATE
+> Task :test NO-SOURCE
+> Task :validateAccessWidener NO-SOURCE
+> Task :check UP-TO-DATE
+> Task :build
+> Task :compileGameSystemsCheck
+
+> Task :checkGameSystems
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true
+PASS: 107 game-system checks
+
+> Task :compileLocalBackendCheck
+
+> Task :checkLocalBackend
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true
+PASS: 13 local backend checks
+
+> Task :compileReplayDataCheck
+
+> Task :checkReplayData
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true
+17 Replay-Pr�fungen erfolgreich
+
+> Task :portChecks
+
+[Incubating] Problems report is available at: file:///C:/Users/lanck_m63m7au/OneDrive/Dokumente/mpsq/Output/Local-SR-Offizier-26.3/Mod-Repo/build/reports/problems/problems-report.html
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.6.0/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 45s
+13 actionable tasks: 13 executed

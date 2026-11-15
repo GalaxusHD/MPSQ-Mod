@@ -1,0 +1,324 @@
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/9.6.0/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+
+> Configure project :
+Fabric Loom: 1.17.21
+Project directory 'C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo' is located in OneDrive. This is known to cause issues and slower performance. Consider moving the project to a different location.
+
+> Task :compileJava NO-SOURCE
+> Task :processResources UP-TO-DATE
+> Task :classes UP-TO-DATE
+
+> Task :compileClientJava
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqReplayPlayback.java:30: Fehler: Package net.minecraft.world.gen ist nicht vorhanden
+import net.minecraft.world.gen.*;
+                          ^
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqReplayPlayback.java:31: Fehler: Package net.minecraft.world.gen.chunk ist nicht vorhanden
+import net.minecraft.world.gen.chunk.*;
+                              ^
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\mixin\client\PlayerListHudMixin.java:17: Fehler: Symbol nicht gefunden
+        if (TeamVisibilitySettings.visible()) cir.setReturnValue(MpsqNametags.forPlayer(entry.getProfile().getName()));
+                                                                                                          ^
+  Symbol: Methode getName()
+  Ort: Klasse GameProfile
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqAccessoryRenderer.java:260: Fehler: Symbol nicht gefunden
+                applyHeadAccessoryTransform(model,matrices,angles.yaw(),angles.pitch(),player.getHeight(),player.getStandingEyeHeight());
+                                                                                             ^
+  Symbol: Methode getHeight()
+  Ort: Variable player von Typ AbstractClientPlayer
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqAccessoryRenderer.java:260: Fehler: Symbol nicht gefunden
+                applyHeadAccessoryTransform(model,matrices,angles.yaw(),angles.pitch(),player.getHeight(),player.getStandingEyeHeight());
+                                                                                                                ^
+  Symbol: Methode getStandingEyeHeight()
+  Ort: Variable player von Typ AbstractClientPlayer
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqActionSync.java:73: Fehler: Package net.minecraft.registry.Registries ist nicht vorhanden
+                        String block=net.minecraft.registry.Registries.BLOCK.getId(state.getBlock()).toString();
+                                                                      ^
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqActionSync.java:75: Fehler: Symbol nicht gefunden
+                        client.send(()->client.gui.setScreen(new MpsqActionSetupScreen(position,block,state.getBlock().getName().getString(),kind,properties)));
+                              ^
+  Symbol: Methode send(()->client[...]ies)))
+  Ort: Variable client von Typ Minecraft
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqActionSync.java:157: Fehler: Methode addMessage in Klasse ChatComponent kann nicht auf die angegebenen Typen angewendet werden.
+                    if (!localEcho && client.gui != null) client.gui.hud.getChat().addMessage(
+                                                                                  ^
+  Erforderlich: Component,MessageSignature,GuiMessageSource,GuiMessageTag
+  Ermittelt:    MutableComponent
+  Grund: Liste der tatsächlichen Argumente hat eine andere Länge als die der formalen Argumente
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqCameraClient.java:18: Fehler: Symbol nicht gefunden
+            if (client.options.showSubtitles().getValue()) {
+                                              ^
+  Symbol: Methode getValue()
+  Ort: Klasse OptionInstance<Boolean>
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqCameraClient.java:19: Fehler: Symbol nicht gefunden
+                client.options.showSubtitles().setValue(false);
+                                              ^
+  Symbol: Methode setValue(boolean)
+  Ort: Klasse OptionInstance<Boolean>
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqNametags.java:17: Fehler: Inkompatible Typen: Identifier kann nicht in FontDescription konvertiert werden
+        Component icon = Component.literal(glyph(rank)).setStyle(Style.EMPTY.withFont(RANK_FONT).withColor(ChatFormatting.WHITE));
+                                                                                      ^
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqNametags.java:23: Fehler: Inkompatible Typen: Identifier kann nicht in FontDescription konvertiert werden
+                .setStyle(Style.EMPTY.withFont(NAME_FONT).withColor(ChatFormatting.WHITE)));
+                                               ^
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqPetPresenceRenderer.java:54: Fehler: Symbol nicht gefunden
+            if(entry==null)return;PlayerSkin skin=entry.getSkin();texture=skin.texture();slim=skin.model()==net.minecraft.world.entity.player.PlayerModelType.SLIM;
+                                                                              ^
+  Symbol: Methode texture()
+  Ort: Variable skin von Typ PlayerSkin
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqReplayManager.java:86: Fehler: Symbol nicht gefunden
+                if(e instanceof AbstractClientPlayer p){name=p.getGameProfile().name();var props=p.getGameProfile().getProperties().get("textures");if(!props.isEmpty()){var prop=props.iterator().next();texture=prop.value();signature=prop.signature()==null?"":prop.signature();}}
+                                                                                                                   ^
+  Symbol: Methode getProperties()
+  Ort: Klasse GameProfile
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqReplayPlayback.java:89: Fehler: Symbol nicht gefunden
+            if(c.getServer()==null||!c.getServer().getSavePath(WorldSavePath.ROOT).toAbsolutePath().normalize().getFileName().toString().equals(folder)){reset();return;}
+                ^
+  Symbol: Methode getServer()
+  Ort: Variable c von Typ Minecraft
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqReplayPlayback.java:89: Fehler: Symbol nicht gefunden
+            if(c.getServer()==null||!c.getServer().getSavePath(WorldSavePath.ROOT).toAbsolutePath().normalize().getFileName().toString().equals(folder)){reset();return;}
+                                                               ^
+  Symbol: Variable WorldSavePath
+  Ort: Klasse MpsqReplayPlayback
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqReplayPlayback.java:89: Fehler: Symbol nicht gefunden
+            if(c.getServer()==null||!c.getServer().getSavePath(WorldSavePath.ROOT).toAbsolutePath().normalize().getFileName().toString().equals(folder)){reset();return;}
+                                      ^
+  Symbol: Methode getServer()
+  Ort: Variable c von Typ Minecraft
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqReplayPlayback.java:102: Fehler: Konstruktor LevelSettings in Datensatz LevelSettings kann nicht auf die angegebenen Typen angewendet werden.
+        var info=new LevelSettings("MPSQ Replay – "+MpsqZoneCatalog.label(replay.game),GameType.SPECTATOR,false,Difficulty.PEACEFUL,false,rules,WorldDataConfiguration.DEFAULT);
+                 ^
+  Erforderlich: String,GameType,DifficultySettings,boolean,WorldDataConfiguration
+  Ermittelt:    String,GameType,boolean,Difficulty,boolean,GameRules,WorldDataConfiguration
+  Grund: Liste der tatsächlichen Argumente hat eine andere Länge als die der formalen Argumente
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqReplayPlayback.java:111: Fehler: Symbol nicht gefunden
+            world.getGameRules().getRule(GameRules.RULE_DOMOBSPAWNING).set(false,server);
+                                                  ^
+  Symbol: Variable RULE_DOMOBSPAWNING
+  Ort: Klasse GameRules
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqReplayPlayback.java:112: Fehler: Symbol nicht gefunden
+            world.getGameRules().getRule(GameRules.RULE_DAYLIGHT).set(false,server);
+                                                  ^
+  Symbol: Variable RULE_DAYLIGHT
+  Ort: Klasse GameRules
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqReplayPlayback.java:113: Fehler: Symbol nicht gefunden
+            world.getGameRules().getRule(GameRules.RULE_WEATHER_CYCLE).set(false,server);
+                                                  ^
+  Symbol: Variable RULE_WEATHER_CYCLE
+  Ort: Klasse GameRules
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqReplayPlayback.java:114: Fehler: Symbol nicht gefunden
+            world.getGameRules().getRule(GameRules.RULE_RANDOMTICKING).set(0,server);
+                                                  ^
+  Symbol: Variable RULE_RANDOMTICKING
+  Ort: Klasse GameRules
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqReplayPlayback.java:115: Fehler: Symbol nicht gefunden
+            world.setDayTime(6000);server.tickRateManager().setFrozen(true);configured=true;
+                 ^
+  Symbol: Methode setDayTime(int)
+  Ort: Variable world von Typ ServerLevel
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqReplayPlayback.java:151: Fehler: Symbol nicht gefunden
+                if(!actor.texture().isEmpty())profile.getProperties().put("textures",new Property("textures",actor.texture(),actor.signature().isEmpty()?null:actor.signature()));
+                                                     ^
+  Symbol: Methode getProperties()
+  Ort: Variable profile von Typ GameProfile
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqReplayPlayback.java:152: Fehler: Symbol nicht gefunden
+                var skin=c.getSkinManager().lookupInsecure(profile);
+                                           ^
+  Symbol: Methode lookupInsecure(GameProfile)
+  Ort: Klasse SkinManager
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\RemoteCameraFrameManager.java:132: Fehler: Symbol nicht gefunden
+        if ((providerCamera == null && !hasBodycams) || publishing || client.getMainRenderTarget() == null) return;
+                                                                            ^
+  Symbol: Methode getMainRenderTarget()
+  Ort: Variable client von Typ Minecraft
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\RemoteCameraFrameManager.java:145: Fehler: Symbol nicht gefunden
+        Screenshot.takeScreenshot(client.getMainRenderTarget(), 1, image -> {
+                                        ^
+  Symbol: Methode getMainRenderTarget()
+  Ort: Variable client von Typ Minecraft
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\TeamCommandManager.java:78: Fehler: Symbol nicht gefunden
+                if(client.level==null||client.getNetworkHandler()==null)return true;
+                                             ^
+  Symbol: Methode getNetworkHandler()
+  Ort: Variable client von Typ Minecraft
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\TeamCommandManager.java:81: Fehler: Symbol nicht gefunden
+                pendingKicks.add(new PendingKick(normalized,target,System.nanoTime()+1_000_000_000L,client.level,client.getNetworkHandler()));
+                                                                                                                       ^
+  Symbol: Methode getNetworkHandler()
+  Ort: Variable client von Typ Minecraft
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\TeamCommandManager.java:125: Fehler: Methode addMessage in Klasse ChatComponent kann nicht auf die angegebenen Typen angewendet werden.
+        client.gui.hud.getChat().addMessage(message);
+                                ^
+  Erforderlich: Component,MessageSignature,GuiMessageSource,GuiMessageTag
+  Ermittelt:    Component
+  Grund: Liste der tatsächlichen Argumente hat eine andere Länge als die der formalen Argumente
+Hinweis: Einige Eingabedateien verwenden oder überschreiben eine veraltete API.
+Hinweis: Wiederholen Sie die Kompilierung mit -Xlint:deprecation, um Details zu erhalten.
+Hinweis: Einige Meldungen wurden vereinfacht. Wiederholen Sie die Kompilierung mit -Xdiags:verbose, um die vollständige Ausgabe abzurufen
+30 Fehler
+
+> Task :compileClientJava FAILED
+
+[Incubating] Problems report is available at: file:///C:/Users/lanck_m63m7au/OneDrive/Dokumente/mpsq/Output/Local-SR-Offizier-26.3/Mod-Repo/build/reports/problems/problems-report.html
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':compileClientJava' (registered by plugin class 'org.gradle.api.plugins.JavaBasePlugin').
+> Compilation failed; see the compiler output below.
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqActionSync.java:157: Fehler: Methode addMessage in Klasse ChatComponent kann nicht auf die angegebenen Typen angewendet werden.
+                      if (!localEcho && client.gui != null) client.gui.hud.getChat().addMessage(
+                                                                                    ^
+    Erforderlich: Component,MessageSignature,GuiMessageSource,GuiMessageTag
+    Ermittelt:    MutableComponent
+    Grund: Liste der tatsächlichen Argumente hat eine andere Länge als die der formalen Argumente
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqReplayPlayback.java:102: Fehler: Konstruktor LevelSettings in Datensatz LevelSettings kann nicht auf die angegebenen Typen angewendet werden.
+          var info=new LevelSettings("MPSQ Replay – "+MpsqZoneCatalog.label(replay.game),GameType.SPECTATOR,false,Difficulty.PEACEFUL,false,rules,WorldDataConfiguration.DEFAULT);
+                   ^
+    Erforderlich: String,GameType,DifficultySettings,boolean,WorldDataConfiguration
+    Ermittelt:    String,GameType,boolean,Difficulty,boolean,GameRules,WorldDataConfiguration
+    Grund: Liste der tatsächlichen Argumente hat eine andere Länge als die der formalen Argumente
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\TeamCommandManager.java:125: Fehler: Methode addMessage in Klasse ChatComponent kann nicht auf die angegebenen Typen angewendet werden.
+          client.gui.hud.getChat().addMessage(message);
+                                  ^
+    Erforderlich: Component,MessageSignature,GuiMessageSource,GuiMessageTag
+    Ermittelt:    Component
+    Grund: Liste der tatsächlichen Argumente hat eine andere Länge als die der formalen Argumente
+  Hinweis: Wiederholen Sie die Kompilierung mit -Xlint:deprecation, um Details zu erhalten.
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqNametags.java:17: Fehler: Inkompatible Typen: Identifier kann nicht in FontDescription konvertiert werden
+          Component icon = Component.literal(glyph(rank)).setStyle(Style.EMPTY.withFont(RANK_FONT).withColor(ChatFormatting.WHITE));
+                                                                                        ^
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqNametags.java:23: Fehler: Inkompatible Typen: Identifier kann nicht in FontDescription konvertiert werden
+                  .setStyle(Style.EMPTY.withFont(NAME_FONT).withColor(ChatFormatting.WHITE)));
+                                                 ^
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqReplayPlayback.java:89: Fehler: Symbol nicht gefunden
+              if(c.getServer()==null||!c.getServer().getSavePath(WorldSavePath.ROOT).toAbsolutePath().normalize().getFileName().toString().equals(folder)){reset();return;}
+                                                                 ^
+    Symbol: Variable WorldSavePath
+    Ort: Klasse MpsqReplayPlayback
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqReplayPlayback.java:111: Fehler: Symbol nicht gefunden
+              world.getGameRules().getRule(GameRules.RULE_DOMOBSPAWNING).set(false,server);
+                                                    ^
+    Symbol: Variable RULE_DOMOBSPAWNING
+    Ort: Klasse GameRules
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqReplayPlayback.java:112: Fehler: Symbol nicht gefunden
+              world.getGameRules().getRule(GameRules.RULE_DAYLIGHT).set(false,server);
+                                                    ^
+    Symbol: Variable RULE_DAYLIGHT
+    Ort: Klasse GameRules
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqReplayPlayback.java:113: Fehler: Symbol nicht gefunden
+              world.getGameRules().getRule(GameRules.RULE_WEATHER_CYCLE).set(false,server);
+                                                    ^
+    Symbol: Variable RULE_WEATHER_CYCLE
+    Ort: Klasse GameRules
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqReplayPlayback.java:114: Fehler: Symbol nicht gefunden
+              world.getGameRules().getRule(GameRules.RULE_RANDOMTICKING).set(0,server);
+                                                    ^
+    Symbol: Variable RULE_RANDOMTICKING
+    Ort: Klasse GameRules
+  Hinweis: Einige Eingabedateien verwenden oder überschreiben eine veraltete API.
+  Hinweis: Einige Meldungen wurden vereinfacht. Wiederholen Sie die Kompilierung mit -Xdiags:verbose, um die vollständige Ausgabe abzurufen
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\mixin\client\PlayerListHudMixin.java:17: Fehler: Symbol nicht gefunden
+          if (TeamVisibilitySettings.visible()) cir.setReturnValue(MpsqNametags.forPlayer(entry.getProfile().getName()));
+                                                                                                            ^
+    Symbol: Methode getName()
+    Ort: Klasse GameProfile
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqAccessoryRenderer.java:260: Fehler: Symbol nicht gefunden
+                  applyHeadAccessoryTransform(model,matrices,angles.yaw(),angles.pitch(),player.getHeight(),player.getStandingEyeHeight());
+                                                                                               ^
+    Symbol: Methode getHeight()
+    Ort: Variable player von Typ AbstractClientPlayer
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqAccessoryRenderer.java:260: Fehler: Symbol nicht gefunden
+                  applyHeadAccessoryTransform(model,matrices,angles.yaw(),angles.pitch(),player.getHeight(),player.getStandingEyeHeight());
+                                                                                                                  ^
+    Symbol: Methode getStandingEyeHeight()
+    Ort: Variable player von Typ AbstractClientPlayer
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqActionSync.java:75: Fehler: Symbol nicht gefunden
+                          client.send(()->client.gui.setScreen(new MpsqActionSetupScreen(position,block,state.getBlock().getName().getString(),kind,properties)));
+                                ^
+    Symbol: Methode send(()->client[...]ies)))
+    Ort: Variable client von Typ Minecraft
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqCameraClient.java:18: Fehler: Symbol nicht gefunden
+              if (client.options.showSubtitles().getValue()) {
+                                                ^
+    Symbol: Methode getValue()
+    Ort: Klasse OptionInstance<Boolean>
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqCameraClient.java:19: Fehler: Symbol nicht gefunden
+                  client.options.showSubtitles().setValue(false);
+                                                ^
+    Symbol: Methode setValue(boolean)
+    Ort: Klasse OptionInstance<Boolean>
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqPetPresenceRenderer.java:54: Fehler: Symbol nicht gefunden
+              if(entry==null)return;PlayerSkin skin=entry.getSkin();texture=skin.texture();slim=skin.model()==net.minecraft.world.entity.player.PlayerModelType.SLIM;
+                                                                                ^
+    Symbol: Methode texture()
+    Ort: Variable skin von Typ PlayerSkin
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqReplayManager.java:86: Fehler: Symbol nicht gefunden
+                  if(e instanceof AbstractClientPlayer p){name=p.getGameProfile().name();var props=p.getGameProfile().getProperties().get("textures");if(!props.isEmpty()){var prop=props.iterator().next();texture=prop.value();signature=prop.signature()==null?"":prop.signature();}}
+                                                                                                                     ^
+    Symbol: Methode getProperties()
+    Ort: Klasse GameProfile
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqReplayPlayback.java:89: Fehler: Symbol nicht gefunden
+              if(c.getServer()==null||!c.getServer().getSavePath(WorldSavePath.ROOT).toAbsolutePath().normalize().getFileName().toString().equals(folder)){reset();return;}
+                  ^
+    Symbol: Methode getServer()
+    Ort: Variable c von Typ Minecraft
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqReplayPlayback.java:89: Fehler: Symbol nicht gefunden
+              if(c.getServer()==null||!c.getServer().getSavePath(WorldSavePath.ROOT).toAbsolutePath().normalize().getFileName().toString().equals(folder)){reset();return;}
+                                        ^
+    Symbol: Methode getServer()
+    Ort: Variable c von Typ Minecraft
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqReplayPlayback.java:115: Fehler: Symbol nicht gefunden
+              world.setDayTime(6000);server.tickRateManager().setFrozen(true);configured=true;
+                   ^
+    Symbol: Methode setDayTime(int)
+    Ort: Variable world von Typ ServerLevel
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqReplayPlayback.java:151: Fehler: Symbol nicht gefunden
+                  if(!actor.texture().isEmpty())profile.getProperties().put("textures",new Property("textures",actor.texture(),actor.signature().isEmpty()?null:actor.signature()));
+                                                       ^
+    Symbol: Methode getProperties()
+    Ort: Variable profile von Typ GameProfile
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqReplayPlayback.java:152: Fehler: Symbol nicht gefunden
+                  var skin=c.getSkinManager().lookupInsecure(profile);
+                                             ^
+    Symbol: Methode lookupInsecure(GameProfile)
+    Ort: Klasse SkinManager
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\RemoteCameraFrameManager.java:132: Fehler: Symbol nicht gefunden
+          if ((providerCamera == null && !hasBodycams) || publishing || client.getMainRenderTarget() == null) return;
+                                                                              ^
+    Symbol: Methode getMainRenderTarget()
+    Ort: Variable client von Typ Minecraft
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\RemoteCameraFrameManager.java:145: Fehler: Symbol nicht gefunden
+          Screenshot.takeScreenshot(client.getMainRenderTarget(), 1, image -> {
+                                          ^
+    Symbol: Methode getMainRenderTarget()
+    Ort: Variable client von Typ Minecraft
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\TeamCommandManager.java:78: Fehler: Symbol nicht gefunden
+                  if(client.level==null||client.getNetworkHandler()==null)return true;
+                                               ^
+    Symbol: Methode getNetworkHandler()
+    Ort: Variable client von Typ Minecraft
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\TeamCommandManager.java:81: Fehler: Symbol nicht gefunden
+                  pendingKicks.add(new PendingKick(normalized,target,System.nanoTime()+1_000_000_000L,client.level,client.getNetworkHandler()));
+                                                                                                                         ^
+    Symbol: Methode getNetworkHandler()
+    Ort: Variable client von Typ Minecraft
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqReplayPlayback.java:30: Fehler: Package net.minecraft.world.gen ist nicht vorhanden
+  import net.minecraft.world.gen.*;
+                            ^
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqReplayPlayback.java:31: Fehler: Package net.minecraft.world.gen.chunk ist nicht vorhanden
+  import net.minecraft.world.gen.chunk.*;
+                                ^
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqActionSync.java:73: Fehler: Package net.minecraft.registry.Registries ist nicht vorhanden
+                          String block=net.minecraft.registry.Registries.BLOCK.getId(state.getBlock()).toString();
+                                                                        ^
+  30 Fehler
+
+* Try:
+> Check your code and dependencies to fix the compilation error(s)
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+
+BUILD FAILED in 12s
+2 actionable tasks: 1 executed, 1 up-to-date

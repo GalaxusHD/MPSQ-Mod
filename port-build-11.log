@@ -1,0 +1,1232 @@
+Picked up JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/9.6.0/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+
+> Configure project :
+Fabric Loom: 1.17.21
+Project directory 'C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo' is located in OneDrive. This is known to cause issues and slower performance. Consider moving the project to a different location.
+
+> Task :compileJava NO-SOURCE
+> Task :processResources UP-TO-DATE
+> Task :classes UP-TO-DATE
+
+> Task :compileClientJava
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqReplayPlayback.java:30: Fehler: Package net.minecraft.world.gen ist nicht vorhanden
+import net.minecraft.world.gen.*;
+                          ^
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqReplayPlayback.java:31: Fehler: Package net.minecraft.world.gen.chunk ist nicht vorhanden
+import net.minecraft.world.gen.chunk.*;
+                              ^
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\mixin\client\PlayerEntityRendererMixin.java:71: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+            matrices.mulPose(com.mojang.math.Axis.XP.rotationDegrees(fall));
+                    ^
+    Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+    Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\mixin\client\PlayerListHudMixin.java:17: Fehler: Symbol nicht gefunden
+        if (TeamVisibilitySettings.visible()) cir.setReturnValue(MpsqNametags.forPlayer(entry.getProfile().getName()));
+                                                                                                          ^
+  Symbol: Methode getName()
+  Ort: Klasse GameProfile
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\mixin\client\SoundSystemMixin.java:39: Fehler: Symbol nicht gefunden
+                || ("minecraft".equals(sound.getLocation().getNamespace())
+                                            ^
+  Symbol: Methode getLocation()
+  Ort: Variable sound von Typ SoundInstance
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\mixin\client\SoundSystemMixin.java:40: Fehler: Symbol nicht gefunden
+                && sound.getLocation().getPath().startsWith("block.note_block."));
+                        ^
+  Symbol: Methode getLocation()
+  Ort: Variable sound von Typ SoundInstance
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqAccessoryRenderer.java:236: Fehler: Symbol nicht gefunden
+                if(client.level!=null)for(var player:client.level.getPlayers()){
+                                                                 ^
+  Symbol: Methode getPlayers()
+  Ort: Variable level von Typ ClientLevel
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqAccessoryRenderer.java:246: Fehler: Symbol nicht gefunden
+            float tickProgress=context.tickCounter().getTickProgress(false);
+                                                    ^
+  Symbol: Methode getTickProgress(boolean)
+  Ort: Schnittstelle DeltaTracker
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqAccessoryRenderer.java:249: Fehler: Symbol nicht gefunden
+                float objectScale=o.has("scale")?o.get("scale").getAsFloat():1.0f;objectScale=Float.isFinite(objectScale)?Math.max(0.25f,Math.min(3.0f,objectScale)):1.0f;FurnitureBounds bounds=furnitureBounds(model);matrices.push();matrices.translate(x+0.5-camera.x,y-camera.y,z+0.5-camera.z);matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(o.get("rotation").getAsFloat()));matrices.translate(-0.5,0,-0.5);matrices.translate(0.5-objectScale*bounds.centerX()/16.0,-objectScale*bounds.minY()/16.0,0.5-objectScale*bounds.centerZ()/16.0);matrices.scale(objectScale/16,objectScale/16,objectScale/16);drawBakedFurniture(model,matrices,consumers,0xFFFFFFFF);matrices.pop();String furnitureName=o.has("display_name")?o.get("display_name").getAsString():"";MpsqFurnitureNameTagRenderer.draw(context,matrices,consumers,furnitureName,x+0.5,y+2.0*objectScale+0.15,z+0.5);
+                                                                                                                                                                                                                                ^
+  Symbol: Methode push()
+  Ort: Variable matrices von Typ PoseStack
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqAccessoryRenderer.java:249: Fehler: Package RotationAxis ist nicht vorhanden
+                float objectScale=o.has("scale")?o.get("scale").getAsFloat():1.0f;objectScale=Float.isFinite(objectScale)?Math.max(0.25f,Math.min(3.0f,objectScale)):1.0f;FurnitureBounds bounds=furnitureBounds(model);matrices.push();matrices.translate(x+0.5-camera.x,y-camera.y,z+0.5-camera.z);matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(o.get("rotation").getAsFloat()));matrices.translate(-0.5,0,-0.5);matrices.translate(0.5-objectScale*bounds.centerX()/16.0,-objectScale*bounds.minY()/16.0,0.5-objectScale*bounds.centerZ()/16.0);matrices.scale(objectScale/16,objectScale/16,objectScale/16);drawBakedFurniture(model,matrices,consumers,0xFFFFFFFF);matrices.pop();String furnitureName=o.has("display_name")?o.get("display_name").getAsString():"";MpsqFurnitureNameTagRenderer.draw(context,matrices,consumers,furnitureName,x+0.5,y+2.0*objectScale+0.15,z+0.5);
+                                                                                                                                                                                                                                                                                                                                   ^
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqAccessoryRenderer.java:249: Fehler: Symbol nicht gefunden
+                float objectScale=o.has("scale")?o.get("scale").getAsFloat():1.0f;objectScale=Float.isFinite(objectScale)?Math.max(0.25f,Math.min(3.0f,objectScale)):1.0f;FurnitureBounds bounds=furnitureBounds(model);matrices.push();matrices.translate(x+0.5-camera.x,y-camera.y,z+0.5-camera.z);matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(o.get("rotation").getAsFloat()));matrices.translate(-0.5,0,-0.5);matrices.translate(0.5-objectScale*bounds.centerX()/16.0,-objectScale*bounds.minY()/16.0,0.5-objectScale*bounds.centerZ()/16.0);matrices.scale(objectScale/16,objectScale/16,objectScale/16);drawBakedFurniture(model,matrices,consumers,0xFFFFFFFF);matrices.pop();String furnitureName=o.has("display_name")?o.get("display_name").getAsString():"";MpsqFurnitureNameTagRenderer.draw(context,matrices,consumers,furnitureName,x+0.5,y+2.0*objectScale+0.15,z+0.5);
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             ^
+  Symbol: Methode pop()
+  Ort: Variable matrices von Typ PoseStack
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqAccessoryRenderer.java:251: Fehler: Symbol nicht gefunden
+            for(var player:client.level.getPlayers()){
+                                       ^
+  Symbol: Methode getPlayers()
+  Ort: Variable level von Typ ClientLevel
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqAccessoryRenderer.java:252: Fehler: Symbol nicht gefunden
+                if(player.isInvisible()||player.isSpectator()||(player==client.player&&client.options.getPerspective().isFirstPerson()))continue;
+                                                                                                     ^
+  Symbol: Methode getPerspective()
+  Ort: Variable options von Typ Options
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqAccessoryRenderer.java:258: Fehler: Symbol nicht gefunden
+                matrices.push();
+                        ^
+  Symbol: Methode push()
+  Ort: Variable matrices von Typ PoseStack
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqAccessoryRenderer.java:262: Fehler: Symbol nicht gefunden
+                matrices.pop();
+                        ^
+  Symbol: Methode pop()
+  Ort: Variable matrices von Typ PoseStack
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqAccessoryRenderer.java:294: Fehler: Symbol nicht gefunden
+                else {float clipTime=wumpus?MpsqWumpusBehavior.elapsedSeconds(npcId):0;if(wumpus)pitch=0f;matrices.push();matrices.translate(x-camera.x,y+bob-camera.y,z-camera.z);matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(-bodyYaw+(wumpus?180f:0f)));matrices.multiply(RotationAxis.POSITIVE_X.rotationDegrees(pitch));matrices.scale(size/16f*pulse,size/16f*pulse,size/16f*pulse);drawBbModel(model,matrices,consumers,0xFFFFFFFF,clip,clipTime);
+                                                                                                                  ^
+  Symbol: Methode push()
+  Ort: Variable matrices von Typ PoseStack
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqAccessoryRenderer.java:294: Fehler: Package RotationAxis ist nicht vorhanden
+                else {float clipTime=wumpus?MpsqWumpusBehavior.elapsedSeconds(npcId):0;if(wumpus)pitch=0f;matrices.push();matrices.translate(x-camera.x,y+bob-camera.y,z-camera.z);matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(-bodyYaw+(wumpus?180f:0f)));matrices.multiply(RotationAxis.POSITIVE_X.rotationDegrees(pitch));matrices.scale(size/16f*pulse,size/16f*pulse,size/16f*pulse);drawBbModel(model,matrices,consumers,0xFFFFFFFF,clip,clipTime);
+                                                                                                                                                                                                                 ^
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqAccessoryRenderer.java:294: Fehler: Package RotationAxis ist nicht vorhanden
+                else {float clipTime=wumpus?MpsqWumpusBehavior.elapsedSeconds(npcId):0;if(wumpus)pitch=0f;matrices.push();matrices.translate(x-camera.x,y+bob-camera.y,z-camera.z);matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(-bodyYaw+(wumpus?180f:0f)));matrices.multiply(RotationAxis.POSITIVE_X.rotationDegrees(pitch));matrices.scale(size/16f*pulse,size/16f*pulse,size/16f*pulse);drawBbModel(model,matrices,consumers,0xFFFFFFFF,clip,clipTime);
+                                                                                                                                                                                                                                                                                                       ^
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqAccessoryRenderer.java:295: Fehler: Symbol nicht gefunden
+                    if(glowing){var outline=client.getBufferBuilders().getOutlineVertexConsumers();outline.setColor((glow>>16)&255,(glow>>8)&255,glow&255,255);drawBbModel(model,matrices,outline,0xFFFFFFFF,clip,clipTime);outline.draw();}
+                                                  ^
+  Symbol: Methode getBufferBuilders()
+  Ort: Variable client von Typ Minecraft
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqAccessoryRenderer.java:296: Fehler: Symbol nicht gefunden
+                    matrices.pop();}
+                            ^
+  Symbol: Methode pop()
+  Ort: Variable matrices von Typ PoseStack
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqAccessoryRenderer.java:309: Fehler: Symbol nicht gefunden
+                    drawBillboard(context,matrices,consumers,Identifier.of("mpsqcamera","textures/gui/npc_tags/"+tag+".png"),tagX,y+npcHeight+bob+tagVerticalOffset-camera.y,tagZ,tagHeight*aspect,tagHeight);
+                                                                       ^
+  Symbol: Methode of(String,String)
+  Ort: Klasse Identifier
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqAccessoryRenderer.java:310: Fehler: Symbol nicht gefunden
+                    if("tutorial".equals(task)&&!tutorialDone){float hover=(float)Math.sin(System.currentTimeMillis()/360.0)*0.07f*tagScale;float iconOffset=tagVerticalOffset+0.36f*tagScale;drawBillboard(context,matrices,consumers,Identifier.of("mpsqcamera","textures/gui/npc_tags/tutorial_exclamation.png"),tagX,y+npcHeight+bob+iconOffset+hover-camera.y,tagZ,0.42f*tagScale,0.42f*tagScale);}}
+                                                                                                                                                                                                                                                 ^
+  Symbol: Methode of(String,String)
+  Ort: Klasse Identifier
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqAccessoryRenderer.java:315: Fehler: Symbol nicht gefunden
+                    drawBillboard(context,matrices,consumers,Identifier.of("mpsqcamera","textures/gui/npc_tags/discord.png"),tagX,y+npcHeight+bob+tagCenterOffset-camera.y,tagZ,tagHeight*(2176f/320f),tagHeight);
+                                                                       ^
+  Symbol: Methode of(String,String)
+  Ort: Klasse Identifier
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqAccessoryRenderer.java:414: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+            matrices.mulPose(Axis.YP.rotationDegrees(-headYaw));
+                    ^
+    Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+    Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqAccessoryRenderer.java:415: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+            matrices.mulPose(Axis.XP.rotationDegrees(-headPitch));
+                    ^
+    Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+    Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqAccessoryRenderer.java:417: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+            matrices.mulPose(Axis.ZP.rotationDegrees(display.rotation()[2]));
+                    ^
+    Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+    Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqAccessoryRenderer.java:418: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+            matrices.mulPose(Axis.YP.rotationDegrees(display.rotation()[1]));
+                    ^
+    Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+    Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqAccessoryRenderer.java:419: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+            matrices.mulPose(Axis.XP.rotationDegrees(display.rotation()[0]));
+                    ^
+    Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+    Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqAccessoryRenderer.java:431: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+        matrices.mulPose(Axis.YP.rotationDegrees(-headYaw));
+                ^
+    Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+    Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqAccessoryRenderer.java:434: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+        matrices.mulPose(Axis.XP.rotationDegrees(-headPitch));
+                ^
+    Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+    Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqAccessoryRenderer.java:482: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+        matrices.pushPose();matrices.translate(x,y,z);matrices.mulPose(context.camera().getRotation());var entry=matrices.last();var buffer=consumers.getBuffer(net.minecraft.client.renderer.rendertype.RenderTypes.entityCutout(texture));
+                                                              ^
+    Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+    Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqAccessoryRenderer.java:499: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+        float[] origin=vec(bone,"origin"),rotation=vec(bone,"rotation"),position=animationTrack(clip,bone,"position",time),delta=animationTrack(clip,bone,"rotation",time);matrices.pushPose();matrices.translate(origin[0]+position[0],origin[1]+position[1],origin[2]+position[2]);matrices.mulPose(Axis.ZP.rotationDegrees(rotation[2]+delta[2]));matrices.mulPose(Axis.YP.rotationDegrees(rotation[1]+delta[1]));matrices.mulPose(Axis.XP.rotationDegrees(rotation[0]+delta[0]));matrices.translate(-origin[0],-origin[1],-origin[2]);
+                                                                                                                                                                                                                                                                                             ^
+    Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+    Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqAccessoryRenderer.java:499: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+        float[] origin=vec(bone,"origin"),rotation=vec(bone,"rotation"),position=animationTrack(clip,bone,"position",time),delta=animationTrack(clip,bone,"rotation",time);matrices.pushPose();matrices.translate(origin[0]+position[0],origin[1]+position[1],origin[2]+position[2]);matrices.mulPose(Axis.ZP.rotationDegrees(rotation[2]+delta[2]));matrices.mulPose(Axis.YP.rotationDegrees(rotation[1]+delta[1]));matrices.mulPose(Axis.XP.rotationDegrees(rotation[0]+delta[0]));matrices.translate(-origin[0],-origin[1],-origin[2]);
+                                                                                                                                                                                                                                                                                                                                                             ^
+    Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+    Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqAccessoryRenderer.java:499: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+        float[] origin=vec(bone,"origin"),rotation=vec(bone,"rotation"),position=animationTrack(clip,bone,"position",time),delta=animationTrack(clip,bone,"rotation",time);matrices.pushPose();matrices.translate(origin[0]+position[0],origin[1]+position[1],origin[2]+position[2]);matrices.mulPose(Axis.ZP.rotationDegrees(rotation[2]+delta[2]));matrices.mulPose(Axis.YP.rotationDegrees(rotation[1]+delta[1]));matrices.mulPose(Axis.XP.rotationDegrees(rotation[0]+delta[0]));matrices.translate(-origin[0],-origin[1],-origin[2]);
+                                                                                                                                                                                                                                                                                                                                                                                                                             ^
+    Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+    Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqAccessoryRenderer.java:507: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+                    matrices.mulPose(Axis.ZP.rotationDegrees(rotation[2]));matrices.mulPose(Axis.YP.rotationDegrees(rotation[1]));matrices.mulPose(Axis.XP.rotationDegrees(rotation[0]));
+                            ^
+    Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+    Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqAccessoryRenderer.java:507: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+                    matrices.mulPose(Axis.ZP.rotationDegrees(rotation[2]));matrices.mulPose(Axis.YP.rotationDegrees(rotation[1]));matrices.mulPose(Axis.XP.rotationDegrees(rotation[0]));
+                                                                                   ^
+    Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+    Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqAccessoryRenderer.java:507: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+                    matrices.mulPose(Axis.ZP.rotationDegrees(rotation[2]));matrices.mulPose(Axis.YP.rotationDegrees(rotation[1]));matrices.mulPose(Axis.XP.rotationDegrees(rotation[0]));
+                                                                                                                                          ^
+    Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+    Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqActionSync.java:73: Fehler: Package net.minecraft.registry.Registries ist nicht vorhanden
+                        String block=net.minecraft.registry.Registries.BLOCK.getId(state.getBlock()).toString();
+                                                                      ^
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqActionSync.java:75: Fehler: Symbol nicht gefunden
+                        client.send(()->client.gui.setScreen(new MpsqActionSetupScreen(position,block,state.getBlock().getName().getString(),kind,properties)));
+                              ^
+  Symbol: Methode send(()->client[...]ies)))
+  Ort: Variable client von Typ Minecraft
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqActionSync.java:157: Fehler: Methode addMessage in Klasse ChatComponent kann nicht auf die angegebenen Typen angewendet werden.
+                    if (!localEcho && client.gui != null) client.gui.hud.getChat().addMessage(
+                                                                                  ^
+  Erforderlich: Component,MessageSignature,GuiMessageSource,GuiMessageTag
+  Ermittelt:    MutableComponent
+  Grund: Liste der tatsächlichen Argumente hat eine andere Länge als die der formalen Argumente
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqAudioManager.java:25: Fehler: Symbol nicht gefunden
+            if (sound != null && !client.getSoundManager().isPlaying(sound)) nextTrack();
+                                                          ^
+  Symbol: Methode isPlaying(SimpleSoundInstance)
+  Ort: Klasse SoundManager
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqAudioManager.java:67: Fehler: Symbol nicht gefunden
+        if (sound != null) Minecraft.getInstance().getSoundManager().setVolume(sound, volume);
+                                                                    ^
+  Symbol: Methode setVolume(SimpleSoundInstance,float)
+  Ort: Klasse SoundManager
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqBudgieModel.java:44: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+        matrices.mulPose(Axis.YP.rotationDegrees(180.0f - yaw));
+                ^
+    Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+    Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqBudgieModel.java:75: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+        matrices.mulPose(Axis.ZP.rotationDegrees((float) (rotation.z + animatedRotation.z)));
+                ^
+    Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+    Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqBudgieModel.java:76: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+        matrices.mulPose(Axis.YP.rotationDegrees((float) (rotation.y + animatedRotation.y)));
+                ^
+    Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+    Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqBudgieModel.java:77: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+        matrices.mulPose(Axis.XP.rotationDegrees((float) (rotation.x + animatedRotation.x)));
+                ^
+    Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+    Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqBudgieModel.java:89: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+        matrices.mulPose(Axis.ZP.rotationDegrees((float) cube.rotation.z));
+                ^
+    Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+    Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqBudgieModel.java:90: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+        matrices.mulPose(Axis.YP.rotationDegrees((float) cube.rotation.y));
+                ^
+    Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+    Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqBudgieModel.java:91: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+        matrices.mulPose(Axis.XP.rotationDegrees((float) cube.rotation.x));
+                ^
+    Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+    Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqCameraClient.java:18: Fehler: Symbol nicht gefunden
+            if (client.options.showSubtitles().getValue()) {
+                                              ^
+  Symbol: Methode getValue()
+  Ort: Klasse OptionInstance<Boolean>
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqCameraClient.java:19: Fehler: Symbol nicht gefunden
+                client.options.showSubtitles().setValue(false);
+                                              ^
+  Symbol: Methode setValue(boolean)
+  Ort: Klasse OptionInstance<Boolean>
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqFurnitureNameTagRenderer.java:23: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+        matrices.mulPose(context.camera().getRotation());
+                ^
+    Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+    Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqGamesRuntime.java:42: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+                m.mulPose(ctx.camera().getRotation());m.scale(-0.025f,-0.025f,0.025f);
+                 ^
+    Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+    Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqHedgehogModel.java:41: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+        matrices.mulPose(Axis.YP.rotationDegrees(180.0f - yaw));
+                ^
+    Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+    Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqHedgehogModel.java:62: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+        matrices.mulPose(Axis.ZP.rotationDegrees((float) (rotation.z + animatedRotation.z)));
+                ^
+    Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+    Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqHedgehogModel.java:63: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+        matrices.mulPose(Axis.YP.rotationDegrees((float) (rotation.y + animatedRotation.y)));
+                ^
+    Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+    Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqHedgehogModel.java:64: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+        matrices.mulPose(Axis.XP.rotationDegrees((float) (rotation.x + animatedRotation.x)));
+                ^
+    Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+    Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqHedgehogModel.java:76: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+        matrices.mulPose(Axis.ZP.rotationDegrees((float) cube.rotation.z));
+                ^
+    Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+    Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqHedgehogModel.java:77: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+        matrices.mulPose(Axis.YP.rotationDegrees((float) cube.rotation.y));
+                ^
+    Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+    Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqHedgehogModel.java:78: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+        matrices.mulPose(Axis.XP.rotationDegrees((float) cube.rotation.x));
+                ^
+    Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+    Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqKickAnimationManager.java:48: Fehler: Symbol nicht gefunden
+        if(skinSource!=null)profile.getProperties().putAll(skinSource.getGameProfile().getProperties());
+                                   ^
+  Symbol: Methode getProperties()
+  Ort: Variable profile von Typ GameProfile
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqKickAnimationManager.java:48: Fehler: Symbol nicht gefunden
+        if(skinSource!=null)profile.getProperties().putAll(skinSource.getGameProfile().getProperties());
+                                                                                      ^
+  Symbol: Methode getProperties()
+  Ort: Klasse GameProfile
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqKickAnimationManager.java:60: Fehler: Symbol nicht gefunden
+        if(skin!=null)CLONE_SKINS.put(profile.getId(),skin);
+                                             ^
+  Symbol: Methode getId()
+  Ort: Variable profile von Typ GameProfile
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqKickAnimationManager.java:63: Fehler: Symbol nicht gefunden
+            SOURCE_MODEL_PARTS.put(profile.getId(),new boolean[]{
+                                          ^
+  Symbol: Methode getId()
+  Ort: Variable profile von Typ GameProfile
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqMiniYouModel.java:42: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+        matrices.mulPose(Axis.YP.rotationDegrees(180.0f - yaw));
+                ^
+    Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+    Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqMiniYouModel.java:65: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+        matrices.mulPose(Axis.ZP.rotationDegrees((float) (rotation.z + animatedRotation.z)));
+                ^
+    Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+    Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqMiniYouModel.java:66: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+        matrices.mulPose(Axis.YP.rotationDegrees((float) (rotation.y + animatedRotation.y)));
+                ^
+    Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+    Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqMiniYouModel.java:67: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+        matrices.mulPose(Axis.XP.rotationDegrees((float) (rotation.x + animatedRotation.x)));
+                ^
+    Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+    Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqMiniYouModel.java:79: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+        matrices.mulPose(Axis.ZP.rotationDegrees((float) cube.rotation.z));
+                ^
+    Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+    Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqMiniYouModel.java:80: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+        matrices.mulPose(Axis.YP.rotationDegrees((float) cube.rotation.y));
+                ^
+    Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+    Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqMiniYouModel.java:81: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+        matrices.mulPose(Axis.XP.rotationDegrees((float) cube.rotation.x));
+                ^
+    Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+    Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqNametags.java:17: Fehler: Inkompatible Typen: Identifier kann nicht in FontDescription konvertiert werden
+        Component icon = Component.literal(glyph(rank)).setStyle(Style.EMPTY.withFont(RANK_FONT).withColor(ChatFormatting.WHITE));
+                                                                                      ^
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqNametags.java:23: Fehler: Inkompatible Typen: Identifier kann nicht in FontDescription konvertiert werden
+                .setStyle(Style.EMPTY.withFont(NAME_FONT).withColor(ChatFormatting.WHITE)));
+                                               ^
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqOtterModel.java:41: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+        matrices.mulPose(Axis.YP.rotationDegrees(180.0f - yaw));
+                ^
+    Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+    Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqOtterModel.java:64: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+        matrices.mulPose(Axis.ZP.rotationDegrees((float) (rotation.z + animatedRotation.z)));
+                ^
+    Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+    Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqOtterModel.java:65: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+        matrices.mulPose(Axis.YP.rotationDegrees((float) (rotation.y + animatedRotation.y)));
+                ^
+    Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+    Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqOtterModel.java:66: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+        matrices.mulPose(Axis.XP.rotationDegrees((float) (rotation.x + animatedRotation.x)));
+                ^
+    Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+    Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqOtterModel.java:78: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+        matrices.mulPose(Axis.ZP.rotationDegrees((float) cube.rotation.z));
+                ^
+    Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+    Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqOtterModel.java:79: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+        matrices.mulPose(Axis.YP.rotationDegrees((float) cube.rotation.y));
+                ^
+    Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+    Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqOtterModel.java:80: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+        matrices.mulPose(Axis.XP.rotationDegrees((float) cube.rotation.x));
+                ^
+    Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+    Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+      (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqPetPresenceRenderer.java:43: Fehler: Symbol nicht gefunden
+            if(entry==null)return;PlayerSkin textures=entry.getSkin();skin=new MpsqNpcSkinRenderer.Skin(textures.texture(),textures.model()==net.minecraft.world.entity.player.PlayerModelType.SLIM);
+                                                                                                                ^
+  Symbol: Methode texture()
+  Ort: Variable textures von Typ PlayerSkin
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqPetPresenceRenderer.java:54: Fehler: Symbol nicht gefunden
+            if(entry==null)return;PlayerSkin skin=entry.getSkin();texture=skin.texture();slim=skin.model()==net.minecraft.world.entity.player.PlayerModelType.SLIM;
+                                                                              ^
+  Symbol: Methode texture()
+  Ort: Variable skin von Typ PlayerSkin
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqPetRenderer.java:56: Fehler: Symbol nicht gefunden
+            float yaw = player.getYaw();
+                              ^
+  Symbol: Methode getYaw()
+  Ort: Variable player von Typ LocalPlayer
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqPetRenderer.java:59: Fehler: Symbol nicht gefunden
+            var velocity = player.getVelocity();
+                                 ^
+  Symbol: Methode getVelocity()
+  Ort: Variable player von Typ LocalPlayer
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqPetRenderer.java:61: Fehler: Symbol nicht gefunden
+            state.limbSwingAnimationProgress = age * (speed > 0.02f ? 0.18f : 0.035f);
+                 ^
+  Symbol: Variable limbSwingAnimationProgress
+  Ort: Variable state von Typ AvatarRenderState
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqPetRenderer.java:62: Fehler: Symbol nicht gefunden
+            state.limbSwingAmplitude = Math.min(0.55f, speed * 2.2f);
+                 ^
+  Symbol: Variable limbSwingAmplitude
+  Ort: Variable state von Typ AvatarRenderState
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqPetRenderer.java:114: Fehler: Symbol nicht gefunden
+            return new MpsqNpcSkinRenderer.Skin(textures.texture(),
+                                                        ^
+  Symbol: Methode texture()
+  Ort: Variable textures von Typ PlayerSkin
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqReplayManager.java:86: Fehler: Symbol nicht gefunden
+                if(e instanceof AbstractClientPlayer p){name=p.getGameProfile().name();var props=p.getGameProfile().getProperties().get("textures");if(!props.isEmpty()){var prop=props.iterator().next();texture=prop.value();signature=prop.signature()==null?"":prop.signature();}}
+                                                                                                                   ^
+  Symbol: Methode getProperties()
+  Ort: Klasse GameProfile
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqReplayPlayback.java:89: Fehler: Symbol nicht gefunden
+            if(c.getServer()==null||!c.getServer().getSavePath(WorldSavePath.ROOT).toAbsolutePath().normalize().getFileName().toString().equals(folder)){reset();return;}
+                ^
+  Symbol: Methode getServer()
+  Ort: Variable c von Typ Minecraft
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqReplayPlayback.java:89: Fehler: Symbol nicht gefunden
+            if(c.getServer()==null||!c.getServer().getSavePath(WorldSavePath.ROOT).toAbsolutePath().normalize().getFileName().toString().equals(folder)){reset();return;}
+                                                               ^
+  Symbol: Variable WorldSavePath
+  Ort: Klasse MpsqReplayPlayback
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqReplayPlayback.java:89: Fehler: Symbol nicht gefunden
+            if(c.getServer()==null||!c.getServer().getSavePath(WorldSavePath.ROOT).toAbsolutePath().normalize().getFileName().toString().equals(folder)){reset();return;}
+                                      ^
+  Symbol: Methode getServer()
+  Ort: Variable c von Typ Minecraft
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqReplayPlayback.java:102: Fehler: Konstruktor LevelSettings in Datensatz LevelSettings kann nicht auf die angegebenen Typen angewendet werden.
+        var info=new LevelSettings("MPSQ Replay – "+MpsqZoneCatalog.label(replay.game),GameType.SPECTATOR,false,Difficulty.PEACEFUL,false,rules,WorldDataConfiguration.DEFAULT);
+                 ^
+  Erforderlich: String,GameType,DifficultySettings,boolean,WorldDataConfiguration
+  Ermittelt:    String,GameType,boolean,Difficulty,boolean,GameRules,WorldDataConfiguration
+  Grund: Liste der tatsächlichen Argumente hat eine andere Länge als die der formalen Argumente
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqReplayPlayback.java:111: Fehler: Symbol nicht gefunden
+            world.getGameRules().getRule(GameRules.RULE_DOMOBSPAWNING).set(false,server);
+                                                  ^
+  Symbol: Variable RULE_DOMOBSPAWNING
+  Ort: Klasse GameRules
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqReplayPlayback.java:112: Fehler: Symbol nicht gefunden
+            world.getGameRules().getRule(GameRules.RULE_DAYLIGHT).set(false,server);
+                                                  ^
+  Symbol: Variable RULE_DAYLIGHT
+  Ort: Klasse GameRules
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqReplayPlayback.java:113: Fehler: Symbol nicht gefunden
+            world.getGameRules().getRule(GameRules.RULE_WEATHER_CYCLE).set(false,server);
+                                                  ^
+  Symbol: Variable RULE_WEATHER_CYCLE
+  Ort: Klasse GameRules
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqReplayPlayback.java:114: Fehler: Symbol nicht gefunden
+            world.getGameRules().getRule(GameRules.RULE_RANDOMTICKING).set(0,server);
+                                                  ^
+  Symbol: Variable RULE_RANDOMTICKING
+  Ort: Klasse GameRules
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqReplayPlayback.java:115: Fehler: Symbol nicht gefunden
+            world.setDayTime(6000);server.tickRateManager().setFrozen(true);configured=true;
+                 ^
+  Symbol: Methode setDayTime(int)
+  Ort: Variable world von Typ ServerLevel
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqReplayPlayback.java:151: Fehler: Symbol nicht gefunden
+                if(!actor.texture().isEmpty())profile.getProperties().put("textures",new Property("textures",actor.texture(),actor.signature().isEmpty()?null:actor.signature()));
+                                                     ^
+  Symbol: Methode getProperties()
+  Ort: Variable profile von Typ GameProfile
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqReplayPlayback.java:152: Fehler: Symbol nicht gefunden
+                var skin=c.getSkinManager().lookupInsecure(profile);
+                                           ^
+  Symbol: Methode lookupInsecure(GameProfile)
+  Ort: Klasse SkinManager
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\RemoteCameraFrameManager.java:132: Fehler: Symbol nicht gefunden
+        if ((providerCamera == null && !hasBodycams) || publishing || client.getMainRenderTarget() == null) return;
+                                                                            ^
+  Symbol: Methode getMainRenderTarget()
+  Ort: Variable client von Typ Minecraft
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\RemoteCameraFrameManager.java:145: Fehler: Symbol nicht gefunden
+        Screenshot.takeScreenshot(client.getMainRenderTarget(), 1, image -> {
+                                        ^
+  Symbol: Methode getMainRenderTarget()
+  Ort: Variable client von Typ Minecraft
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\TeamCommandManager.java:78: Fehler: Symbol nicht gefunden
+                if(client.level==null||client.getNetworkHandler()==null)return true;
+                                             ^
+  Symbol: Methode getNetworkHandler()
+  Ort: Variable client von Typ Minecraft
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\TeamCommandManager.java:81: Fehler: Symbol nicht gefunden
+                pendingKicks.add(new PendingKick(normalized,target,System.nanoTime()+1_000_000_000L,client.level,client.getNetworkHandler()));
+                                                                                                                       ^
+  Symbol: Methode getNetworkHandler()
+  Ort: Variable client von Typ Minecraft
+C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\TeamCommandManager.java:125: Fehler: Methode addMessage in Klasse ChatComponent kann nicht auf die angegebenen Typen angewendet werden.
+        client.gui.hud.getChat().addMessage(message);
+                                ^
+  Erforderlich: Component,MessageSignature,GuiMessageSource,GuiMessageTag
+  Ermittelt:    Component
+  Grund: Liste der tatsächlichen Argumente hat eine andere Länge als die der formalen Argumente
+Hinweis: Einige Eingabedateien verwenden oder überschreiben eine veraltete API.
+Hinweis: Wiederholen Sie die Kompilierung mit -Xlint:deprecation, um Details zu erhalten.
+Hinweis: Einige Meldungen wurden vereinfacht. Wiederholen Sie die Kompilierung mit -Xdiags:verbose, um die vollständige Ausgabe abzurufen
+104 Fehler
+
+> Task :compileClientJava FAILED
+
+[Incubating] Problems report is available at: file:///C:/Users/lanck_m63m7au/OneDrive/Dokumente/mpsq/Output/Local-SR-Offizier-26.3/Mod-Repo/build/reports/problems/problems-report.html
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':compileClientJava' (registered by plugin class 'org.gradle.api.plugins.JavaBasePlugin').
+> Compilation failed; see the compiler output below.
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqActionSync.java:157: Fehler: Methode addMessage in Klasse ChatComponent kann nicht auf die angegebenen Typen angewendet werden.
+                      if (!localEcho && client.gui != null) client.gui.hud.getChat().addMessage(
+                                                                                    ^
+    Erforderlich: Component,MessageSignature,GuiMessageSource,GuiMessageTag
+    Ermittelt:    MutableComponent
+    Grund: Liste der tatsächlichen Argumente hat eine andere Länge als die der formalen Argumente
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqReplayPlayback.java:102: Fehler: Konstruktor LevelSettings in Datensatz LevelSettings kann nicht auf die angegebenen Typen angewendet werden.
+          var info=new LevelSettings("MPSQ Replay – "+MpsqZoneCatalog.label(replay.game),GameType.SPECTATOR,false,Difficulty.PEACEFUL,false,rules,WorldDataConfiguration.DEFAULT);
+                   ^
+    Erforderlich: String,GameType,DifficultySettings,boolean,WorldDataConfiguration
+    Ermittelt:    String,GameType,boolean,Difficulty,boolean,GameRules,WorldDataConfiguration
+    Grund: Liste der tatsächlichen Argumente hat eine andere Länge als die der formalen Argumente
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\TeamCommandManager.java:125: Fehler: Methode addMessage in Klasse ChatComponent kann nicht auf die angegebenen Typen angewendet werden.
+          client.gui.hud.getChat().addMessage(message);
+                                  ^
+    Erforderlich: Component,MessageSignature,GuiMessageSource,GuiMessageTag
+    Ermittelt:    Component
+    Grund: Liste der tatsächlichen Argumente hat eine andere Länge als die der formalen Argumente
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\mixin\client\PlayerEntityRendererMixin.java:71: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+              matrices.mulPose(com.mojang.math.Axis.XP.rotationDegrees(fall));
+                      ^
+      Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+      Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqAccessoryRenderer.java:414: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+              matrices.mulPose(Axis.YP.rotationDegrees(-headYaw));
+                      ^
+      Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+      Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqAccessoryRenderer.java:415: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+              matrices.mulPose(Axis.XP.rotationDegrees(-headPitch));
+                      ^
+      Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+      Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqAccessoryRenderer.java:417: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+              matrices.mulPose(Axis.ZP.rotationDegrees(display.rotation()[2]));
+                      ^
+      Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+      Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqAccessoryRenderer.java:418: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+              matrices.mulPose(Axis.YP.rotationDegrees(display.rotation()[1]));
+                      ^
+      Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+      Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqAccessoryRenderer.java:419: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+              matrices.mulPose(Axis.XP.rotationDegrees(display.rotation()[0]));
+                      ^
+      Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+      Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqAccessoryRenderer.java:431: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+          matrices.mulPose(Axis.YP.rotationDegrees(-headYaw));
+                  ^
+      Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+      Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqAccessoryRenderer.java:434: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+          matrices.mulPose(Axis.XP.rotationDegrees(-headPitch));
+                  ^
+      Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+      Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqAccessoryRenderer.java:482: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+          matrices.pushPose();matrices.translate(x,y,z);matrices.mulPose(context.camera().getRotation());var entry=matrices.last();var buffer=consumers.getBuffer(net.minecraft.client.renderer.rendertype.RenderTypes.entityCutout(texture));
+                                                                ^
+      Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+      Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqAccessoryRenderer.java:499: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+          float[] origin=vec(bone,"origin"),rotation=vec(bone,"rotation"),position=animationTrack(clip,bone,"position",time),delta=animationTrack(clip,bone,"rotation",time);matrices.pushPose();matrices.translate(origin[0]+position[0],origin[1]+position[1],origin[2]+position[2]);matrices.mulPose(Axis.ZP.rotationDegrees(rotation[2]+delta[2]));matrices.mulPose(Axis.YP.rotationDegrees(rotation[1]+delta[1]));matrices.mulPose(Axis.XP.rotationDegrees(rotation[0]+delta[0]));matrices.translate(-origin[0],-origin[1],-origin[2]);
+                                                                                                                                                                                                                                                                                               ^
+      Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+      Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqAccessoryRenderer.java:499: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+          float[] origin=vec(bone,"origin"),rotation=vec(bone,"rotation"),position=animationTrack(clip,bone,"position",time),delta=animationTrack(clip,bone,"rotation",time);matrices.pushPose();matrices.translate(origin[0]+position[0],origin[1]+position[1],origin[2]+position[2]);matrices.mulPose(Axis.ZP.rotationDegrees(rotation[2]+delta[2]));matrices.mulPose(Axis.YP.rotationDegrees(rotation[1]+delta[1]));matrices.mulPose(Axis.XP.rotationDegrees(rotation[0]+delta[0]));matrices.translate(-origin[0],-origin[1],-origin[2]);
+                                                                                                                                                                                                                                                                                                                                                               ^
+      Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+      Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqAccessoryRenderer.java:499: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+          float[] origin=vec(bone,"origin"),rotation=vec(bone,"rotation"),position=animationTrack(clip,bone,"position",time),delta=animationTrack(clip,bone,"rotation",time);matrices.pushPose();matrices.translate(origin[0]+position[0],origin[1]+position[1],origin[2]+position[2]);matrices.mulPose(Axis.ZP.rotationDegrees(rotation[2]+delta[2]));matrices.mulPose(Axis.YP.rotationDegrees(rotation[1]+delta[1]));matrices.mulPose(Axis.XP.rotationDegrees(rotation[0]+delta[0]));matrices.translate(-origin[0],-origin[1],-origin[2]);
+                                                                                                                                                                                                                                                                                                                                                                                                                               ^
+      Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+      Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqAccessoryRenderer.java:507: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+                      matrices.mulPose(Axis.ZP.rotationDegrees(rotation[2]));matrices.mulPose(Axis.YP.rotationDegrees(rotation[1]));matrices.mulPose(Axis.XP.rotationDegrees(rotation[0]));
+                              ^
+      Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+      Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqAccessoryRenderer.java:507: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+                      matrices.mulPose(Axis.ZP.rotationDegrees(rotation[2]));matrices.mulPose(Axis.YP.rotationDegrees(rotation[1]));matrices.mulPose(Axis.XP.rotationDegrees(rotation[0]));
+                                                                                     ^
+      Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+      Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqAccessoryRenderer.java:507: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+                      matrices.mulPose(Axis.ZP.rotationDegrees(rotation[2]));matrices.mulPose(Axis.YP.rotationDegrees(rotation[1]));matrices.mulPose(Axis.XP.rotationDegrees(rotation[0]));
+                                                                                                                                            ^
+      Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+      Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqBudgieModel.java:44: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+          matrices.mulPose(Axis.YP.rotationDegrees(180.0f - yaw));
+                  ^
+      Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+      Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqBudgieModel.java:75: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+          matrices.mulPose(Axis.ZP.rotationDegrees((float) (rotation.z + animatedRotation.z)));
+                  ^
+      Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+      Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqBudgieModel.java:76: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+          matrices.mulPose(Axis.YP.rotationDegrees((float) (rotation.y + animatedRotation.y)));
+                  ^
+      Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+      Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqBudgieModel.java:77: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+          matrices.mulPose(Axis.XP.rotationDegrees((float) (rotation.x + animatedRotation.x)));
+                  ^
+      Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+      Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqBudgieModel.java:89: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+          matrices.mulPose(Axis.ZP.rotationDegrees((float) cube.rotation.z));
+                  ^
+      Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+      Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqBudgieModel.java:90: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+          matrices.mulPose(Axis.YP.rotationDegrees((float) cube.rotation.y));
+                  ^
+      Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+      Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqBudgieModel.java:91: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+          matrices.mulPose(Axis.XP.rotationDegrees((float) cube.rotation.x));
+                  ^
+      Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+      Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqFurnitureNameTagRenderer.java:23: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+          matrices.mulPose(context.camera().getRotation());
+                  ^
+      Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+      Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqGamesRuntime.java:42: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+                  m.mulPose(ctx.camera().getRotation());m.scale(-0.025f,-0.025f,0.025f);
+                   ^
+      Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+      Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqHedgehogModel.java:41: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+          matrices.mulPose(Axis.YP.rotationDegrees(180.0f - yaw));
+                  ^
+      Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+      Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqHedgehogModel.java:62: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+          matrices.mulPose(Axis.ZP.rotationDegrees((float) (rotation.z + animatedRotation.z)));
+                  ^
+      Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+      Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqHedgehogModel.java:63: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+          matrices.mulPose(Axis.YP.rotationDegrees((float) (rotation.y + animatedRotation.y)));
+                  ^
+      Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+      Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqHedgehogModel.java:64: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+          matrices.mulPose(Axis.XP.rotationDegrees((float) (rotation.x + animatedRotation.x)));
+                  ^
+      Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+      Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqHedgehogModel.java:76: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+          matrices.mulPose(Axis.ZP.rotationDegrees((float) cube.rotation.z));
+                  ^
+      Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+      Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqHedgehogModel.java:77: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+          matrices.mulPose(Axis.YP.rotationDegrees((float) cube.rotation.y));
+                  ^
+      Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+      Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqHedgehogModel.java:78: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+          matrices.mulPose(Axis.XP.rotationDegrees((float) cube.rotation.x));
+                  ^
+      Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+      Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqMiniYouModel.java:42: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+          matrices.mulPose(Axis.YP.rotationDegrees(180.0f - yaw));
+                  ^
+      Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+      Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqMiniYouModel.java:65: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+          matrices.mulPose(Axis.ZP.rotationDegrees((float) (rotation.z + animatedRotation.z)));
+                  ^
+      Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+      Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqMiniYouModel.java:66: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+          matrices.mulPose(Axis.YP.rotationDegrees((float) (rotation.y + animatedRotation.y)));
+                  ^
+      Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+      Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqMiniYouModel.java:67: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+          matrices.mulPose(Axis.XP.rotationDegrees((float) (rotation.x + animatedRotation.x)));
+                  ^
+      Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+      Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqMiniYouModel.java:79: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+          matrices.mulPose(Axis.ZP.rotationDegrees((float) cube.rotation.z));
+                  ^
+      Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+      Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqMiniYouModel.java:80: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+          matrices.mulPose(Axis.YP.rotationDegrees((float) cube.rotation.y));
+                  ^
+      Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+      Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqMiniYouModel.java:81: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+          matrices.mulPose(Axis.XP.rotationDegrees((float) cube.rotation.x));
+                  ^
+      Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+      Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqOtterModel.java:41: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+          matrices.mulPose(Axis.YP.rotationDegrees(180.0f - yaw));
+                  ^
+      Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+      Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqOtterModel.java:64: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+          matrices.mulPose(Axis.ZP.rotationDegrees((float) (rotation.z + animatedRotation.z)));
+                  ^
+      Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+      Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqOtterModel.java:65: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+          matrices.mulPose(Axis.YP.rotationDegrees((float) (rotation.y + animatedRotation.y)));
+                  ^
+      Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+      Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqOtterModel.java:66: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+          matrices.mulPose(Axis.XP.rotationDegrees((float) (rotation.x + animatedRotation.x)));
+                  ^
+      Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+      Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqOtterModel.java:78: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+          matrices.mulPose(Axis.ZP.rotationDegrees((float) cube.rotation.z));
+                  ^
+      Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+      Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqOtterModel.java:79: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+          matrices.mulPose(Axis.YP.rotationDegrees((float) cube.rotation.y));
+                  ^
+      Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+      Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqOtterModel.java:80: Fehler: Methode für mulPose(Quaternionf) nicht geeignet
+          matrices.mulPose(Axis.XP.rotationDegrees((float) cube.rotation.x));
+                  ^
+      Methode PoseStack.mulPose(Matrix4fc) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Matrix4fc konvertiert werden)
+      Methode PoseStack.mulPose(Transformation) ist nicht anwendbar
+        (Keine übereinstimmenden Argumente, Quaternionf kann nicht in Transformation konvertiert werden)
+  Hinweis: Wiederholen Sie die Kompilierung mit -Xlint:deprecation, um Details zu erhalten.
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqNametags.java:17: Fehler: Inkompatible Typen: Identifier kann nicht in FontDescription konvertiert werden
+          Component icon = Component.literal(glyph(rank)).setStyle(Style.EMPTY.withFont(RANK_FONT).withColor(ChatFormatting.WHITE));
+                                                                                        ^
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqNametags.java:23: Fehler: Inkompatible Typen: Identifier kann nicht in FontDescription konvertiert werden
+                  .setStyle(Style.EMPTY.withFont(NAME_FONT).withColor(ChatFormatting.WHITE)));
+                                                 ^
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqPetRenderer.java:61: Fehler: Symbol nicht gefunden
+              state.limbSwingAnimationProgress = age * (speed > 0.02f ? 0.18f : 0.035f);
+                   ^
+    Symbol: Variable limbSwingAnimationProgress
+    Ort: Variable state von Typ AvatarRenderState
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqPetRenderer.java:62: Fehler: Symbol nicht gefunden
+              state.limbSwingAmplitude = Math.min(0.55f, speed * 2.2f);
+                   ^
+    Symbol: Variable limbSwingAmplitude
+    Ort: Variable state von Typ AvatarRenderState
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqReplayPlayback.java:89: Fehler: Symbol nicht gefunden
+              if(c.getServer()==null||!c.getServer().getSavePath(WorldSavePath.ROOT).toAbsolutePath().normalize().getFileName().toString().equals(folder)){reset();return;}
+                                                                 ^
+    Symbol: Variable WorldSavePath
+    Ort: Klasse MpsqReplayPlayback
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqReplayPlayback.java:111: Fehler: Symbol nicht gefunden
+              world.getGameRules().getRule(GameRules.RULE_DOMOBSPAWNING).set(false,server);
+                                                    ^
+    Symbol: Variable RULE_DOMOBSPAWNING
+    Ort: Klasse GameRules
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqReplayPlayback.java:112: Fehler: Symbol nicht gefunden
+              world.getGameRules().getRule(GameRules.RULE_DAYLIGHT).set(false,server);
+                                                    ^
+    Symbol: Variable RULE_DAYLIGHT
+    Ort: Klasse GameRules
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqReplayPlayback.java:113: Fehler: Symbol nicht gefunden
+              world.getGameRules().getRule(GameRules.RULE_WEATHER_CYCLE).set(false,server);
+                                                    ^
+    Symbol: Variable RULE_WEATHER_CYCLE
+    Ort: Klasse GameRules
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqReplayPlayback.java:114: Fehler: Symbol nicht gefunden
+              world.getGameRules().getRule(GameRules.RULE_RANDOMTICKING).set(0,server);
+                                                    ^
+    Symbol: Variable RULE_RANDOMTICKING
+    Ort: Klasse GameRules
+  Hinweis: Einige Eingabedateien verwenden oder überschreiben eine veraltete API.
+  Hinweis: Einige Meldungen wurden vereinfacht. Wiederholen Sie die Kompilierung mit -Xdiags:verbose, um die vollständige Ausgabe abzurufen
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\mixin\client\PlayerListHudMixin.java:17: Fehler: Symbol nicht gefunden
+          if (TeamVisibilitySettings.visible()) cir.setReturnValue(MpsqNametags.forPlayer(entry.getProfile().getName()));
+                                                                                                            ^
+    Symbol: Methode getName()
+    Ort: Klasse GameProfile
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\mixin\client\SoundSystemMixin.java:39: Fehler: Symbol nicht gefunden
+                  || ("minecraft".equals(sound.getLocation().getNamespace())
+                                              ^
+    Symbol: Methode getLocation()
+    Ort: Variable sound von Typ SoundInstance
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\mixin\client\SoundSystemMixin.java:40: Fehler: Symbol nicht gefunden
+                  && sound.getLocation().getPath().startsWith("block.note_block."));
+                          ^
+    Symbol: Methode getLocation()
+    Ort: Variable sound von Typ SoundInstance
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqAccessoryRenderer.java:236: Fehler: Symbol nicht gefunden
+                  if(client.level!=null)for(var player:client.level.getPlayers()){
+                                                                   ^
+    Symbol: Methode getPlayers()
+    Ort: Variable level von Typ ClientLevel
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqAccessoryRenderer.java:246: Fehler: Symbol nicht gefunden
+              float tickProgress=context.tickCounter().getTickProgress(false);
+                                                      ^
+    Symbol: Methode getTickProgress(boolean)
+    Ort: Schnittstelle DeltaTracker
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqAccessoryRenderer.java:249: Fehler: Symbol nicht gefunden
+                  float objectScale=o.has("scale")?o.get("scale").getAsFloat():1.0f;objectScale=Float.isFinite(objectScale)?Math.max(0.25f,Math.min(3.0f,objectScale)):1.0f;FurnitureBounds bounds=furnitureBounds(model);matrices.push();matrices.translate(x+0.5-camera.x,y-camera.y,z+0.5-camera.z);matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(o.get("rotation").getAsFloat()));matrices.translate(-0.5,0,-0.5);matrices.translate(0.5-objectScale*bounds.centerX()/16.0,-objectScale*bounds.minY()/16.0,0.5-objectScale*bounds.centerZ()/16.0);matrices.scale(objectScale/16,objectScale/16,objectScale/16);drawBakedFurniture(model,matrices,consumers,0xFFFFFFFF);matrices.pop();String furnitureName=o.has("display_name")?o.get("display_name").getAsString():"";MpsqFurnitureNameTagRenderer.draw(context,matrices,consumers,furnitureName,x+0.5,y+2.0*objectScale+0.15,z+0.5);
+                                                                                                                                                                                                                                  ^
+    Symbol: Methode push()
+    Ort: Variable matrices von Typ PoseStack
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqAccessoryRenderer.java:249: Fehler: Symbol nicht gefunden
+                  float objectScale=o.has("scale")?o.get("scale").getAsFloat():1.0f;objectScale=Float.isFinite(objectScale)?Math.max(0.25f,Math.min(3.0f,objectScale)):1.0f;FurnitureBounds bounds=furnitureBounds(model);matrices.push();matrices.translate(x+0.5-camera.x,y-camera.y,z+0.5-camera.z);matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(o.get("rotation").getAsFloat()));matrices.translate(-0.5,0,-0.5);matrices.translate(0.5-objectScale*bounds.centerX()/16.0,-objectScale*bounds.minY()/16.0,0.5-objectScale*bounds.centerZ()/16.0);matrices.scale(objectScale/16,objectScale/16,objectScale/16);drawBakedFurniture(model,matrices,consumers,0xFFFFFFFF);matrices.pop();String furnitureName=o.has("display_name")?o.get("display_name").getAsString():"";MpsqFurnitureNameTagRenderer.draw(context,matrices,consumers,furnitureName,x+0.5,y+2.0*objectScale+0.15,z+0.5);
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               ^
+    Symbol: Methode pop()
+    Ort: Variable matrices von Typ PoseStack
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqAccessoryRenderer.java:251: Fehler: Symbol nicht gefunden
+              for(var player:client.level.getPlayers()){
+                                         ^
+    Symbol: Methode getPlayers()
+    Ort: Variable level von Typ ClientLevel
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqAccessoryRenderer.java:252: Fehler: Symbol nicht gefunden
+                  if(player.isInvisible()||player.isSpectator()||(player==client.player&&client.options.getPerspective().isFirstPerson()))continue;
+                                                                                                       ^
+    Symbol: Methode getPerspective()
+    Ort: Variable options von Typ Options
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqAccessoryRenderer.java:258: Fehler: Symbol nicht gefunden
+                  matrices.push();
+                          ^
+    Symbol: Methode push()
+    Ort: Variable matrices von Typ PoseStack
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqAccessoryRenderer.java:262: Fehler: Symbol nicht gefunden
+                  matrices.pop();
+                          ^
+    Symbol: Methode pop()
+    Ort: Variable matrices von Typ PoseStack
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqAccessoryRenderer.java:294: Fehler: Symbol nicht gefunden
+                  else {float clipTime=wumpus?MpsqWumpusBehavior.elapsedSeconds(npcId):0;if(wumpus)pitch=0f;matrices.push();matrices.translate(x-camera.x,y+bob-camera.y,z-camera.z);matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(-bodyYaw+(wumpus?180f:0f)));matrices.multiply(RotationAxis.POSITIVE_X.rotationDegrees(pitch));matrices.scale(size/16f*pulse,size/16f*pulse,size/16f*pulse);drawBbModel(model,matrices,consumers,0xFFFFFFFF,clip,clipTime);
+                                                                                                                    ^
+    Symbol: Methode push()
+    Ort: Variable matrices von Typ PoseStack
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqAccessoryRenderer.java:295: Fehler: Symbol nicht gefunden
+                      if(glowing){var outline=client.getBufferBuilders().getOutlineVertexConsumers();outline.setColor((glow>>16)&255,(glow>>8)&255,glow&255,255);drawBbModel(model,matrices,outline,0xFFFFFFFF,clip,clipTime);outline.draw();}
+                                                    ^
+    Symbol: Methode getBufferBuilders()
+    Ort: Variable client von Typ Minecraft
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqAccessoryRenderer.java:296: Fehler: Symbol nicht gefunden
+                      matrices.pop();}
+                              ^
+    Symbol: Methode pop()
+    Ort: Variable matrices von Typ PoseStack
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqAccessoryRenderer.java:309: Fehler: Symbol nicht gefunden
+                      drawBillboard(context,matrices,consumers,Identifier.of("mpsqcamera","textures/gui/npc_tags/"+tag+".png"),tagX,y+npcHeight+bob+tagVerticalOffset-camera.y,tagZ,tagHeight*aspect,tagHeight);
+                                                                         ^
+    Symbol: Methode of(String,String)
+    Ort: Klasse Identifier
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqAccessoryRenderer.java:310: Fehler: Symbol nicht gefunden
+                      if("tutorial".equals(task)&&!tutorialDone){float hover=(float)Math.sin(System.currentTimeMillis()/360.0)*0.07f*tagScale;float iconOffset=tagVerticalOffset+0.36f*tagScale;drawBillboard(context,matrices,consumers,Identifier.of("mpsqcamera","textures/gui/npc_tags/tutorial_exclamation.png"),tagX,y+npcHeight+bob+iconOffset+hover-camera.y,tagZ,0.42f*tagScale,0.42f*tagScale);}}
+                                                                                                                                                                                                                                                   ^
+    Symbol: Methode of(String,String)
+    Ort: Klasse Identifier
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqAccessoryRenderer.java:315: Fehler: Symbol nicht gefunden
+                      drawBillboard(context,matrices,consumers,Identifier.of("mpsqcamera","textures/gui/npc_tags/discord.png"),tagX,y+npcHeight+bob+tagCenterOffset-camera.y,tagZ,tagHeight*(2176f/320f),tagHeight);
+                                                                         ^
+    Symbol: Methode of(String,String)
+    Ort: Klasse Identifier
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqActionSync.java:75: Fehler: Symbol nicht gefunden
+                          client.send(()->client.gui.setScreen(new MpsqActionSetupScreen(position,block,state.getBlock().getName().getString(),kind,properties)));
+                                ^
+    Symbol: Methode send(()->client[...]ies)))
+    Ort: Variable client von Typ Minecraft
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqAudioManager.java:25: Fehler: Symbol nicht gefunden
+              if (sound != null && !client.getSoundManager().isPlaying(sound)) nextTrack();
+                                                            ^
+    Symbol: Methode isPlaying(SimpleSoundInstance)
+    Ort: Klasse SoundManager
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqAudioManager.java:67: Fehler: Symbol nicht gefunden
+          if (sound != null) Minecraft.getInstance().getSoundManager().setVolume(sound, volume);
+                                                                      ^
+    Symbol: Methode setVolume(SimpleSoundInstance,float)
+    Ort: Klasse SoundManager
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqCameraClient.java:18: Fehler: Symbol nicht gefunden
+              if (client.options.showSubtitles().getValue()) {
+                                                ^
+    Symbol: Methode getValue()
+    Ort: Klasse OptionInstance<Boolean>
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqCameraClient.java:19: Fehler: Symbol nicht gefunden
+                  client.options.showSubtitles().setValue(false);
+                                                ^
+    Symbol: Methode setValue(boolean)
+    Ort: Klasse OptionInstance<Boolean>
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqKickAnimationManager.java:48: Fehler: Symbol nicht gefunden
+          if(skinSource!=null)profile.getProperties().putAll(skinSource.getGameProfile().getProperties());
+                                     ^
+    Symbol: Methode getProperties()
+    Ort: Variable profile von Typ GameProfile
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqKickAnimationManager.java:48: Fehler: Symbol nicht gefunden
+          if(skinSource!=null)profile.getProperties().putAll(skinSource.getGameProfile().getProperties());
+                                                                                        ^
+    Symbol: Methode getProperties()
+    Ort: Klasse GameProfile
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqKickAnimationManager.java:60: Fehler: Symbol nicht gefunden
+          if(skin!=null)CLONE_SKINS.put(profile.getId(),skin);
+                                               ^
+    Symbol: Methode getId()
+    Ort: Variable profile von Typ GameProfile
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqKickAnimationManager.java:63: Fehler: Symbol nicht gefunden
+              SOURCE_MODEL_PARTS.put(profile.getId(),new boolean[]{
+                                            ^
+    Symbol: Methode getId()
+    Ort: Variable profile von Typ GameProfile
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqPetPresenceRenderer.java:43: Fehler: Symbol nicht gefunden
+              if(entry==null)return;PlayerSkin textures=entry.getSkin();skin=new MpsqNpcSkinRenderer.Skin(textures.texture(),textures.model()==net.minecraft.world.entity.player.PlayerModelType.SLIM);
+                                                                                                                  ^
+    Symbol: Methode texture()
+    Ort: Variable textures von Typ PlayerSkin
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqPetPresenceRenderer.java:54: Fehler: Symbol nicht gefunden
+              if(entry==null)return;PlayerSkin skin=entry.getSkin();texture=skin.texture();slim=skin.model()==net.minecraft.world.entity.player.PlayerModelType.SLIM;
+                                                                                ^
+    Symbol: Methode texture()
+    Ort: Variable skin von Typ PlayerSkin
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqPetRenderer.java:56: Fehler: Symbol nicht gefunden
+              float yaw = player.getYaw();
+                                ^
+    Symbol: Methode getYaw()
+    Ort: Variable player von Typ LocalPlayer
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqPetRenderer.java:59: Fehler: Symbol nicht gefunden
+              var velocity = player.getVelocity();
+                                   ^
+    Symbol: Methode getVelocity()
+    Ort: Variable player von Typ LocalPlayer
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqPetRenderer.java:114: Fehler: Symbol nicht gefunden
+              return new MpsqNpcSkinRenderer.Skin(textures.texture(),
+                                                          ^
+    Symbol: Methode texture()
+    Ort: Variable textures von Typ PlayerSkin
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqReplayManager.java:86: Fehler: Symbol nicht gefunden
+                  if(e instanceof AbstractClientPlayer p){name=p.getGameProfile().name();var props=p.getGameProfile().getProperties().get("textures");if(!props.isEmpty()){var prop=props.iterator().next();texture=prop.value();signature=prop.signature()==null?"":prop.signature();}}
+                                                                                                                     ^
+    Symbol: Methode getProperties()
+    Ort: Klasse GameProfile
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqReplayPlayback.java:89: Fehler: Symbol nicht gefunden
+              if(c.getServer()==null||!c.getServer().getSavePath(WorldSavePath.ROOT).toAbsolutePath().normalize().getFileName().toString().equals(folder)){reset();return;}
+                  ^
+    Symbol: Methode getServer()
+    Ort: Variable c von Typ Minecraft
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqReplayPlayback.java:89: Fehler: Symbol nicht gefunden
+              if(c.getServer()==null||!c.getServer().getSavePath(WorldSavePath.ROOT).toAbsolutePath().normalize().getFileName().toString().equals(folder)){reset();return;}
+                                        ^
+    Symbol: Methode getServer()
+    Ort: Variable c von Typ Minecraft
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqReplayPlayback.java:115: Fehler: Symbol nicht gefunden
+              world.setDayTime(6000);server.tickRateManager().setFrozen(true);configured=true;
+                   ^
+    Symbol: Methode setDayTime(int)
+    Ort: Variable world von Typ ServerLevel
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqReplayPlayback.java:151: Fehler: Symbol nicht gefunden
+                  if(!actor.texture().isEmpty())profile.getProperties().put("textures",new Property("textures",actor.texture(),actor.signature().isEmpty()?null:actor.signature()));
+                                                       ^
+    Symbol: Methode getProperties()
+    Ort: Variable profile von Typ GameProfile
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqReplayPlayback.java:152: Fehler: Symbol nicht gefunden
+                  var skin=c.getSkinManager().lookupInsecure(profile);
+                                             ^
+    Symbol: Methode lookupInsecure(GameProfile)
+    Ort: Klasse SkinManager
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\RemoteCameraFrameManager.java:132: Fehler: Symbol nicht gefunden
+          if ((providerCamera == null && !hasBodycams) || publishing || client.getMainRenderTarget() == null) return;
+                                                                              ^
+    Symbol: Methode getMainRenderTarget()
+    Ort: Variable client von Typ Minecraft
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\RemoteCameraFrameManager.java:145: Fehler: Symbol nicht gefunden
+          Screenshot.takeScreenshot(client.getMainRenderTarget(), 1, image -> {
+                                          ^
+    Symbol: Methode getMainRenderTarget()
+    Ort: Variable client von Typ Minecraft
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\TeamCommandManager.java:78: Fehler: Symbol nicht gefunden
+                  if(client.level==null||client.getNetworkHandler()==null)return true;
+                                               ^
+    Symbol: Methode getNetworkHandler()
+    Ort: Variable client von Typ Minecraft
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\TeamCommandManager.java:81: Fehler: Symbol nicht gefunden
+                  pendingKicks.add(new PendingKick(normalized,target,System.nanoTime()+1_000_000_000L,client.level,client.getNetworkHandler()));
+                                                                                                                         ^
+    Symbol: Methode getNetworkHandler()
+    Ort: Variable client von Typ Minecraft
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqReplayPlayback.java:30: Fehler: Package net.minecraft.world.gen ist nicht vorhanden
+  import net.minecraft.world.gen.*;
+                            ^
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqReplayPlayback.java:31: Fehler: Package net.minecraft.world.gen.chunk ist nicht vorhanden
+  import net.minecraft.world.gen.chunk.*;
+                                ^
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqAccessoryRenderer.java:249: Fehler: Package RotationAxis ist nicht vorhanden
+                  float objectScale=o.has("scale")?o.get("scale").getAsFloat():1.0f;objectScale=Float.isFinite(objectScale)?Math.max(0.25f,Math.min(3.0f,objectScale)):1.0f;FurnitureBounds bounds=furnitureBounds(model);matrices.push();matrices.translate(x+0.5-camera.x,y-camera.y,z+0.5-camera.z);matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(o.get("rotation").getAsFloat()));matrices.translate(-0.5,0,-0.5);matrices.translate(0.5-objectScale*bounds.centerX()/16.0,-objectScale*bounds.minY()/16.0,0.5-objectScale*bounds.centerZ()/16.0);matrices.scale(objectScale/16,objectScale/16,objectScale/16);drawBakedFurniture(model,matrices,consumers,0xFFFFFFFF);matrices.pop();String furnitureName=o.has("display_name")?o.get("display_name").getAsString():"";MpsqFurnitureNameTagRenderer.draw(context,matrices,consumers,furnitureName,x+0.5,y+2.0*objectScale+0.15,z+0.5);
+                                                                                                                                                                                                                                                                                                                                     ^
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqAccessoryRenderer.java:294: Fehler: Package RotationAxis ist nicht vorhanden
+                  else {float clipTime=wumpus?MpsqWumpusBehavior.elapsedSeconds(npcId):0;if(wumpus)pitch=0f;matrices.push();matrices.translate(x-camera.x,y+bob-camera.y,z-camera.z);matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(-bodyYaw+(wumpus?180f:0f)));matrices.multiply(RotationAxis.POSITIVE_X.rotationDegrees(pitch));matrices.scale(size/16f*pulse,size/16f*pulse,size/16f*pulse);drawBbModel(model,matrices,consumers,0xFFFFFFFF,clip,clipTime);
+                                                                                                                                                                                                                   ^
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqAccessoryRenderer.java:294: Fehler: Package RotationAxis ist nicht vorhanden
+                  else {float clipTime=wumpus?MpsqWumpusBehavior.elapsedSeconds(npcId):0;if(wumpus)pitch=0f;matrices.push();matrices.translate(x-camera.x,y+bob-camera.y,z-camera.z);matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(-bodyYaw+(wumpus?180f:0f)));matrices.multiply(RotationAxis.POSITIVE_X.rotationDegrees(pitch));matrices.scale(size/16f*pulse,size/16f*pulse,size/16f*pulse);drawBbModel(model,matrices,consumers,0xFFFFFFFF,clip,clipTime);
+                                                                                                                                                                                                                                                                                                         ^
+  C:\Users\lanck_m63m7au\OneDrive\Dokumente\mpsq\Output\Local-SR-Offizier-26.3\Mod-Repo\src\client\java\de\galaxushd\mpsqcamera\MpsqActionSync.java:73: Fehler: Package net.minecraft.registry.Registries ist nicht vorhanden
+                          String block=net.minecraft.registry.Registries.BLOCK.getId(state.getBlock()).toString();
+                                                                        ^
+  104 Fehler
+
+* Try:
+> Check your code and dependencies to fix the compilation error(s)
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+
+BUILD FAILED in 12s
+2 actionable tasks: 1 executed, 1 up-to-date

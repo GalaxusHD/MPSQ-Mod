@@ -1,83 +1,48 @@
-buildscript {
-	repositories {
-		mavenCentral()
-		maven { url = "https://maven.fabricmc.net/" }
-	}
-	dependencies {
-		classpath "net.fabricmc:fabric-loom:1.13.3"
-	}
+plugins {
+ id 'net.fabricmc.fabric-loom' version '1.17.21'
+ id 'maven-publish'
 }
-
-apply plugin: 'fabric-loom'
-apply plugin: 'maven-publish'
-
 version = project.mod_version
 group = project.maven_group
-
-base {
-	archivesName = "mpsq-team"
-}
-
-repositories {
-	mavenCentral()
-	maven { url = "https://maven.fabricmc.net/" }
-	maven { url = "https://keksuccino.github.io/maven/" }
-}
-
+base { archivesName = 'mpsq-team' }
+repositories { mavenCentral() }
 dependencies {
-	minecraft "com.mojang:minecraft:${project.minecraft_version}"
-	mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
-	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
-
-	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
-
-	// MCEF provides the in-game Chromium browser used by cinema screens.
-	modImplementation files("libs/mcef-fabric-2.1.6-1.21.6.jar")
+ minecraft "com.mojang:minecraft:${project.minecraft_version}"
+ implementation "net.fabricmc:fabric-loader:${project.loader_version}"
+ implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+ implementation files('libs/mcef-modern-0.3.3+mc26.3.jcef146.0.10.jar')
+ implementation 'me.friwi:jcef-api:jcef-d3de827+cef-146.0.10+g8219561+chromium-146.0.7680.179'
 }
-
 loom {
-	splitEnvironmentSourceSets()
-
-	mods {
-		"mpsqcamera" {
-			sourceSet sourceSets.main
-			sourceSet sourceSets.client
-		}
-	}
-
-	mixin {
-		useLegacyMixinAp = true
-		defaultRefmapName = "mpsqcamera.refmap.json"
-		add sourceSets.client, "mpsqcamera.refmap.json"
-	}
+ splitEnvironmentSourceSets()
+ mods { mpsqcamera { sourceSet sourceSets.main; sourceSet sourceSets.client } }
 }
+java { toolchain { languageVersion = JavaLanguageVersion.of(25) }; withSourcesJar() }
+tasks.withType(JavaCompile).configureEach { options.release = 25; options.compilerArgs += ['-Xmaxerrs', '1000'] }
+processResources { inputs.property 'version', project.version; filesMatching('fabric.mod.json') { expand 'version': project.version } }
 
-java {
-	toolchain {
-		languageVersion = JavaLanguageVersion.of(21)
-	}
-	withSourcesJar()
+// Opt-in isolated client smoke test; never included in the distributable build.
+if (project.hasProperty('portSmoke')) {
+ sourceSets.client.java.srcDir 'checks/smoke/java'
+ processResources.doLast {
+  def manifest = file("${destinationDir}/fabric.mod.json")
+  def json = new groovy.json.JsonSlurper().parse(manifest)
+  json.entrypoints['fabric-client-gametest'] = ['de.galaxushd.mpsqcamera.PortSmokeTest']
+  manifest.text = groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson(json))
+ }
+ loom.runs.client { vmArg '-Dfabric.client.gametest=true'; vmArg '-Dfabric.client.gametest.modid=mpsqcamera' }
 }
+processResources.inputs.property 'portSmoke', project.hasProperty('portSmoke')
 
-// Replay is deferred and is not part of this release.
-sourceSets.client.java.exclude '**/MpsqReplayManager.java', '**/MpsqReplayScreen.java'
-
-tasks.withType(JavaCompile).configureEach {
-	it.options.release = 21
+// Isolated camera editor regression test, never included in a normal build.
+if (project.hasProperty('cinematicSmoke')) {
+ sourceSets.client.java.srcDir 'checks/cinematic-smoke/java'
+ processResources.doLast {
+  def manifest = file("${destinationDir}/fabric.mod.json")
+  def json = new groovy.json.JsonSlurper().parse(manifest)
+  json.entrypoints['fabric-client-gametest'] = ['de.galaxushd.mpsqcamera.CinematicGuiSmoke']
+  manifest.text = groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson(json))
+ }
+ loom.runs.client { vmArg '-Dfabric.client.gametest=true'; vmArg '-Dfabric.client.gametest.modid=mpsqcamera' }
 }
-
-processResources {
-	inputs.property "version", project.version
-
-	filesMatching("fabric.mod.json") {
-		expand "version": project.version
-	}
-}
-
-jar {
-	from("LICENSE") {
-		rename { "${it}_${project.base.archivesName.get()}" }
-	}
-}
-
-
+processResources.inputs.property 'cinematicSmoke', project.hasProperty('cinematicSmoke')
